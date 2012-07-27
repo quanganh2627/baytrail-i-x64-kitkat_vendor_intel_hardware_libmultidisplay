@@ -1,5 +1,7 @@
 LOCAL_PATH:= $(call my-dir)
 
+ifeq ($(TARGET_HAS_MULTIPLE_DISPLAY),true)
+
 include $(CLEAR_VARS)
 LOCAL_COPY_HEADERS_TO := display
 LOCAL_COPY_HEADERS := \
@@ -93,3 +95,4 @@ include $(BUILD_STATIC_JAVA_LIBRARY)
 
 include $(BUILD_DROIDDOC)
 
+endif
