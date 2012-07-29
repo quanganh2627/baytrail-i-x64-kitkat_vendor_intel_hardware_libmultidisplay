@@ -113,6 +113,7 @@ static bool drm_hdcp_isAuthenticated()
     }
 }
 
+#ifdef IED_SESSION_READ_FIX
 // check whether there is an active IED session (Inline Decryption and Encryption)
 static bool drm_check_ied_session()
 {
@@ -147,7 +148,7 @@ static bool drm_check_ied_session()
         return false;
     }
 }
-
+#endif
 
 static void drm_hdcp_check_link_status()
 {
@@ -257,7 +258,9 @@ static bool drm_hdcp_enable_hdcp_work()
     bool ret = true;
     sec_result_t res;
 
+#ifdef IED_SESSION_READ_FIX
     if (drm_check_ied_session()) {
+#endif
         res = Drm_Library_Init();
         if (res != 0) {
             LOGW("Drm_Library_Init failed. Error = %#x", res);
@@ -278,10 +281,12 @@ static bool drm_hdcp_enable_hdcp_work()
         if (res != 0) {
             LOGW("Failed to enable IED session. Error = %#x", res);
         }
+#ifdef IED_SESSION_READ_FIX
     } else {
         // IED session is inactive yet, start HDCP enabling and checking without tearing down IED session.
         ret = drm_hdcp_enable_and_check();
     }
+#endif
 
     return ret;
 }
