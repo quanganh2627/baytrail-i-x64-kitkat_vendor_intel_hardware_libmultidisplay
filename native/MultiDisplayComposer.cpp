@@ -16,7 +16,6 @@
  */
 
 //#define LOG_NDEBUG 0
-//#define ENABLE_HDCP_ON_JB
 
 #include <utils/Log.h>
 #include <binder/IServiceManager.h>
@@ -194,9 +193,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
 
         LOGI("Notify HDMI audio driver hot unplug event.");
         drm_hdmi_notify_audio_hotplug(false);
-#ifdef ENABLE_HDCP_ON_JB
         drm_hdcp_disable_hdcp(false);
-#endif
         mMode &= ~MDS_HDMI_CONNECTED;
         mMode &= ~MDS_HDMI_ON;
         mMode &= ~MDS_HDCP_ON;
@@ -219,11 +216,9 @@ int MultiDisplayComposer::setHdmiMode_l() {
             broadcastModeChange_l(mMode);
             return MDS_NO_ERROR;
         }
-#ifdef ENABLE_HDCP_ON_JB
         if (checkMode(mMode, MDS_HDCP_ON)) {
             drm_hdcp_disable_hdcp(true);
         }
-#endif
         mMode &= ~MDS_HDCP_ON;
         mMode &= ~MDS_HDMI_ON;
         mMode &= ~MDS_HDMI_CLONE;
@@ -269,13 +264,11 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMipiPolicy = MDS_MIPI_OFF_ALLOWED;
         if (mVideo.isprotected) {
             LOGI("Turning on HDCP...");
-#ifdef ENABLE_HDCP_ON_JB
             if (drm_hdcp_enable_hdcp() == false) {
                 LOGE("Fail to enable HDCP.");
                 // Continue mode setting as it may be recovered, unless HDCP is not supported.
                 // If HDCP is not supported, user will have to unplug the cable to restore video to phone.
             }
-#endif
             mMode |= MDS_HDCP_ON;
         }
         broadcastModeChange_l(mMode);
@@ -286,11 +279,9 @@ int MultiDisplayComposer::setHdmiMode_l() {
             broadcastModeChange_l(mMode);
             return MDS_NO_ERROR;
         }
-#ifdef ENABLE_HDCP_ON_JB
         if (checkMode(mMode, MDS_HDCP_ON)) {
             drm_hdcp_disable_hdcp(true);
         }
-#endif
         mMode &= ~MDS_HDCP_ON;
 
         if (!drm_hdmi_setHdmiMode(DRM_HDMI_CLONE)) {

@@ -23,19 +23,20 @@ LOCAL_MODULE:= libmultidisplay
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_SHARED_LIBRARIES := \
-    libui libcutils libutils libbinder
+    libui libcutils libutils libbinder libsepdrm
 LOCAL_CFLAGS := -DLOG_TAG=\"MultiDisplay\"
 
 ifeq ($(ENABLE_IMG_GRAPHICS),true)
     LOCAL_SRC_FILES += \
-        native/drm_hdmi.c
-#        native/drm_hdcp.c
+        native/drm_hdmi.c \
+        native/drm_hdcp.c
 
     LOCAL_C_INCLUDES = \
         $(TARGET_OUT_HEADERS)/drm \
         $(TARGET_OUT_HEADERS)/libdrm \
         $(TARGET_OUT_HEADERS)/pvr/pvr2d \
         $(TARGET_OUT_HEADERS)/libttm \
+        $(TARGET_OUT_HEADERS)/libspedrm \
         $(TOP)/hardware/intel/linux-2.6/drivers/staging/intel_media/common
 
     LOCAL_SHARED_LIBRARIES += \

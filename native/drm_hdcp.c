@@ -34,8 +34,7 @@
 #include "libsepdrm/sepdrm.h"
 
 
-static int sHdcpTimer = 0;
-static bool sRepeaterEnabledOrNotPresent = false;  // indicate whether repeater has been enabled or is not presented
+static int g_hdcpStatusCheckTimer = 0;
 #define HDCP_ENABLE_NUM_OF_TRY      4
 #define HDCP_CHECK_NUM_OF_TRY       1
 #define HDCP_ENABLE_DELAY_USEC      30000 // 30 ms
@@ -97,45 +96,6 @@ static bool drm_hdcp_disable()
     return true;
 }
 
-static bool drm_hdcp_isRepeater()
-{
-    unsigned int present = 0;
-    bool ret = hdcpIoctl(DRM_IOCTL_PSB_HDCP_REPEATER_PRESENT, &present);
-    if (!ret) {
-        LOGE("Failed to query whether HDCP repeater is present.");
-        return false;
-    }
-    LOGI("Present status of HDCP repeater: %d", present);
-    return present != 0;
-}
-
-static bool drm_hdcp_enable_repeater()
-{
-    unsigned int state = 0;
-    // State can be  unsuccessful(-1), success(0), not_supported(1), pending(5), too_many_devices(7), etc.
-    // Kernel driver returns "success" only when state of HDCP repeater is "success", return "failure" for all other state. However, we need to keep enabling repeater if
-    // state of HDCP repeater is "pending", which means kernel is in the process of collecting KSV list. The implemention here just blindly keeps enabling HDCP repeater
-    // until it succeeds, ideally it should only do so when state is "pending".
-    bool ret = hdcpIoctl(DRM_IOCTL_PSB_ENABLE_HDCP_REPEATER, &state);
-    if (!ret) {
-        LOGE("Failed to enable HDCP repeater. State is %#x", state);
-        return false;
-    }
-    LOGI("State of HDCP repeater = %#x", state);
-    return state == 0;
-}
-
-static bool drm_hdcp_disable_repeater()
-{
-    bool ret = hdcpIoctl(DRM_IOCTL_PSB_DISABLE_HDCP_REPEATER, NULL);
-    if (!ret) {
-        LOGE("Failed to disable HDCP repeater.");
-        return false;
-    }
-    return true;
-}
-
-
 static bool drm_hdcp_isAuthenticated()
 {
     unsigned int match = 0;
@@ -195,10 +155,6 @@ static void drm_hdcp_check_link_status()
     if (!b) {
         LOGI("HDCP is not authenticated, restarting authentication process.");
         drm_hdcp_enable_hdcp_work();
-    } else {
-        if (sRepeaterEnabledOrNotPresent == false) {
-            sRepeaterEnabledOrNotPresent = drm_hdcp_enable_repeater();
-        }
     }
 }
 
@@ -208,7 +164,7 @@ static bool drm_hdcp_start_link_checking()
     struct sigevent sev;
     struct itimerspec its;
 
-    if (sHdcpTimer) {
+    if (g_hdcpStatusCheckTimer) {
         LOGW("HDCP status checking timer has been created.");
         return false;
     }
@@ -218,7 +174,7 @@ static bool drm_hdcp_start_link_checking()
     sev.sigev_value.sival_ptr = NULL;
     sev.sigev_notify_function = drm_hdcp_check_link_status;
 
-    ret = timer_create(CLOCK_REALTIME, &sev, &sHdcpTimer);
+    ret = timer_create(CLOCK_REALTIME, &sev, &g_hdcpStatusCheckTimer);
     if (ret != 0) {
         LOGE("Failed to create HDCP status checking timer.");
         return false;
@@ -229,11 +185,11 @@ static bool drm_hdcp_start_link_checking()
     its.it_interval.tv_sec = HDCP_STATUS_CHECK_INTERVAL; // 2 seconds
     its.it_interval.tv_nsec = 0;
 
-    ret = timer_settime(sHdcpTimer, TIMER_ABSTIME, &its, NULL);
+    ret = timer_settime(g_hdcpStatusCheckTimer, TIMER_ABSTIME, &its, NULL);
     if (ret != 0) {
         LOGE("Failed to set HDCP status checking timer.");
-        timer_delete(sHdcpTimer);
-        sHdcpTimer = 0;
+        timer_delete(g_hdcpStatusCheckTimer);
+        g_hdcpStatusCheckTimer = 0;
         return false;
     }
     return true;
@@ -244,7 +200,7 @@ static void drm_hdcp_stop_link_checking()
     int ret;
     struct itimerspec its;
 
-    if (sHdcpTimer == 0) {
+    if (g_hdcpStatusCheckTimer == 0) {
         LOGV("HDCP status checking timer has been deleted.");
         return;
     }
@@ -254,13 +210,13 @@ static void drm_hdcp_stop_link_checking()
     its.it_interval.tv_sec = 0;
     its.it_interval.tv_nsec = 0;
 
-    ret = timer_settime(sHdcpTimer, TIMER_ABSTIME, &its, NULL);
+    ret = timer_settime(g_hdcpStatusCheckTimer, TIMER_ABSTIME, &its, NULL);
     if (ret != 0) {
         LOGE("Failed to reset HDCP status checking timer.");
     }
 
-    timer_delete(sHdcpTimer);
-    sHdcpTimer = 0;
+    timer_delete(g_hdcpStatusCheckTimer);
+    g_hdcpStatusCheckTimer = 0;
 }
 
 static bool drm_hdcp_enable_and_check()
@@ -292,16 +248,6 @@ static bool drm_hdcp_enable_and_check()
         usleep(HDCP_ENABLE_DELAY_USEC);
     }
 
-    // Check whether HDCP repeater is present
-    if (sRepeaterEnabledOrNotPresent == false) {
-        sRepeaterEnabledOrNotPresent = !drm_hdcp_isRepeater();
-    }
-
-    if (ret == true) {
-        if (sRepeaterEnabledOrNotPresent == false) {
-            sRepeaterEnabledOrNotPresent = drm_hdcp_enable_repeater();
-        }
-    }
     LOGV("Leaving %s", __func__);
     return ret;
 }
@@ -345,15 +291,10 @@ void drm_hdcp_disable_hdcp(bool connected)
     LOGV("Entering %s", __func__);
     drm_hdcp_stop_link_checking();
     if (connected) {
-        // disable repeater if present
-        if (drm_hdcp_isRepeater()) {
-            drm_hdcp_disable_repeater();
-        }
         // disable HDCP if HDMI is  connected.
         drm_hdcp_disable();
     }
 
-    sRepeaterEnabledOrNotPresent = false;
     LOGV("Leaving %s", __func__);
 }
 
