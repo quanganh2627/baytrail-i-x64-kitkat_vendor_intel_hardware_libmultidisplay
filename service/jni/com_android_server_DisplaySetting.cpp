@@ -154,7 +154,7 @@ static int updateSurface() {
     String16 ifName = get_interface_name(service);
     android::Parcel data, reply;
     data.writeInterfaceToken(ifName);
-    err = service->transact(1002, data, &reply, 0);
+    err = service->transact(1008, data, &reply, 0);
     if (err != 0) {
         LOGE("%s: fail to transact", __func__);
         return -1;
