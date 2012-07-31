@@ -328,12 +328,17 @@ int MultiDisplayComposer::setMipiMode_l(bool on) {
         drm_mipi_setMode(DRM_MIPI_ON);
         mMode |= MDS_MIPI_ON;
     } else {
-        if (!checkMode(mMode, MDS_HDMI_VIDEO_EXT)) {
-            LOGW("%s: Attempt to turn off Mipi while not in extended video mode.", __func__);
-            broadcastModeChange_l(mMode);
-            return MDS_ERROR;
-        }
-        if (mMipiPolicy == MDS_MIPI_OFF_ALLOWED) {
+        if(!mWidiVideoExt) {
+            if (!checkMode(mMode, MDS_HDMI_VIDEO_EXT)) {
+                LOGW("%s: Attempt to turn off Mipi while not in extended video mode.", __func__);
+                broadcastModeChange_l(mMode);
+                return MDS_ERROR;
+            }
+            if (mMipiPolicy == MDS_MIPI_OFF_ALLOWED) {
+                drm_mipi_setMode(DRM_MIPI_OFF);
+                mMode &= ~MDS_MIPI_ON;
+            }
+        } else {
             drm_mipi_setMode(DRM_MIPI_OFF);
             mMode &= ~MDS_MIPI_ON;
         }
