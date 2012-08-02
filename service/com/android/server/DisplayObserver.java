@@ -15,7 +15,6 @@
  */
 
 package com.android.server;
-//import static android.provider.Settings.System.DISPLAY_BOOT;
 
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
@@ -81,6 +80,8 @@ class DisplayObserver extends UEventObserver {
     private static final String HDMI_SERVER_GET_INFO = "HdmiObserver.GET_HDMI_INFO";
     private static final String HDMI_SET_SCALE= "android.hdmi.SET.HDMI_SCALE";
     private static final String HDMI_SET_STEP_SCALE= "android.hdmi.SET.HDMI_STEP_SCALE";
+    private static final String HDMI_Get_DisplayBoot = "android.hdmi.GET_HDMI_Boot";
+    private static final String HDMI_Set_DisplayBoot = "HdmiObserver.SET_HDMI_Boot";
 
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
@@ -95,8 +96,7 @@ class DisplayObserver extends UEventObserver {
         intentFilter.addAction(Intent.HDMI_SET_STATUS);
         intentFilter.addAction(HDMI_SET_SCALE);
         intentFilter.addAction(HDMI_SET_STEP_SCALE);
-        /*android.provider.Settings.System.putInt(mContext.getContentResolver(),
-        Settings.System.DISPLAY_BOOT, mDisplayBoot);*/
+        intentFilter.addAction(HDMI_Get_DisplayBoot);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
@@ -277,7 +277,7 @@ class DisplayObserver extends UEventObserver {
                 if (hasIncomingCall) {
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                     mDs.setModePolicy(mDs.HDMI_ON_NOT_ALLOWED);
-                } else if ((!hasIncomingCall) && IncomingCallFinished) {
+                } else if (((!hasIncomingCall) && IncomingCallFinished) && (mHdmiEnable ==1)) {
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                     mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
                 }
@@ -304,6 +304,7 @@ class DisplayObserver extends UEventObserver {
                         mBundle.putSerializable("interlace", arrInterlace);
                         mBundle.putInt("count", Count);
                         mBundle.putInt("EdidChange",mEdidChange);
+                        mBundle.putBoolean("hasIncomingCall",hasIncomingCall);
                         mEdidChange = 0;
                         outIntent.putExtras(mBundle);
                         mContext.sendBroadcast(outIntent);
@@ -347,7 +348,7 @@ class DisplayObserver extends UEventObserver {
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                     mDs.setModePolicy(mDs.HDMI_ON_NOT_ALLOWED);
                 }
-                else {
+                else if ((!hasIncomingCall) && IncomingCallFinished) {
                     mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                 }
@@ -376,6 +377,20 @@ class DisplayObserver extends UEventObserver {
                 if (LOG) Slog.v(TAG, "set scale info step:" +  Step);
                 if(!mDs.setHdmiScaleStep(mHoriRatio,mVertRatio))
                     if (LOG) Slog.v(TAG, "Set HDMI Step Scale error");
+            }
+            else if (action.equals(HDMI_Get_DisplayBoot)) {
+                Intent outIntent = new Intent(HDMI_Set_DisplayBoot);
+                Bundle mBundle = new Bundle();
+                if (mDisplayBoot == 1) {
+                    mBundle.putInt("DisplayBoot",mDisplayBoot);
+                    if (LOG) Slog.i(TAG,"mDisplayBoot: " + mDisplayBoot) ;
+                    mDisplayBoot = 0;
+                } else {
+                    mBundle.putInt("DisplayBoot",mDisplayBoot);
+                    if (LOG) Slog.i(TAG,"mDisplayBoot: " + mDisplayBoot) ;
+                }
+                outIntent.putExtras(mBundle);
+                mContext.sendBroadcast(outIntent);
             }
         }
     }
