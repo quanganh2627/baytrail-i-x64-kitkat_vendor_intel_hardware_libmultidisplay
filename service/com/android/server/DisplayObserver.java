@@ -79,7 +79,6 @@ class DisplayObserver extends UEventObserver {
     private static final String HDMI_GET_INFO = "android.hdmi.GET_HDMI_INFO";
     private static final String HDMI_SET_INFO = "android.hdmi.SET_HDMI_INFO";
     private static final String HDMI_SERVER_GET_INFO = "HdmiObserver.GET_HDMI_INFO";
-    private static final String HDMI_SET_STATUS= "android.hdmi.SET.HDMI_STATUS";
     private static final String HDMI_SET_SCALE= "android.hdmi.SET.HDMI_SCALE";
     private static final String HDMI_SET_STEP_SCALE= "android.hdmi.SET.HDMI_STEP_SCALE";
 
@@ -93,7 +92,7 @@ class DisplayObserver extends UEventObserver {
         intentFilter.addAction(PHONE_INCALLSCREEN_FINISH);
         intentFilter.addAction(HDMI_GET_INFO);
         intentFilter.addAction(HDMI_SET_INFO);
-        intentFilter.addAction(HDMI_SET_STATUS);
+        intentFilter.addAction(Intent.HDMI_SET_STATUS);
         intentFilter.addAction(HDMI_SET_SCALE);
         intentFilter.addAction(HDMI_SET_STEP_SCALE);
         /*android.provider.Settings.System.putInt(mContext.getContentResolver(),
@@ -338,7 +337,7 @@ class DisplayObserver extends UEventObserver {
                 }
                 if (!mDs.setHdmiTiming(Width, Height, Refresh, Interlace, Ratio))
                     if (LOG) Slog.v(TAG, "Set HDMI Timing Info error");
-            } else if (action.equals(HDMI_SET_STATUS)) {
+            } else if (action.equals(Intent.HDMI_SET_STATUS)) {
                 Bundle extras = intent.getExtras();
                 if (extras == null)
                      return;
