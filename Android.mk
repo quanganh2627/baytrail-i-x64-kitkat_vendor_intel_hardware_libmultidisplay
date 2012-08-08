@@ -81,12 +81,28 @@ include $(BUILD_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := \
-            $(call all-subdir-java-files)
+    $(call all-java-files-under,native service)
 
 LOCAL_MODULE:= displayobserver
 LOCAL_MODULE_TAGS:=optional
 
 LOCAL_JNI_SHARED_LIBRARIES := libdisplayobserverjni
+
+LOCAL_NO_EMMA_INSTRUMENT := true
+LOCAL_NO_EMMA_COMPILE := true
+
+include $(BUILD_STATIC_JAVA_LIBRARY)
+
+include $(BUILD_DROIDDOC)
+
+else
+include $(CLEAR_VARS)
+
+LOCAL_SRC_FILES := \
+    $(call all-java-files-under,dummy)
+
+LOCAL_MODULE:= displayobserver
+LOCAL_MODULE_TAGS:=optional
 
 LOCAL_NO_EMMA_INSTRUMENT := true
 LOCAL_NO_EMMA_COMPILE := true
