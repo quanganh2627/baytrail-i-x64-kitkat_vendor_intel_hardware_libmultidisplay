@@ -156,6 +156,7 @@ int MultiDisplayComposer::updateVideoInfo(MDSVideoInfo* info) {
 
 
 int MultiDisplayComposer::setHdmiMode_l() {
+    MDSHDMITiming timing;
     LOGV("Entering %s, current mode = %#x", __func__, mMode);
     // Common case, update video status
     if (mVideo.isplaying) {
@@ -173,7 +174,9 @@ int MultiDisplayComposer::setHdmiMode_l() {
     }
 #endif
     // Common case, turn on MIPI if necessary
-    if (connectStatus == DRM_HDMI_DISCONNECTED || mHdmiPolicy == MDS_HDMI_ON_NOT_ALLOWED || mVideo.isplaying == false) {
+    if (connectStatus == DRM_HDMI_DISCONNECTED ||
+            mHdmiPolicy == MDS_HDMI_ON_NOT_ALLOWED ||
+            mVideo.isplaying == false) {
         mMipiPolicy = MDS_MIPI_OFF_NOT_ALLOWED;
         if (!checkMode(mMode, MDS_MIPI_ON)) {
             LOGI("Turn on MIPI.");
@@ -242,8 +245,16 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMode |= MDS_HDMI_ON;
     }
 
-    // Turn off overlay temporarily during mode transition. Make sure overlay is turned on when this function exits.
-    broadcastModeChange_l(mMode | MDS_OVERLAY_OFF);
+    // Turn off overlay temporarily during mode transition.
+    // Make sure overlay is turned on when this function exits.
+    // Turn off Overlay immediately when video playback is over.
+    int dmode = mMode;
+    if (mVideo.isplaying == false) {
+        dmode &= ~MDS_HDMI_CLONE;
+        dmode &= ~MDS_HDMI_VIDEO_EXT;
+    }
+    dmode |= MDS_OVERLAY_OFF;
+    broadcastModeChange_l(dmode);
 
     if (mVideo.isplaying == true) {
         LOGI("Video is in playing state. Mode = %#x", mMode);
@@ -252,8 +263,11 @@ int MultiDisplayComposer::setHdmiMode_l() {
             broadcastModeChange_l(mMode);
             return MDS_NO_ERROR;
         }
-
-        if (!drm_hdmi_setHdmiMode(DRM_HDMI_VIDEO_EXT)) {
+        timing.width = mVideo.displayW;
+        timing.height = mVideo.displayH;
+        timing.refresh = mVideo.frameRate;
+        timing.interlace = 0;
+        if (!(drm_hdmi_setMode(DRM_HDMI_VIDEO_EXT, &timing))) {
             LOGE("Fail to set HDMI extended mode");
             broadcastModeChange_l(mMode);
             return MDS_ERROR;
@@ -284,7 +298,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         }
         mMode &= ~MDS_HDCP_ON;
 
-        if (!drm_hdmi_setHdmiMode(DRM_HDMI_CLONE)) {
+        if (!(drm_hdmi_setMode(DRM_HDMI_CLONE, NULL))) {
             LOGE("Fail to set HDMI clone mode");
             broadcastModeChange_l(mMode);
             return MDS_ERROR;
@@ -314,11 +328,6 @@ void MultiDisplayComposer::broadcastModeChange_l(int mode) {
 }
 
 int MultiDisplayComposer::setMipiMode_l(bool on) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
-
     Mutex::Autolock _l(mLock);
 
     if (mMipiOn == on)
@@ -358,6 +367,10 @@ int MultiDisplayComposer::notifyHotPlug() {
 }
 
 int MultiDisplayComposer::setModePolicy(int policy) {
+    if (mDrmInit == false) {
+        LOGE("%s: drm_init fails", __func__);
+        return MDS_ERROR;
+    }
     Mutex::Autolock _l(mLock);
     return setModePolicy_l(policy);
 }
@@ -454,12 +467,13 @@ int MultiDisplayComposer::getHdmiModeInfo(int* pWidth,
 
 int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
                             int refresh, int interlace, int ratio) {
+    bool ret = false;
+    MDSHDMITiming timing;
     if (mDrmInit == false) {
         LOGE("%s: drm_init fails", __func__);
         return MDS_ERROR;
     }
     Mutex::Autolock _l(mLock);
-    bool ret = false;
     LOGV("%s: \
         \n  mMode: %d, \
         \n  width: %d, \
@@ -468,7 +482,13 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
         \n  ratio: %d, \
         \n  interlace: %d",
          __func__, mMode, width, height, refresh, ratio, interlace);
-    ret = drm_hdmi_setModeInfo(width, height, refresh, interlace, ratio);
+    timing.width = width;
+    timing.height = height;
+    timing.refresh = refresh;
+    timing.interlace = interlace;
+    //TODO: ignore ratio
+    ret = drm_hdmi_setMode(DRM_HDMI_CLONE, &timing);
+    broadcastModeChange_l(mMode);
     return (ret == true ? MDS_NO_ERROR : MDS_ERROR);
 }
 

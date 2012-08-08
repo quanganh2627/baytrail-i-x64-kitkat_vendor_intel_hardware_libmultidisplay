@@ -186,9 +186,9 @@ static jboolean android_server_DisplaySetting_setModePolicy(JNIEnv* env, jobject
     mListener->setEnv(env, &obj);
     env->GetJavaVM(&gJvm);
     int ret = mMDClient->setModePolicy(policy);
-    if (ret == 0)
+    if (ret == MDS_NO_ERROR)
         updateSurface();
-    return (ret == 0 ? true : false);
+    return (ret == MDS_NO_ERROR ? true : false);
 }
 
 static jboolean android_server_DisplaySetting_notifyHotPlug(JNIEnv* env, jobject obj) {
@@ -197,9 +197,9 @@ static jboolean android_server_DisplaySetting_notifyHotPlug(JNIEnv* env, jobject
     mListener->setEnv(env, &obj);
     env->GetJavaVM(&gJvm);
     int ret = mMDClient->notifyHotPlug();
-    if (ret == 0)
+    if (ret == MDS_NO_ERROR)
         updateSurface();
-    return (ret == 0 ? true : false);
+    return (ret == MDS_NO_ERROR ? true : false);
 }
 
 static jboolean android_server_DisplaySetting_setHdmiPowerOff(JNIEnv* env, jobject obj) {
@@ -231,7 +231,8 @@ static jboolean android_server_DisplaySetting_setHdmiTiming(JNIEnv* env, jobject
     AutoMutex _l(gMutex);
     mListener->setEnv(env, &obj);
     env->GetJavaVM(&gJvm);
-    return mMDClient->setHdmiModeInfo(width, height, refresh, interlace, ratio);
+    int ret = mMDClient->setHdmiModeInfo(width, height, refresh, interlace, ratio);
+    return (ret == MDS_NO_ERROR ? true : false);
 }
 
 static jint android_server_HDMIObserver_getHdmiInfoCount(JNIEnv* env, jobject obj) {

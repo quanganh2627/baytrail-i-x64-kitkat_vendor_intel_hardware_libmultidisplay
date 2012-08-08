@@ -49,9 +49,17 @@ typedef struct _MDSVideoInfo {
     bool isinterlace;
 } MDSVideoInfo;
 
+typedef struct _MDSHDMITiming {
+    unsigned int    refresh;
+    int             width;
+    int             height;
+    int             interlace;
+} MDSHDMITiming;
+
 typedef enum _MDSMode {
     MDS_MIPI_ON        = 0x1,
 
+    MDS_DVI_CONNECTED  = 0x1 << 1,
     MDS_HDMI_CONNECTED = 0x1 << 3,
     MDS_HDMI_ON        = 0x1 << 4,
     MDS_HDMI_CLONE     = 0x1 << 5,

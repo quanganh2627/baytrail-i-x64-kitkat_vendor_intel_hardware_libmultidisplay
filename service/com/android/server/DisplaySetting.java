@@ -52,8 +52,8 @@ class DisplaySetting {
     private native boolean native_setHdmiTiming(int width, int height,
                             int refresh, int interlace, int ratio);
     private native int     native_getHdmiInfoCount();
-    private native boolean   native_setHdmiScaleType(int Type);
-    private native boolean   native_setHdmiScaleStep(int Step, int Orientation);
+    private native boolean native_setHdmiScaleType(int Type);
+    private native boolean native_setHdmiScaleStep(int Step, int Orientation);
     private native int     native_getHdmiDeviceChange();
 
     public DisplaySetting() {
