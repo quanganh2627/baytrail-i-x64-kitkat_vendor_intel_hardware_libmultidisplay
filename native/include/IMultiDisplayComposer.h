@@ -40,7 +40,7 @@ public:
 
     virtual int registerModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *) = 0;
     virtual int unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *) = 0;
-    virtual int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace) = 0;
+    virtual int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio) = 0;
     virtual int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio) = 0;
     virtual int setHdmiScaleType(int type) = 0;
     virtual int setHdmiScaleStep(int hValue, int vValue) = 0;
@@ -63,7 +63,7 @@ public:
     virtual int registerModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
     virtual int unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
 
-    virtual int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace);
+    virtual int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio);
     virtual int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio);
     virtual int setHdmiScaleType(int type);
     virtual int setHdmiScaleStep(int hValue, int vValue);

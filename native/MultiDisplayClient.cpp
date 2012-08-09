@@ -116,12 +116,12 @@ int MultiDisplayClient::unregisterModeChangeListener(sp<IExtendDisplayModeChange
 }
 
 
-int MultiDisplayClient::getHdmiModeInfo(int* width, int* height, int* refresh, int* interlace) {
+int MultiDisplayClient::getHdmiModeInfo(int* width, int* height, int* refresh, int* interlace, int *ratio) {
     if (mIMDComposer == NULL) {
         LOGE("%s: MDSComposer is null", __func__);
         return MDS_ERROR;
     }
-    return mIMDComposer->getHdmiModeInfo(width, height, refresh, interlace);
+    return mIMDComposer->getHdmiModeInfo(width, height, refresh, interlace, ratio);
 }
 
 int MultiDisplayClient::setHdmiModeInfo(int width, int height, int refresh, int interlace, int ratio) {

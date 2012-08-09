@@ -114,7 +114,7 @@ public:
      * param:
      * return: HDMI Timing info number
      */
-    int getHdmiModeInfo(int* pWidth, int* pHeight, int* pRefresh, int* pInterlace);
+    int getHdmiModeInfo(int* pWidth, int* pHeight, int* pRefresh, int* pInterlace, int *pRatio);
     /*
      * set HDMI scale type
      * param:

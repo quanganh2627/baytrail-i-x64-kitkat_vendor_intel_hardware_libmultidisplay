@@ -297,11 +297,13 @@ class DisplayObserver extends UEventObserver {
                         int[] arrHeight = new int[Count];
                         int[] arrRefresh = new int[Count];
                         int[] arrInterlace = new int[Count];
-                        mDs.getHdmiTiming(arrWidth, arrHeight, arrRefresh, arrInterlace);
+                        int[] arrRatio = new int[Count];
+                        mDs.getHdmiTiming(arrWidth, arrHeight, arrRefresh, arrInterlace, arrRatio);
                         mBundle.putSerializable("width", arrWidth);
                         mBundle.putSerializable("height", arrHeight);
                         mBundle.putSerializable("refresh", arrRefresh);
                         mBundle.putSerializable("interlace", arrInterlace);
+                        mBundle.putSerializable("ratio", arrRatio);
                         mBundle.putInt("count", Count);
                         mBundle.putInt("EdidChange",mEdidChange);
                         mBundle.putBoolean("hasIncomingCall",hasIncomingCall);

@@ -54,6 +54,7 @@ typedef struct _MDSHDMITiming {
     int             width;
     int             height;
     int             interlace;
+    int             ratio;
 } MDSHDMITiming;
 
 typedef enum _MDSMode {

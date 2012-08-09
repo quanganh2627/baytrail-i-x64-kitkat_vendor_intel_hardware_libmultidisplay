@@ -122,11 +122,13 @@ int BpMultiDisplayComposer::setHdmiModeInfo(int width, int height, int refresh, 
     return reply.readInt32();
 }
 
-int BpMultiDisplayComposer::getHdmiModeInfo(int* widthArray, int* heightArray, int* refreshArray, int* interlaceArray) {
+int BpMultiDisplayComposer::getHdmiModeInfo(int* widthArray, int* heightArray, int* refreshArray, int* interlaceArray,
+                                            int* ratioArray) {
     Parcel data, reply;
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
     if (widthArray == NULL || heightArray == NULL
-            || refreshArray == NULL || interlaceArray == NULL) {
+        || refreshArray == NULL || interlaceArray == NULL
+        || ratioArray == NULL) {
         remote()->transact(MDS_GET_HDMIMODE_INFO_COUNT, data, &reply);
         return reply.readInt32();
     }
@@ -134,6 +136,7 @@ int BpMultiDisplayComposer::getHdmiModeInfo(int* widthArray, int* heightArray, i
     data.writeIntPtr((intptr_t)heightArray);
     data.writeIntPtr((intptr_t)refreshArray);
     data.writeIntPtr((intptr_t)interlaceArray);
+    data.writeIntPtr((intptr_t)ratioArray);
     remote()->transact(MDS_GET_HDMIMODE_INFO, data, &reply);
     return reply.readInt32();
 }
@@ -270,20 +273,21 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
     break;
     case MDS_GET_HDMIMODE_INFO: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        int *width, *height, *refresh, *interlace;
+        int *width, *height, *refresh, *interlace, *ratio;
         width = height = refresh = interlace = NULL;
         width = (int*)data.readIntPtr();
         height = (int*)data.readIntPtr();
         refresh = (int*)data.readIntPtr();
         interlace = (int*)data.readIntPtr();
-        int ret = getHdmiModeInfo(width, height, refresh, interlace);
+        ratio = (int*)data.readIntPtr();
+        int ret = getHdmiModeInfo(width, height, refresh, interlace, ratio);
         reply->writeInt32(ret);
         return NO_ERROR;
     }
     break;
     case MDS_GET_HDMIMODE_INFO_COUNT: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        reply->writeInt32(getHdmiModeInfo(NULL, NULL, NULL, NULL));
+        reply->writeInt32(getHdmiModeInfo(NULL, NULL, NULL, NULL, NULL));
         return NO_ERROR;
     }
     break;

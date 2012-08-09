@@ -210,18 +210,22 @@ static jboolean android_server_DisplaySetting_setHdmiPowerOff(JNIEnv* env, jobje
 }
 
 static jint android_server_DisplaySetting_getHdmiTiming(JNIEnv* env, jobject obj,
-             jintArray width, jintArray height, jintArray refresh, jintArray interlace) {
+                                                        jintArray width, jintArray height,
+                                                        jintArray refresh, jintArray interlace,
+                                                        jintArray ratio) {
     if (mMDClient == NULL) return false;
     AutoMutex _l(gMutex);
     int32_t* pWidth = env->GetIntArrayElements(width, NULL);
     int32_t* pHeight = env->GetIntArrayElements(height, NULL);
     int32_t* pRefresh = env->GetIntArrayElements(refresh, NULL);
     int32_t* pInterlace = env->GetIntArrayElements(interlace, NULL);
-    jint iCount = mMDClient->getHdmiModeInfo(pWidth, pHeight, pRefresh, pInterlace);
+    int32_t* pRatio = env->GetIntArrayElements(ratio, NULL);
+    jint iCount = mMDClient->getHdmiModeInfo(pWidth, pHeight, pRefresh, pInterlace, pRatio);
     env->ReleaseIntArrayElements(width, pWidth, 0);
     env->ReleaseIntArrayElements(height, pHeight, 0);
     env->ReleaseIntArrayElements(refresh, pRefresh, 0);
     env->ReleaseIntArrayElements(interlace, pInterlace, 0);
+    env->ReleaseIntArrayElements(ratio, pRatio, 0);
     return iCount;
 }
 
@@ -238,7 +242,7 @@ static jboolean android_server_DisplaySetting_setHdmiTiming(JNIEnv* env, jobject
 static jint android_server_HDMIObserver_getHdmiInfoCount(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return -1;
     AutoMutex _l(gMutex);
-    return mMDClient->getHdmiModeInfo(NULL,NULL, NULL, NULL);
+    return mMDClient->getHdmiModeInfo(NULL,NULL, NULL, NULL, NULL);
 }
 
 static jboolean android_server_HDMIObserver_HdmiScaleType(JNIEnv* env, jobject obj,jint Type)
@@ -270,7 +274,7 @@ static JNINativeMethod sMethods[] = {
     {"native_notifyHotPlug", "()Z", (void*)android_server_DisplaySetting_notifyHotPlug},
     {"native_setHdmiPowerOff", "()Z", (void*)android_server_DisplaySetting_setHdmiPowerOff},
     {"native_setHdmiTiming", "(IIIII)Z", (void*)android_server_DisplaySetting_setHdmiTiming},
-    {"native_getHdmiTiming", "([I[I[I[I)I", (void*)android_server_DisplaySetting_getHdmiTiming},
+    {"native_getHdmiTiming", "([I[I[I[I[I)I", (void*)android_server_DisplaySetting_getHdmiTiming},
     {"native_getHdmiInfoCount", "()I", (void*)android_server_HDMIObserver_getHdmiInfoCount},
     {"native_setHdmiScaleType", "(I)Z", (void*)android_server_HDMIObserver_HdmiScaleType},
     {"native_setHdmiScaleStep", "(II)Z", (void*)android_server_HDMIObserver_HdmiScaleStep},

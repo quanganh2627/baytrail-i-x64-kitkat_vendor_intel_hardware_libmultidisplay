@@ -980,23 +980,36 @@ static int getMatchingHdmiTiming(int mode, MDSHDMITiming* in) {
         LOGE("%s: Failed to get a connected HDMI connector", __func__);
         return -1;
     }
+
+    uint32_t temp_flags = 0;
+    if (in->interlace)
+        temp_flags |= DRM_MODE_FLAG_INTERLACE;
+    if (in->ratio == 1)
+        temp_flags |= DRM_MODE_FLAG_PAR16_9;
+    else if (in->ratio == 2)
+        temp_flags |= DRM_MODE_FLAG_PAR4_3;
+
+    LOGD("%s: temp_flags = 0x%x, in->ratio = %d\n", __func__, temp_flags, in->ratio);
+
     for (index = 0; index < con->count_modes; index++) {
-        int flag = 0;
-        if (con->modes[index].flags & DRM_MODE_FLAG_INTERLACE)
-            flag = 1;
-        LOGD("%d, %d, %dx%d@%dHzx0x%x", index, flag,
-                con->modes[index].hdisplay, con->modes[index].vdisplay,
-                con->modes[index].vrefresh, con->modes[index].flags);
+        /* Extract relevant flags to compare */
+        uint32_t compare_flags = con->modes[index].flags &
+          (DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3);
+
+        LOGD("Mode avail: %dx%d@%d flags = 0x%x, compare_flags = 0x%x\n",
+             con->modes[index].hdisplay, con->modes[index].vdisplay,
+             con->modes[index].vrefresh, con->modes[index].flags,
+             compare_flags);
         if (mode == DRM_HDMI_VIDEO_EXT &&
                 firstRefreshMatchIndex == -1 &&
-                in->interlace == flag &&
+                temp_flags == compare_flags &&
                 in->refresh == con->modes[index].vrefresh) {
             firstRefreshMatchIndex = index;
         }
         if (in->refresh == con->modes[index].vrefresh &&
                 in->width == con->modes[index].hdisplay &&
                 in->height == con->modes[index].vdisplay &&
-                in->interlace == flag) {
+                temp_flags == compare_flags) {
             totalMatchIndex = index;
             break;
         }
@@ -1015,7 +1028,7 @@ static int getMatchingHdmiTiming(int mode, MDSHDMITiming* in) {
     return index;
 }
 
-static int getHdmiModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInterlace)
+static int getHdmiModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInterlace, int *pRatio)
 {
     int i = 0, j = 0, iCount = 0;
     int valid_mode_count = 0;
@@ -1039,7 +1052,10 @@ static int getHdmiModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInter
         unsigned int temp_hdisplay = con->modes[i].hdisplay;
         unsigned int temp_vdisplay = con->modes[i].vdisplay;
         unsigned int temp_refresh = con->modes[i].vrefresh;
-        unsigned int temp_flags = con->modes[i].flags;
+        /* Only extract the required flags for comparison */
+        unsigned int temp_flags = con->modes[i].flags &
+          (DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3);
+        unsigned int compare_flags = 0;
         /* re-traverse the connector mode list to see if there is
          * same resolution and refresh. The same mode will not be
          * counted into valid mode.
@@ -1047,10 +1063,20 @@ static int getHdmiModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInter
         j = i;
 
         while ((j--) >= 0) {
+
+            compare_flags = con->modes[j].flags &
+              (DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_PAR16_9 |
+               DRM_MODE_FLAG_PAR4_3);
+
             if(temp_hdisplay == con->modes[j].hdisplay
                 && temp_vdisplay == con->modes[j].vdisplay
-                && temp_refresh == con->modes[j].vrefresh)
-                break;
+                && temp_refresh == con->modes[j].vrefresh
+               && temp_flags == compare_flags) {
+                  LOGD("Found duplicate mode: %dx%d@%d with flags = 0x%x\n",
+                       temp_hdisplay, temp_vdisplay, temp_refresh, temp_flags);
+
+                  break;
+            }
         }
 
         /* if j<0, no found of same mode, valid_mode_count++ */
@@ -1064,8 +1090,16 @@ static int getHdmiModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInter
                     pInterlace[valid_mode_count] = 1;
                 else
                     pInterlace[valid_mode_count] = 0;
+                if (temp_flags & DRM_MODE_FLAG_PAR16_9)
+                    pRatio[valid_mode_count] = 1;
+                else if (temp_flags & DRM_MODE_FLAG_PAR4_3)
+                    pRatio[valid_mode_count] = 2;
+                else
+                    pRatio[valid_mode_count] = 0;
             }
 
+            LOGD("Adding mode[%d]: %dx%d@%d with flags = 0x%x\n", valid_mode_count,
+                 temp_hdisplay, temp_vdisplay, temp_refresh, temp_flags);
             valid_mode_count++;
         }
     }
@@ -1469,12 +1503,12 @@ exit:
     return ret;
 }
 
-int drm_hdmi_getModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInterlace)
+int drm_hdmi_getModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInterlace, int *pRatio)
 {
     int ret = -1;
     CHECK_DRM_FD(false);
     pthread_mutex_lock(&g_drm.mtx);
-    ret = getHdmiModeInfo(pWidth, pHeight, pRefresh, pInterlace);
+    ret = getHdmiModeInfo(pWidth, pHeight, pRefresh, pInterlace, pRatio);
     pthread_mutex_unlock(&g_drm.mtx);
     return ret;
 }

@@ -450,8 +450,9 @@ int MultiDisplayComposer::getHdmiPlug_l() {
     return drm_hdmi_connectStatus();
 }
 
-int MultiDisplayComposer::getHdmiModeInfo(int* pWidth,
-                    int* pHeight, int* pRefresh, int* pInterlace) {
+int MultiDisplayComposer::getHdmiModeInfo(int* pWidth, int* pHeight,
+                                          int* pRefresh, int* pInterlace,
+                                          int *pRatio) {
     if (mDrmInit == false) {
         LOGE("%s: drm_init fails", __func__);
         return MDS_ERROR;
@@ -460,9 +461,9 @@ int MultiDisplayComposer::getHdmiModeInfo(int* pWidth,
     LOGV("%s: mMode: 0x%x", __func__, mMode);
     if (pWidth == NULL || pHeight == NULL ||
             pRefresh == NULL || pInterlace == NULL) {
-        return drm_hdmi_getModeInfo(NULL, NULL, NULL, NULL);
+      return drm_hdmi_getModeInfo(NULL, NULL, NULL, NULL, NULL);
     }
-    return drm_hdmi_getModeInfo(pWidth, pHeight, pRefresh, pInterlace);
+    return drm_hdmi_getModeInfo(pWidth, pHeight, pRefresh, pInterlace, pRatio);
 }
 
 int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
@@ -486,7 +487,8 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
     timing.height = height;
     timing.refresh = refresh;
     timing.interlace = interlace;
-    //TODO: ignore ratio
+    timing.ratio = ratio;
+
     ret = drm_hdmi_setMode(DRM_HDMI_CLONE, &timing);
     broadcastModeChange_l(mMode);
     return (ret == true ? MDS_NO_ERROR : MDS_ERROR);

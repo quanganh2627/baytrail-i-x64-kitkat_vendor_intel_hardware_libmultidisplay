@@ -40,7 +40,7 @@ void drm_cleanup();
 bool drm_mipi_setMode(int mode);
 bool drm_hdmi_onHdmiDisconnected(void);
 int  drm_hdmi_getModeInfo(int *pWidth, int* pHeight,
-                            int *pRefresh, int *pInterlace);
+                          int *pRefresh, int *pInterlace, int *pRatio);
 bool drm_hdmi_setScaling(int scale_mode);
 int  drm_hdmi_getScaling();
 bool drm_hdmi_setScaleStep(int hValue, int vValue);

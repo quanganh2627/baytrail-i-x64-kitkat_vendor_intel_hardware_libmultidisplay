@@ -83,9 +83,9 @@ int MultiDisplayService::unregisterModeChangeListener(
 }
 
 int MultiDisplayService::getHdmiModeInfo(int* pWidth, int* pHeight,
-                                    int* pRefresh, int* pInterlace) {
+                                         int* pRefresh, int* pInterlace, int* pRatio) {
     if (mMDC == NULL) return MDS_ERROR;
-    return mMDC->getHdmiModeInfo(pWidth, pHeight, pRefresh, pInterlace);
+    return mMDC->getHdmiModeInfo(pWidth, pHeight, pRefresh, pInterlace, pRatio);
 }
 
 int MultiDisplayService::setHdmiModeInfo(int width, int height, int refresh, int interlace, int ratio) {

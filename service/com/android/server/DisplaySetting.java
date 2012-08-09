@@ -48,7 +48,7 @@ class DisplaySetting {
     private native boolean native_setHdmiPowerOff();
     private native boolean native_notifyHotPlug();
     private native int     native_getHdmiTiming(int width[],
-                            int height[], int refresh[], int interlace[]);
+                                                int height[], int refresh[], int interlace[], int ratio[]);
     private native boolean native_setHdmiTiming(int width, int height,
                             int refresh, int interlace, int ratio);
     private native int     native_getHdmiInfoCount();
@@ -93,9 +93,9 @@ class DisplaySetting {
     }
 
     public int getHdmiTiming(int width[], int height[],
-                        int refresh[], int interlace[]) {
+                             int refresh[], int interlace[], int ratio[]) {
         return native_getHdmiTiming(width, height,
-                            refresh, interlace);
+                                    refresh, interlace, ratio);
     }
 
     public boolean setHdmiTiming(int width, int height,

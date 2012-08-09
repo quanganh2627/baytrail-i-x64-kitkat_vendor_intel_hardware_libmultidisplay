@@ -51,7 +51,7 @@ public:
     int registerModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
     int unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
 
-    int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace);
+    int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio);
     int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio);
     int setHdmiScaleType(int type);
     int setHdmiScaleStep(int hValue, int vValue);
