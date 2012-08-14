@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include <display/MultiDisplayType.h>
 
 #ifndef __ANDROID_PVR_ANDROID_H__
 #define __ANDROID_PVR_ANDROID_H__
@@ -53,9 +54,7 @@ typedef struct _HDMI_MEM_INFO_
 	unsigned int size;
 	unsigned int changed;
 	unsigned int Orientation;
-	/* Delete me when find a better way to distinguish the caller of
-	* hdmi_rm_notifier_handler() is from SurfaceFlinger or libmultidisplay */
-	int flag_recursion;
+	MDSHDMITiming*	TimingInfo;
 }
 HDMI_mem_info_t;
 
