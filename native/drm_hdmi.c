@@ -34,7 +34,6 @@
 #include "xf86drm.h"
 #include "xf86drmMode.h"
 
-#include <display/MultiDisplayType.h>
 
 #define DRM_MODE_SCALE_NONE             0 /* Unmodified timing (display or
 software can still scale) */
@@ -139,8 +138,9 @@ static const int HAL_VARIANT_KEYS_COUNT =
 static int hdmi_rm_notifier_handler(int cmd, void *data);
 static int select_hdmi_mode(drmModeConnector *hdmi_connector);
 static int setScaling(int scaling_val);
-static bool setScaleStep(int hValue, int vValue);
+static bool setScaleStep(int value);
 static drmModeConnectorPtr getHdmiConnector();
+static int hdmi_get_timinginfo(int cmd, MDSHDMITiming* info);
 
 #define CHECK_DRM_FD(ERROR_CODE) \
     do { \
@@ -713,44 +713,24 @@ static int select_hdmi_mode(drmModeConnector *hdmi_connector)
     return index;
 }
 
-static bool set_clone_mode()
+static bool set_clone_mode(MDSHDMITiming* info)
 {
     int ret = 0;
     if (g_drm.ctx->notify_gralloc) {
-        int flag_recursion = 1;
-        ret = g_drm.ctx->notify_gralloc(CMD_CLONE_MODE, &flag_recursion);
+        ret = g_drm.ctx->notify_gralloc(CMD_CLONE_MODE, info);
     }
     if (ret) {
         LOGE("%s: Failed to notify gralloc", __func__);
         return false;
     }
-
-    if ((g_drm.configInfo.scaleType != DRM_MODE_SCALE_ASPECT) &&
-            (g_drm.configInfo.edidChange == 1)) {
-        g_drm.configInfo.scaleType = DRM_MODE_SCALE_ASPECT;
-        setScaling(DRM_MODE_SCALE_ASPECT);
-    }
-
-    if (((g_drm.configInfo.horiRatio != HDMI_STEP_HORVALUE) ||
-                (g_drm.configInfo.vertRatio != HDMI_STEP_VERVALUE))
-        && (g_drm.configInfo.edidChange == 1)) {
-        g_drm.configInfo.horiRatio = HDMI_STEP_HORVALUE;
-        g_drm.configInfo.vertRatio = HDMI_STEP_VERVALUE;
-        setScaleStep(HDMI_STEP_HORVALUE, HDMI_STEP_VERVALUE);
-    }
-
-    if (g_drm.configInfo.edidChange == 1)
-        g_drm.configInfo.edidChange = 2;
-
     return true;
 }
 
-static bool set_ext_video_mode()
+static bool set_ext_video_mode(MDSHDMITiming* info)
 {
     int ret = 0;
     if (g_drm.ctx->notify_gralloc) {
-        int flag_recursion = 1;
-        ret = g_drm.ctx->notify_gralloc(CMD_VIDEO_MODE, &flag_recursion);
+        ret = g_drm.ctx->notify_gralloc(CMD_VIDEO_MODE, info);
     }
     if (ret) {
         LOGE("%s: Failed to notify gralloc", __func__);
@@ -832,9 +812,9 @@ static int hdmi_rm_notifier_handler(int cmd, void *data)
 
     HDMI_mem_info_t *hdmi_info = (HDMI_mem_info_t *)data;
 
-    if (!hdmi_info->flag_recursion) {
-        pthread_mutex_lock(&g_drm.mtx);
-    }
+    pthread_mutex_lock(&g_drm.mtx);
+
+    hdmi_get_timinginfo(cmd, hdmi_info->TimingInfo);
 
     switch (cmd) {
     case CMD_ROTATION_MODE:
@@ -849,6 +829,7 @@ static int hdmi_rm_notifier_handler(int cmd, void *data)
             hdmi_info->changed = g_drm.cinfo.changed;
         } else
             hdmi_info->changed = 0;
+        g_drm.curMode = CMD_CLONE_MODE;
         /*clear ext video mode*/
         cleanup_hdmi_fb(g_drm.drmFD, DRM_HDMI_VIDEO_EXT);
         break;
@@ -864,6 +845,7 @@ static int hdmi_rm_notifier_handler(int cmd, void *data)
             hdmi_info->changed = g_drm.einfo.changed;
         } else
             hdmi_info->changed = 0;
+        g_drm.curMode = CMD_VIDEO_MODE;
         break;
     case CMD_NON_ROTATION_MODE:
         g_drm.cinfo.hPVR2DContext = hdmi_info->h2DCtx;
@@ -877,14 +859,13 @@ static int hdmi_rm_notifier_handler(int cmd, void *data)
             hdmi_info->changed = g_drm.cinfo.changed;
         } else
             hdmi_info->changed = 0;
+        g_drm.curMode = CMD_CLONE_MODE;
         /*clear ext video mode*/
         cleanup_hdmi_fb(g_drm.drmFD, DRM_HDMI_VIDEO_EXT);
         break;
     }
 
-    if (!hdmi_info->flag_recursion) {
-        pthread_mutex_unlock(&g_drm.mtx);
-    }
+    pthread_mutex_unlock(&g_drm.mtx);
 
     if (!ret) {
         LOGE("%s: Failed to notify handler", __func__);
@@ -895,12 +876,9 @@ static int hdmi_rm_notifier_handler(int cmd, void *data)
 
 static int setScaling(int scaling_val)
 {
-    int scale = 0;
-    g_drm.configInfo.scaleType = scaling_val;
-    scale = g_drm.configInfo.scaleType;
-    LOGV("%s: scale type is %d", __func__, scale);
+    LOGV("%s: scale type is %d", __func__, scaling_val);
     /* notify gralloc to use set scale step*/
-    return g_drm.ctx->notify_gralloc(CMD_SET_SCALE_TYPE, &scale);
+    return g_drm.ctx->notify_gralloc(CMD_SET_SCALE_TYPE, &scaling_val);
 }
 
 static int getScaling()
@@ -908,29 +886,9 @@ static int getScaling()
     return g_drm.configInfo.scaleType;
 }
 
-static bool setScaleStep(int hValue, int vValue)
+static bool setScaleStep(int value)
 {
     int ret = 0;
-    int i = 0;
-    int value = 0;
-    int scale = 0;
-
-    g_drm.configInfo.horiRatio = hValue;
-    g_drm.configInfo.vertRatio = vValue;
-
-    if(hValue < 6)
-        hValue = 5 - hValue;
-        hValue &= 0x0F;
-
-    if(vValue < 6)
-        vValue = 5 - vValue;
-        vValue &= 0x0F;
-
-    scale = g_drm.configInfo.scaleType;
-    scale &= 0x0F;
-
-    value = (hValue << 4)|0xF;
-    value = (vValue << 8)|value;
     LOGV("%s: scale mode %x", __func__, value);
 
     /* notify gralloc to use set scale step*/
@@ -957,18 +915,16 @@ static drmModeConnectorPtr getHdmiConnector()
     return con;
 }
 
-static bool setHdmiMode(int mode)
+static bool setHdmiMode(int mode, MDSHDMITiming* info)
 {
     int i = 0;
     bool ret = false;
     switch (mode) {
     case DRM_HDMI_CLONE:
-        ret = set_clone_mode();
-        g_drm.curMode = mode;
+        ret = set_clone_mode(info);
         break;
     case DRM_HDMI_VIDEO_EXT:
-        ret = set_ext_video_mode();
-        g_drm.curMode = mode;
+        ret = set_ext_video_mode(info);
         break;
     default:
         LOGE("%s: not support mode %d", __func__, mode);
@@ -1161,6 +1117,42 @@ End:
 }
 #endif
 
+static int hdmi_get_timinginfo(int cmd, MDSHDMITiming* info)
+{
+    int index = 0;
+    int mode = 0;
+    if (cmd == CMD_VIDEO_MODE)
+        mode = DRM_HDMI_VIDEO_EXT;
+    else if ((cmd == CMD_ROTATION_MODE) || (cmd == CMD_ROTATION_MODE))
+        mode = DRM_HDMI_CLONE;
+
+    if ((mode != DRM_HDMI_CLONE && mode != DRM_HDMI_VIDEO_EXT)
+       || (mode == DRM_HDMI_VIDEO_EXT && info == NULL)) {
+       LOGE("%s: Failed to get invalid parameters", __func__);
+       return -1;
+    }
+
+    if (info != NULL)
+        LOGI("%s: HDMI timing is %dx%d@%dHzx%d", __func__,
+                info->width, info->height, info->refresh, info->interlace);
+
+    if (mode == DRM_HDMI_VIDEO_EXT) {
+        g_drm.modeIndex = getMatchingHdmiTiming(DRM_HDMI_VIDEO_EXT, info);
+    } else if (mode == DRM_HDMI_CLONE){
+        if (info != NULL) {
+#ifdef HDMI_COMPLIANCE
+            if (!setFakeVICInfo(info))
+                return 0;
+#endif
+            g_drm.modeIndex = getMatchingHdmiTiming(DRM_HDMI_CLONE, info);
+        } else {
+            g_drm.modeIndex = checkHdmiTiming(g_drm.cloneModeIndex);
+        }
+    }
+
+    LOGD("%s: Switching to mode %d", __func__, g_drm.modeIndex);
+    return 0;
+}
 
 
 /* ---------------- GLOBAL FUNCTIONS --------------------------------- */
@@ -1379,12 +1371,27 @@ int drm_hdmi_connectStatus()
         }
     }
 End:
-    pthread_mutex_unlock(&g_drm.mtx);
-
     if (g_drm.configInfo.edidChange == 1) {
         g_drm.modeIndex = -1;
         g_drm.cloneModeIndex = -1;
     }
+
+    if ((g_drm.configInfo.scaleType != DRM_MODE_SCALE_ASPECT) &&
+        (g_drm.configInfo.edidChange == 1)) {
+        g_drm.configInfo.scaleType = DRM_MODE_SCALE_ASPECT;
+        setScaling(DRM_MODE_SCALE_ASPECT);
+    }
+
+    if (((g_drm.configInfo.horiRatio != HDMI_STEP_HORVALUE) ||
+        (g_drm.configInfo.vertRatio != HDMI_STEP_VERVALUE))
+        && (g_drm.configInfo.edidChange == 1)) {
+        g_drm.configInfo.horiRatio = HDMI_STEP_HORVALUE;
+        g_drm.configInfo.vertRatio = HDMI_STEP_VERVALUE;
+        setScaleStep(0);
+    }
+
+    pthread_mutex_unlock(&g_drm.mtx);
+
     LOGI("%s: Leaving, connect status is %d", __func__, ret);
     return ret;
 }
@@ -1478,8 +1485,7 @@ bool drm_hdmi_setScaling(int scaling_val)
     CHECK_DRM_FD(false);
 
     pthread_mutex_lock(&g_drm.mtx);
-    HDMI_config_info hdmiConfig = g_drm.configInfo;
-    hdmiConfig.scaleType = scaling_val;
+    g_drm.configInfo.scaleType = scaling_val;
     ret = setScaling(scaling_val);
     pthread_mutex_unlock(&g_drm.mtx);
     return (ret == 1 ? true : false);
@@ -1498,9 +1504,31 @@ int drm_hdmi_getScaling()
 bool drm_hdmi_setScaleStep(int hValue, int vValue)
 {
     bool ret = false;
+    int i = 0;
+    int value = 0;
+    int scale = 0;
     CHECK_DRM_FD(false);
     pthread_mutex_lock(&g_drm.mtx);
-    ret = setScaleStep(hValue, vValue);
+
+    g_drm.configInfo.horiRatio = hValue;
+    g_drm.configInfo.vertRatio = vValue;
+
+    if(hValue < 6)
+        hValue = 5 - hValue;
+        hValue &= 0x0F;
+
+    if(vValue < 6)
+        vValue = 5 - vValue;
+        vValue &= 0x0F;
+
+    scale = g_drm.configInfo.scaleType;
+    scale &= 0x0F;
+
+    value = (hValue << 4)|0xF;
+    value = (vValue << 8)|value;
+    LOGV("%s: scale mode %x", __func__, value);
+
+    ret = setScaleStep(value);
     pthread_mutex_unlock(&g_drm.mtx);
     return ret;
 }
@@ -1552,7 +1580,6 @@ int drm_get_ioctl_offset()
 }
 
 bool drm_hdmi_setMode(int mode, MDSHDMITiming* info) {
-    bool ret = false;
     int index = 0;
     if ((mode != DRM_HDMI_CLONE && mode != DRM_HDMI_VIDEO_EXT) ||
             (mode == DRM_HDMI_VIDEO_EXT && info == NULL)) {
@@ -1563,23 +1590,6 @@ bool drm_hdmi_setMode(int mode, MDSHDMITiming* info) {
         LOGI("%s: HDMI timing is %dx%d@%dHzx%d", __func__,
                 info->width, info->height, info->refresh, info->interlace);
     CHECK_DRM_FD(false);
-    pthread_mutex_lock(&g_drm.mtx);
-    if (mode == DRM_HDMI_VIDEO_EXT) {
-        g_drm.modeIndex = getMatchingHdmiTiming(mode, info);
-    } else if (mode == DRM_HDMI_CLONE) {
-        if (info != NULL) {
-#ifdef HDMI_COMPLIANCE
-            if (!setFakeVICInfo(info))
-                goto End;
-#endif
-            g_drm.modeIndex = getMatchingHdmiTiming(mode, info);
-        } else {
-            g_drm.modeIndex = checkHdmiTiming(g_drm.cloneModeIndex);
-        }
-    }
-    LOGD("%s: Switching to mode %d", __func__, g_drm.modeIndex);
-    ret = setHdmiMode(mode);
-End:
-    pthread_mutex_unlock(&g_drm.mtx);
-    return ret;
+
+    return setHdmiMode(mode, info);
 }
