@@ -46,9 +46,9 @@ ifeq ($(ENABLE_IMG_GRAPHICS),true)
          libpvr2d
 
     LOCAL_CFLAGS += -DENABLE_DRM
+    LOCAL_CFLAGS += -DDVI_SUPPORTED
     LOCAL_SHARED_LIBRARIES += libdl
 endif
-
 
 
 include $(BUILD_SHARED_LIBRARY)

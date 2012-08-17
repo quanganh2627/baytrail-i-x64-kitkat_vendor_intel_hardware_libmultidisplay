@@ -100,30 +100,6 @@ static inline uint32_t align_to(uint32_t arg, uint32_t align)
 
 static drmJNI g_drm;
 
-#ifdef HDMI_COMPLIANCE
-
-#define MAX_VIC_ENTRY 8
-
-struct vicInfo {
-    int vic;
-    int width;
-    int height;
-    int refresh;
-    int interlace;
-};
-
-static struct vicInfo vicTable[MAX_VIC_ENTRY] = {
-    {34, 1920, 1080, 30, 0},
-    {4, 1280, 720, 60, 0},
-    {19, 1280, 720, 50, 0},
-    {2, 720, 480, 60, 0},
-    {3, 720, 480, 60, 0},
-    {17, 720, 576, 50, 0},
-    {18, 720, 576, 50, 0},
-    {1, 640, 480, 60, 0}
-};
-#endif
-
 static const char *variant_keys[] = {
     "ro.hardware",  /* This goes first so that it can pick up a different
                        file on the emulator. */
@@ -1108,49 +1084,6 @@ End:
     return iCount;
 }
 
-#ifdef HDMI_COMPLIANCE
-static bool setFakeVICInfo(MDSHDMITiming* info)
-{
-    if (!info)
-        return false;
-    struct drm_lnc_video_getparam_arg arg;
-    if (g_drm.ioctlOffset) {
-      /* Record the hdmi vic requested in kernel.
-       * Do this even if its not a vic request, so that
-       * any previous vic state used for compliance is
-       * cleared
-       */
-      arg.key = OTM_HDMI_SET_HDMI_MODE_VIC;
-      arg.value = (uint64_t)(info->width);
-      drmCommandWriteRead(g_drm.drmFD, g_drm.ioctlOffset, &arg, sizeof(arg));
-    }
-
-    /* check if the information passed is VIC value */
-    if (info->height == 0 && info->width != 0) {
-        /* Now mode set per the vic value info */
-        int j = 0;
-        for (j = 0; j < MAX_VIC_ENTRY; ++j) {
-            if (vicTable[j].vic == width)
-                break;
-        }
-
-        if (j == MAX_VIC_ENTRY) {
-            LOGE("No VIC mode found for requested vic = %d", width);
-            ret = false;
-            goto End;
-        }
-
-        info->width = vicTable[j].width;
-        info->height = vicTable[j].height;
-        info->refresh = vicTable[j].refresh;
-        info->interlace = vicTable[j].interlace;
-        LOGV("Found VIC mode %d: %dx%d@%d\n", vicTable[j].vic, width, height, refresh);
-    }
-End:
-    return ret;
-}
-#endif
-
 static int hdmi_get_timinginfo(int cmd, MDSHDMITiming* info)
 {
     int index = 0;
@@ -1174,10 +1107,6 @@ static int hdmi_get_timinginfo(int cmd, MDSHDMITiming* info)
         g_drm.modeIndex = getMatchingHdmiTiming(DRM_HDMI_VIDEO_EXT, info);
     } else if (mode == DRM_HDMI_CLONE){
         if (info != NULL) {
-#ifdef HDMI_COMPLIANCE
-            if (!setFakeVICInfo(info))
-                return 0;
-#endif
             g_drm.modeIndex = getMatchingHdmiTiming(DRM_HDMI_CLONE, info);
         } else {
             g_drm.modeIndex = checkHdmiTiming(g_drm.cloneModeIndex);
