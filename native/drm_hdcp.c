@@ -39,6 +39,10 @@ static int g_hdcpStatusCheckTimer = 0;
 #define HDCP_CHECK_NUM_OF_TRY       1
 #define HDCP_ENABLE_DELAY_USEC      30000 // 30 ms
 #define HDCP_STATUS_CHECK_INTERVAL  2 // 2 seconds
+// 120ms delay after disabling IED is required for successful hdcp
+// authentication with some AV receivers anything less than 100ms
+// resulted in Ri mismatch
+#define HDCP_DISABLE_IED_DELAY_USEC 120000 // 120 ms
 
 #define IED_SESSION_ID      0x11
 
@@ -270,6 +274,12 @@ static bool drm_hdcp_enable_hdcp_work()
         res = Drm_Playback_Pause(IED_SESSION_ID);
         if (res != 0) {
             LOGW("Failed to disable IED session. Error = %#x", res);
+        } else {
+            // Delay for IED disable to take effect and hence successfully
+            // authenticate with some AV receivers
+            LOGV("IED session disabled delay for %dusec",
+                                   HDCP_DISABLE_IED_DELAY_USEC);
+            usleep(HDCP_DISABLE_IED_DELAY_USEC);
         }
         ret = drm_hdcp_enable_and_check();
         if (!ret) {
