@@ -1105,6 +1105,8 @@ static int hdmi_get_timinginfo(int cmd, MDSHDMITiming* info)
 
     if (mode == DRM_HDMI_VIDEO_EXT) {
         g_drm.modeIndex = getMatchingHdmiTiming(DRM_HDMI_VIDEO_EXT, info);
+        if (g_drm.modeIndex == -1)
+            g_drm.modeIndex = checkHdmiTiming(g_drm.cloneModeIndex);
     } else if (mode == DRM_HDMI_CLONE){
         if (info != NULL) {
             g_drm.modeIndex = getMatchingHdmiTiming(DRM_HDMI_CLONE, info);
