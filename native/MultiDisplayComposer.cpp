@@ -247,14 +247,11 @@ int MultiDisplayComposer::setHdmiMode_l() {
 
     // Turn off overlay temporarily during mode transition.
     // Make sure overlay is turned on when this function exits.
-    // Turn off Overlay immediately when video playback is over.
-    int dmode = mMode;
-    if (mVideo.isplaying == false) {
-        dmode &= ~MDS_HDMI_CLONE;
-        dmode &= ~MDS_HDMI_VIDEO_EXT;
-    }
-    dmode |= MDS_OVERLAY_OFF;
-    broadcastModeChange_l(dmode);
+    // Transition mode starts with standalone local mipi mode (no cloned, no video extended).
+    int transitionalMode = mMode;
+    transitionalMode &= ~MDS_HDMI_CLONE;
+    transitionalMode &= ~MDS_HDMI_VIDEO_EXT;
+    transitionalMode |= MDS_OVERLAY_OFF;
 
     if (mVideo.isplaying == true) {
         LOGI("Video is in playing state. Mode = %#x", mMode);
@@ -263,6 +260,8 @@ int MultiDisplayComposer::setHdmiMode_l() {
             broadcastModeChange_l(mMode);
             return MDS_NO_ERROR;
         }
+        broadcastModeChange_l(transitionalMode);
+
         timing.width = mVideo.displayW;
         timing.height = mVideo.displayH;
         timing.refresh = mVideo.frameRate;
@@ -293,6 +292,8 @@ int MultiDisplayComposer::setHdmiMode_l() {
             broadcastModeChange_l(mMode);
             return MDS_NO_ERROR;
         }
+
+        broadcastModeChange_l(transitionalMode);
         if (checkMode(mMode, MDS_HDCP_ON)) {
             drm_hdcp_disable_hdcp(true);
         }
