@@ -972,13 +972,19 @@ static int getMatchingHdmiTiming(int mode, MDSHDMITiming* in) {
         uint32_t compare_flags = con->modes[index].flags &
           (DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3);
 
+        /* Don't compare aspect ratio bits if input has no ratio information
+         * This is especially true for video case, where we may not be given
+         * this information.
+         */
+        if (temp_flags == 0)
+            compare_flags &= ~(DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3);
+
         LOGD("Mode avail: %dx%d@%d flags = 0x%x, compare_flags = 0x%x\n",
              con->modes[index].hdisplay, con->modes[index].vdisplay,
              con->modes[index].vrefresh, con->modes[index].flags,
              compare_flags);
         if (mode == DRM_HDMI_VIDEO_EXT &&
                 firstRefreshMatchIndex == -1 &&
-                temp_flags == compare_flags &&
                 in->refresh == con->modes[index].vrefresh) {
             firstRefreshMatchIndex = index;
         }

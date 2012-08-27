@@ -266,6 +266,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         timing.height = mVideo.displayH;
         timing.refresh = mVideo.frameRate;
         timing.interlace = 0;
+        timing.ratio = 0;
         if (!(drm_hdmi_setMode(DRM_HDMI_VIDEO_EXT, &timing))) {
             LOGE("Fail to set HDMI extended mode");
             broadcastModeChange_l(mMode);
