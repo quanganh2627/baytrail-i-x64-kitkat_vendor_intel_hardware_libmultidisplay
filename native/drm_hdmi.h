@@ -49,5 +49,7 @@ int  drm_get_dev_fd();
 int  drm_hdmi_notify_audio_hotplug(bool plugin);
 int  drm_get_ioctl_offset();
 bool drm_hdmi_setMode(int mode, MDSHDMITiming* info);
+int widi_orientation_handler_cb(int cmd, int* data);
+bool drm_widi_notify(bool On, void* cookie, void* func);
 
 #endif // _DRM_HDMI_H

@@ -57,6 +57,11 @@ typedef struct _MDSHDMITiming {
     int             ratio;
 } MDSHDMITiming;
 
+typedef enum _MDSMessageType {
+    MDS_MODE_CHANGE = 0,
+    MDS_ORIENTATION_CHANGE
+} MDSMessageType;
+
 typedef enum _MDSMode {
     MDS_MIPI_ON        = 0x1,
 

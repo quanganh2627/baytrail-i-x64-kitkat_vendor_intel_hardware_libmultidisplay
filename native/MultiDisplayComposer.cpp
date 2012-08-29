@@ -27,6 +27,8 @@
 extern "C" {
 #include "drm_hdmi.h"
 #include "drm_hdcp.h"
+#include "pvr2d.h"
+#include "pvr_android.h"
 }
 
 using namespace android;
@@ -104,6 +106,8 @@ int MultiDisplayComposer::notifyWidi(bool on) {
         mMode |= MDS_WIDI_ON;
     else
         mMode &= ~MDS_WIDI_ON;
+
+    drm_widi_notify(on, this, (void *)widi_rm_notifier_handler);
     return MDS_NO_ERROR;
 }
 
@@ -169,7 +173,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
 #if !defined(DVI_SUPPORTED)
     if (connectStatus == DRM_DVI_CONNECTED) {
         LOGE("%s: DVI is connected but is not supported for now.", __func__);
-        broadcastModeChange_l(mMode);
+        broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
         return MDS_ERROR;
     }
 #endif
@@ -190,7 +194,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         LOGI("HDMI is disconnected.");
         if (!checkMode(mMode, MDS_HDMI_CONNECTED)) {
             LOGW("HDMI is already in disconnected state.");
-            broadcastModeChange_l(mMode);
+            broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
             return MDS_NO_ERROR;
         }
 
@@ -202,7 +206,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMode &= ~MDS_HDCP_ON;
         mMode &= ~MDS_HDMI_CLONE;
         mMode &= ~MDS_HDMI_VIDEO_EXT;
-        broadcastModeChange_l(mMode);
+        broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
         drm_hdmi_onHdmiDisconnected();
         return MDS_NO_ERROR;
     }
@@ -216,7 +220,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         LOGI("HDMI on is not allowed. Turning off HDMI...");
         if (!checkMode(mMode, MDS_HDMI_ON)) {
             LOGW("HDMI is already in off state.");
-            broadcastModeChange_l(mMode);
+            broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
             return MDS_NO_ERROR;
         }
         if (checkMode(mMode, MDS_HDCP_ON)) {
@@ -226,7 +230,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMode &= ~MDS_HDMI_ON;
         mMode &= ~MDS_HDMI_CLONE;
         mMode &= ~MDS_HDMI_VIDEO_EXT;
-        broadcastModeChange_l(mMode);
+        broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
         drm_hdmi_setHdmiVideoOff();
         return MDS_NO_ERROR;
     }
@@ -239,7 +243,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
             mMode &= ~MDS_HDCP_ON;
             mMode &= ~MDS_HDMI_CLONE;
             mMode &= ~MDS_HDMI_VIDEO_EXT;
-            broadcastModeChange_l(mMode);
+            broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
             return MDS_ERROR;
         }
         mMode |= MDS_HDMI_ON;
@@ -257,10 +261,10 @@ int MultiDisplayComposer::setHdmiMode_l() {
         LOGI("Video is in playing state. Mode = %#x", mMode);
         if (checkMode(mMode, MDS_HDMI_VIDEO_EXT)) {
             LOGW("HDMI is already in Video Extended mode.");
-            broadcastModeChange_l(mMode);
+            broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
             return MDS_NO_ERROR;
         }
-        broadcastModeChange_l(transitionalMode);
+        broadcastMdsMessage_l(MDS_MODE_CHANGE, transitionalMode);
 
         timing.width = mVideo.displayW;
         timing.height = mVideo.displayH;
@@ -269,7 +273,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         timing.ratio = 0;
         if (!(drm_hdmi_setMode(DRM_HDMI_VIDEO_EXT, &timing))) {
             LOGE("Fail to set HDMI extended mode");
-            broadcastModeChange_l(mMode);
+            broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
             return MDS_ERROR;
         }
 
@@ -285,16 +289,16 @@ int MultiDisplayComposer::setHdmiMode_l() {
             }
             mMode |= MDS_HDCP_ON;
         }
-        broadcastModeChange_l(mMode);
+        broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
     } else {
         LOGI("Video is not in playing state. Mode = %#x", mMode);
         if (checkMode(mMode, MDS_HDMI_CLONE)) {
             LOGW("HDMI is already in cloned state.");
-            broadcastModeChange_l(mMode);
+            broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
             return MDS_NO_ERROR;
         }
 
-        broadcastModeChange_l(transitionalMode);
+        broadcastMdsMessage_l(MDS_MODE_CHANGE, transitionalMode);
         if (checkMode(mMode, MDS_HDCP_ON)) {
             drm_hdcp_disable_hdcp(true);
         }
@@ -302,13 +306,13 @@ int MultiDisplayComposer::setHdmiMode_l() {
 
         if (!(drm_hdmi_setMode(DRM_HDMI_CLONE, NULL))) {
             LOGE("Fail to set HDMI clone mode");
-            broadcastModeChange_l(mMode);
+            broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
             return MDS_ERROR;
         }
 
         mMode &= ~MDS_HDMI_VIDEO_EXT;
         mMode |= MDS_HDMI_CLONE;
-        broadcastModeChange_l(mMode);
+        broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
     }
 
     if (notify_audio_hotplug && mDrmInit) {
@@ -321,10 +325,10 @@ int MultiDisplayComposer::setHdmiMode_l() {
     return MDS_NO_ERROR;
 }
 
-void MultiDisplayComposer::broadcastModeChange_l(int mode) {
+void MultiDisplayComposer::broadcastMdsMessage_l(int msg, int value) {
    for (unsigned int index = 0; index < mMCListenerVector.size(); index++) {
         if (mMCListenerVector.valueAt(index) != NULL) {
-            mMCListenerVector.valueAt(index)->onModeChange(mode);
+            mMCListenerVector.valueAt(index)->onMdsMessage(msg, value);
         }
     }
 }
@@ -342,7 +346,7 @@ int MultiDisplayComposer::setMipiMode_l(bool on) {
         if(!mWidiVideoExt) {
             if (!checkMode(mMode, MDS_HDMI_VIDEO_EXT)) {
                 LOGW("%s: Attempt to turn off Mipi while not in extended video mode.", __func__);
-                broadcastModeChange_l(mMode);
+                broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
                 return MDS_ERROR;
             }
             if (mMipiPolicy == MDS_MIPI_OFF_ALLOWED) {
@@ -407,7 +411,7 @@ int MultiDisplayComposer::setModePolicy_l(int policy) {
         default:
             return MDS_ERROR;
     }
-    broadcastModeChange_l(mMode);
+    broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
     return MDS_NO_ERROR;
 }
 
@@ -492,7 +496,7 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
     timing.ratio = ratio;
 
     ret = drm_hdmi_setMode(DRM_HDMI_CLONE, &timing);
-    broadcastModeChange_l(mMode);
+    broadcastMdsMessage_l(MDS_MODE_CHANGE, mMode);
     return (ret == true ? MDS_NO_ERROR : MDS_ERROR);
 }
 
@@ -564,4 +568,27 @@ bool MultiDisplayComposer::threadLoop() {
         setMipiMode_l(mipiOn);
     }
     return MDS_NO_ERROR;
+}
+
+void MultiDisplayComposer::setWidiOrientationInfo(int orientation) {
+
+    Mutex::Autolock _l(mLock);
+    broadcastMdsMessage_l(MDS_ORIENTATION_CHANGE, orientation);
+}
+
+int MultiDisplayComposer::widi_rm_notifier_handler(void* cookie, int cmd, int data) {
+    int ret = 0;
+    MultiDisplayComposer* mdsComposerObj = (MultiDisplayComposer *)cookie;
+    switch(cmd) {
+        case CMD_ROTATION_MODE:
+            LOGV("MultiDisplayComposer::widi_rm_notifier_handler CMD_ROTATION_MODE");
+            mdsComposerObj->setWidiOrientationInfo(data);
+            ret = 1;
+            break;
+        default:
+            LOGE("MultiDisplayComposer::widi_rm_notifier_handler DEFAULT !!!");
+            break;
+    }
+
+    return ret;
 }

@@ -28,16 +28,16 @@ namespace android {
 class IExtendDisplayModeChangeListener : public IInterface {
 public:
     enum {
-        ON_MODE_CHANGE = IBinder::FIRST_CALL_TRANSACTION,
+        ON_MDS_EVENT = IBinder::FIRST_CALL_TRANSACTION,
     };
     DECLARE_META_INTERFACE(ExtendDisplayModeChangeListener);
-    virtual void onModeChange(int mode) = 0;
+    virtual void onMdsMessage(int msg, int value) = 0;
 };
 class BpExtendDisplayModeChangeListener : public BpInterface<IExtendDisplayModeChangeListener> {
 public:
     BpExtendDisplayModeChangeListener(const sp<IBinder>& impl)
         : BpInterface<IExtendDisplayModeChangeListener>(impl) {}
-    virtual void onModeChange(int mode);
+    virtual void onMdsMessage(int msg, int value);
 };
 
 class BnExtendDisplayModeChangeListener : public BnInterface<IExtendDisplayModeChangeListener> {

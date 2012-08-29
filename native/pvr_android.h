@@ -36,6 +36,8 @@ extern int pvr_android_context_create(PVR2DCONTEXTHANDLE *);
 #define CMD_SET_SCALE_STEP       7
 #define CMD_SET_SCALE_TYPE       8
 #define CMD_SET_MODE_INDEX       9
+#define CMD_WIDI_CONNECTED       10
+#define CMD_WIDI_DISCONNECTED    11
 
 typedef int (*notify_func_t) (int cmd, void* data);
 typedef struct _IMG_graphic_hdmi_ex_
@@ -43,6 +45,8 @@ typedef struct _IMG_graphic_hdmi_ex_
     notify_func_t (*register_notify_func)(notify_func_t notify_rm);
     notify_func_t notify_gralloc;
     notify_func_t notify_rm;
+    notify_func_t (*register_widi_notify_func)(notify_func_t notify_rm_widi);
+    notify_func_t notify_rm_widi;
 }
 IMG_graphic_hdmi_ex;
 
@@ -58,7 +62,7 @@ typedef struct _HDMI_MEM_INFO_
 }
 HDMI_mem_info_t;
 
-
+typedef int (*notify_func_widi_t) (void* cookie, int cmd, int value);
 #ifdef __cplusplus
 }
 #endif

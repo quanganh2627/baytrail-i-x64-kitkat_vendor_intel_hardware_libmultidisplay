@@ -57,6 +57,7 @@ public:
     int setHdmiScaleStep(int hValue, int vValue);
     int getHdmiDeviceChange();
     int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
+    void setWidiOrientationInfo(int orientation);
 
 private:
     enum {
@@ -79,7 +80,7 @@ private:
     KeyedVector<void *, sp<IExtendDisplayModeChangeListener> > mMCListenerVector;
 
     int setHdmiMode_l();
-    void broadcastModeChange_l(int mode);
+    void broadcastMdsMessage_l(int msg, int value);
     int setMipiMode_l(bool);
     int setModePolicy_l(int);
     int getHdmiPlug_l();
@@ -91,6 +92,8 @@ private:
             return true;
         return false;
     }
+
+    static int widi_rm_notifier_handler(void* cookie, int cmd, int data);
 };
 
 

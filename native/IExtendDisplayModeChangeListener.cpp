@@ -21,12 +21,13 @@
 
 using namespace android;
 
-void BpExtendDisplayModeChangeListener::onModeChange(int mode) {
+void BpExtendDisplayModeChangeListener::onMdsMessage(int msg, int value) {
     LOGV("%s: mode %d", __func__, mode);
     Parcel data, reply;
     data.writeInterfaceToken(IExtendDisplayModeChangeListener::getInterfaceDescriptor());
-    data.writeInt32(mode);
-    remote()->transact(ON_MODE_CHANGE, data, &reply);
+    data.writeInt32(msg);
+    data.writeInt32(value);
+    remote()->transact(ON_MDS_EVENT, data, &reply);
 }
 
 IMPLEMENT_META_INTERFACE(ExtendDisplayModeChangeListener, "com.intel.ExtendDisplayModeChangeListener");
@@ -36,10 +37,12 @@ status_t BnExtendDisplayModeChangeListener::onTransact(uint32_t code,
         Parcel* reply,
         uint32_t flags) {
     switch (code) {
-    case ON_MODE_CHANGE: {
-        LOGV("%s: ON_MODE_CHANGE", __func__);
+    case ON_MDS_EVENT: {
+        LOGV("%s: ON_MDS_EVENT", __func__);
         CHECK_INTERFACE(IExtendDisplayModeChangeListener, data, replay);
-        onModeChange(data.readInt32());
+        int32_t msg = data.readInt32();
+        int32_t value = data.readInt32();
+        onMdsMessage(msg, value);
         return NO_ERROR;
     }
     break;

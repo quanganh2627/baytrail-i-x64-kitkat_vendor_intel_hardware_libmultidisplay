@@ -34,7 +34,7 @@ class JNIMDSListener : public BnExtendDisplayModeChangeListener {
 public:
     JNIMDSListener();
     ~JNIMDSListener();
-    void onModeChange(int mode);
+    void onMdsMessage(int msg, int value);
     void setEnv(JNIEnv*, jobject*);
 private:
     JNIEnv* mEnv;
@@ -67,31 +67,31 @@ static MultiDisplayClient* mMDClient = NULL;
 static Mutex gMutex;
 static JavaVM* gJvm = NULL;
 
-void JNIMDSListener::onModeChange(int mode) {
+void JNIMDSListener::onMdsMessage(int msg, int value) {
     jmethodID mid = NULL;
     if (mEnv != NULL && mObj != NULL && gJvm != NULL) {
         void* eenv = NULL;
         jint ret = gJvm->GetEnv(&eenv, JNI_VERSION_1_4);
         JNIEnv* env = (JNIEnv*)eenv;
         if (env != mEnv) {
-            LOGE("%s: invalid java env, ignore onModeChange callback", __func__);
+            LOGE("%s: invalid java env, ignore onMdsMessage callback", __func__);
             mEnv = NULL;
             mObj = NULL;
             return;
         }
         jclass clazz = mEnv->GetObjectClass(*mObj);
-        mid = mEnv->GetMethodID(clazz, "onModeChange", "(I)V");
+        mid = mEnv->GetMethodID(clazz, "onMdsMessage", "(II)V");
         if (mid == NULL) {
-            LOGE("%s: fail to get onModeChange", __func__);
+            LOGE("%s: fail to get onMdsMessage", __func__);
             mEnv = NULL;
             mObj = NULL;
             return;
         }
-        mEnv->CallVoidMethod(*mObj, mid, mode);
+        mEnv->CallVoidMethod(*mObj, mid, value);
         mEnv = NULL;
         mObj = NULL;
     } else
-        LOGI("%s: No need to call onModeChange, 0x%x", __func__, mode);
+        LOGI("%s: No need to call onMdsMessage, 0x%x", __func__, value);
 }
 
 static void initMDC() {

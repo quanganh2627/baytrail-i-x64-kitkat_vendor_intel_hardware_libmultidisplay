@@ -85,6 +85,8 @@ typedef struct _drmJNI {
     HDMI_config_info configInfo;//hdmisetting
     int modeIndex;
     int cloneModeIndex;
+    void* cookie;
+    notify_func_widi_t widiNotifyFunc;
 } drmJNI;
 
 static inline uint32_t align_to(uint32_t arg, uint32_t align)
@@ -1563,4 +1565,39 @@ bool drm_hdmi_setMode(int mode, MDSHDMITiming* info) {
     CHECK_DRM_FD(false);
 
     return setHdmiMode(mode, info);
+}
+
+int widi_orientation_handler_cb(int cmd, int* data) {
+
+    int ret = 0;
+    if (g_drm.widiNotifyFunc)
+        ret = g_drm.widiNotifyFunc(g_drm.cookie, cmd, *data);
+
+    return ret;
+}
+
+bool drm_widi_notify(bool On, void* cookie, void* func) {
+    int ret = 0;
+    g_drm.cookie = cookie;
+    if (On) {
+        g_drm.widiNotifyFunc = (notify_func_widi_t)func;
+
+        if (g_drm.ctx->register_widi_notify_func)
+            g_drm.ctx->register_widi_notify_func((notify_func_t)widi_orientation_handler_cb);
+
+        if (g_drm.ctx->notify_gralloc)
+            ret = g_drm.ctx->notify_gralloc(CMD_WIDI_CONNECTED, 0);
+     } else {
+
+        g_drm.widiNotifyFunc = NULL;
+
+        if (g_drm.ctx->notify_gralloc)
+            ret = g_drm.ctx->notify_gralloc(CMD_WIDI_DISCONNECTED, 0);
+        }
+
+    if (ret) {
+        LOGE("%s: Failed to notify gralloc", __func__);
+        return false;
+    }
+    return true;
 }

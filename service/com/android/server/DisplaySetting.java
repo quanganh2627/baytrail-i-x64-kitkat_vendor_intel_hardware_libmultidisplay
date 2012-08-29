@@ -38,7 +38,7 @@ class DisplaySetting {
     public static final int HDMI_CONNECT_STATUS_BIT = 0x1 << 3;
     public static final int HDMI_MODE_BIT           = 0x1 << 4;
 
-    private static onModeChangeListener mListener = null;
+    private static onMdsMessageListener mListener = null;
     private static boolean mInit = false;
 
     private native boolean native_InitMDSClient();
@@ -80,13 +80,13 @@ class DisplaySetting {
         return native_setHdmiPowerOff();
     }
 
-    public void onModeChange(int mode) {
+    public void onMdsMessage(int event, int value) {
         if (mListener != null) {
-            mListener.onModeChange(mode);
+            mListener.onMdsMessage(event, value);
         }
     }
 
-    public void setModeChangeListener(onModeChangeListener listener) {
+    public void setMdsMessageListener(onMdsMessageListener listener) {
         if (mListener == null) {
             mListener = listener;
         }
@@ -104,8 +104,8 @@ class DisplaySetting {
                             refresh, interlace, ratio);
     }
 
-    public interface onModeChangeListener {
-        boolean onModeChange(int mode);
+    public interface onMdsMessageListener {
+        boolean onMdsMessage(int event, int value);
     }
 
     public int getHdmiInfoCount() {

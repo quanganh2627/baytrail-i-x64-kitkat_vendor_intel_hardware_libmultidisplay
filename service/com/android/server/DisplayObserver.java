@@ -37,7 +37,6 @@ import android.database.ContentObserver;
 
 import java.io.FileReader;
 import java.io.FileNotFoundException;
-
 /**
  * <p>DisplayObserver.
  */
@@ -102,7 +101,7 @@ class DisplayObserver extends UEventObserver {
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DisplayObserver");
         mWakeLock.setReferenceCounted(false);
-        mDs.setModeChangeListener(mListener);
+        mDs.setMdsMessageListener(mListener);
         startObserving(HDMI_UEVENT_MATCH);
         if ((mDs.getMode() & mDs.HDMI_MODE_BIT) ==
                                     mDs.HDMI_MODE_BIT) {
@@ -119,10 +118,10 @@ class DisplayObserver extends UEventObserver {
         super.finalize();
     }
 
-    DisplaySetting.onModeChangeListener mListener =
-                        new DisplaySetting.onModeChangeListener() {
-        public boolean onModeChange(int mode) {
-            if (LOG) Slog.i(TAG, "mode is changed to " + Integer.toHexString(mode));
+    DisplaySetting.onMdsMessageListener mListener =
+                        new DisplaySetting.onMdsMessageListener() {
+        public boolean onMdsMessage(int event, int value) {
+            if (LOG) Slog.i(TAG, "mode is changed to " + Integer.toHexString(value));
             return true;
         };
     };
