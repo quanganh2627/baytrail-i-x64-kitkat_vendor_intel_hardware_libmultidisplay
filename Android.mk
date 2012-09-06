@@ -14,6 +14,7 @@ LOCAL_COPY_HEADERS := \
 
 include $(BUILD_COPY_HEADERS)
 
+include $(CLEAR_VARS)
 LOCAL_SRC_FILES:= \
     native/MultiDisplayService.cpp \
     native/MultiDisplayClient.cpp \
@@ -49,8 +50,6 @@ ifeq ($(ENABLE_IMG_GRAPHICS),true)
     LOCAL_CFLAGS += -DDVI_SUPPORTED
     LOCAL_SHARED_LIBRARIES += libdl
 endif
-
-
 include $(BUILD_SHARED_LIBRARY)
 
 # Build JNI library
