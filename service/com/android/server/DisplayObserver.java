@@ -128,8 +128,8 @@ class DisplayObserver extends UEventObserver {
 
     @Override
     public synchronized void onUEvent(UEventObserver.UEvent event) {
-        if (LOG) Slog.v(TAG, "HDMI UEVENT: " + event.toString());
         if (event.toString().contains("HOTPLUG")) {
+            if (LOG) Slog.v(TAG, "HDMI UEVENT: " + event.toString());
             int delay = 0;
             if (event.toString().contains("HOTPLUG_IN")) {
                 delay = 0;
