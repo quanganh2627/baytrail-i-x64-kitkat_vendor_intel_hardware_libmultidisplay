@@ -22,6 +22,8 @@
 #include <display/MultiDisplayType.h>
 #include <display/IMultiDisplayComposer.h>
 #include <display/IExtendDisplayModeChangeListener.h>
+#include <gui/SurfaceComposerClient.h>
+#include <media/stagefright/foundation/ADebug.h>
 
 using namespace android;
 
@@ -29,6 +31,10 @@ class MultiDisplayClient {
 private:
     void initService();
     sp<IMultiDisplayComposer> mIMDComposer;
+    sp<SurfaceComposerClient> mComposerClient;
+    sp<SurfaceControl> mSurfaceControl;
+    sp<ANativeWindow> mANW;
+
 public:
     MultiDisplayClient();
     ~MultiDisplayClient();
@@ -156,6 +162,39 @@ public:
      * return: hardware display capability, refer MultiDisplayType.h
      */
     int getDisplayCapability();
+
+    /*
+     * create a native surface for client
+     * input param:
+     *              width: surface width
+     *              height: surface height
+     *              pixelFormat: surface pixel format
+     *              playerId: Id of native player requesting surface
+     * return:
+     *    NULL: on failure or if playerId is different from Background player app's native player
+     *    Native surface: on success
+     */
+    sp<ANativeWindow> createNewVideoSurface(int width, int height, int pixelFormat, int playerId);
+
+    /*
+     * destroy native surface created previously
+     * input param:
+     *    None
+     * return:
+     *    None
+     */
+    void destroyVideoSurface();
+
+    /*
+     * Set Background play session and playerId on MDS server
+     * input param:
+     *               on: background playback on/off
+     *               playerId: id of native player created by background player app
+     * return:
+     *    MDS_ERROR: on error
+     *    !=0: on success
+     */
+    int setPlayInBackground(bool on, int playerId);
 };
 
 #endif

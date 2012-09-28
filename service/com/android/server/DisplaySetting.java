@@ -66,6 +66,7 @@ class DisplaySetting {
     private native boolean native_setHdmiScaleStep(int Step, int Orientation);
     private native int     native_getHdmiDeviceChange();
     private native int     native_getDisplayCapability();
+    private native int     native_setPlayInBackground(boolean value, int playerId);
 
     public DisplaySetting() {
         if (mInit == false) {
@@ -137,6 +138,10 @@ class DisplaySetting {
 
     public int getDisplayCapability() {
         return native_getDisplayCapability();
+    }
+
+    public int setPlayInBackground(boolean enablePlayInBackground, int playerId) {
+        return native_setPlayInBackground(enablePlayInBackground, playerId);
     }
 }
 

@@ -43,6 +43,7 @@ MultiDisplayClient::MultiDisplayClient() {
         return;
     } else
         mIMDComposer = interface_cast<IMultiDisplayComposer>(service);
+
 }
 
 MultiDisplayClient::~MultiDisplayClient() {
@@ -129,4 +130,65 @@ int MultiDisplayClient::getVideoInfo(int* displayW, int* displayH, int* fps, int
 int MultiDisplayClient::getDisplayCapability() {
     MDC_CHECK_IMDC();
     return mIMDComposer->getDisplayCapability();
+}
+
+sp<ANativeWindow> MultiDisplayClient::createNewVideoSurface(int width, int height, int pixelFormat, int playerId) {
+    LOGV("%s: %d, %d, %d, %d", __func__, width, height, pixelFormat, playerId);
+    // Check if mIMDComposer is NULL
+    // Not using macro MDC_CHECK_IMDC() here since return type for this function is sp<ANativeWindow>
+    if (mIMDComposer == NULL) {
+        LOGE("%s: MDSComposer is null", __func__);
+        return NULL;
+    }
+    bool bEnabled = false;
+    int backgroundPlayerId = 0;
+    bEnabled = (mIMDComposer->isPlayInBackgroundEnabled() == 1 ? true : false);
+    if (bEnabled) {
+        backgroundPlayerId = mIMDComposer->getBackgroundPlayerId();
+        if (playerId == backgroundPlayerId) {
+            mComposerClient = new SurfaceComposerClient;
+            CHECK_EQ(mComposerClient->initCheck(), (status_t)OK);
+
+            mSurfaceControl = mComposerClient->createSurface(String8("BackgroungPlaySurface"), 0,width,height, pixelFormat, 0);
+            CHECK(mSurfaceControl != NULL);
+            CHECK(mSurfaceControl->isValid());
+
+            SurfaceComposerClient::openGlobalTransaction();
+            mSurfaceControl->setAlpha(255);
+            SurfaceComposerClient::closeGlobalTransaction();
+
+            mANW =  mSurfaceControl->getSurface();
+            CHECK(mANW != NULL);
+
+            mIMDComposer->setNativeSurface((int*)mANW.get());
+        } else {
+            return NULL;
+        }
+    } else {
+        return NULL;
+    }
+
+    return mANW;
+}
+
+void MultiDisplayClient::destroyVideoSurface() {
+    LOGV("%s", __func__);
+    if (mANW != NULL) {
+        LOGV("%s: clear native window", __func__);
+        mANW.clear();
+    }
+    if (mSurfaceControl != NULL) {
+        LOGV("%s: clear surface controller", __func__);
+        mSurfaceControl.clear();
+    }
+    if (mComposerClient != NULL) {
+        LOGV("%s: clear surface composer client", __func__);
+        mComposerClient.clear();
+    }
+}
+
+int MultiDisplayClient::setPlayInBackground(bool on, int playerId) {
+    LOGV("%s: param %d, %d", __func__, on, playerId);
+    MDC_CHECK_IMDC();
+    return mIMDComposer->enablePlayInBackground(on, playerId);
 }

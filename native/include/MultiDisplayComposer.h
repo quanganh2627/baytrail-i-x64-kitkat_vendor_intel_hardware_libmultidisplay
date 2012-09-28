@@ -60,6 +60,10 @@ public:
     int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
     int getDisplayCapability();
     void setWidiOrientationInfo(int orientation);
+    int enablePlayInBackground(bool on, int playerId);
+    int setNativeSurface(int* surface);
+    int isPlayInBackgroundEnabled();
+    int getBackgroundPlayerId();
 
 private:
     enum {
@@ -81,6 +85,10 @@ private:
     Condition mMipiCon;
     mutable Mutex mMipiLock;
     KeyedVector<void *, sp<IExtendDisplayModeChangeListener> > mMCListenerVector;
+    bool mEnablePlayInBackground;
+    int* mNativeSurface;
+    int mBackgroundPlayerId;
+    mutable Mutex mBackgroundPlayLock;
 
     int setHdmiMode_l();
     void broadcastMdsMessage_l(int msg, int value);

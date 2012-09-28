@@ -56,6 +56,10 @@ public:
     int getHdmiDeviceChange();
     int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
     int getDisplayCapability();
+    int enablePlayInBackground(bool on, int playerId);
+    int setNativeSurface(int* surface);
+    int isPlayInBackgroundEnabled();
+    int getBackgroundPlayerId();
 };
 }; // namespace android
 #endif

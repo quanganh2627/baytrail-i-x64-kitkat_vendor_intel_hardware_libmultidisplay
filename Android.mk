@@ -26,7 +26,7 @@ LOCAL_MODULE:= libmultidisplay
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_SHARED_LIBRARIES := \
-    libui libcutils libutils libbinder libsepdrm
+    libui libcutils libutils libbinder libsepdrm libgui libstagefright_foundation
 LOCAL_CFLAGS := -DLOG_TAG=\"MultiDisplay\"
 
 ifeq ($(ENABLE_IMG_GRAPHICS),true)

@@ -47,6 +47,10 @@ public:
     virtual int getHdmiDeviceChange() = 0;
     virtual int getVideoInfo(int* dw, int* dh, int* fps, int* interlace) = 0;
     virtual int getDisplayCapability() = 0;
+    virtual int enablePlayInBackground(bool on, int playerId) = 0;
+    virtual int setNativeSurface(int* surface) = 0;
+    virtual int isPlayInBackgroundEnabled() = 0;
+    virtual int getBackgroundPlayerId() = 0;
 };
 
 class BpMultiDisplayComposer:public BpInterface<IMultiDisplayComposer> {
@@ -71,6 +75,10 @@ public:
     virtual int getHdmiDeviceChange();
     virtual int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
     virtual int getDisplayCapability();
+    virtual int enablePlayInBackground(bool on, int playerId);
+    virtual int setNativeSurface(int* surface);
+    virtual int isPlayInBackgroundEnabled();
+    virtual int getBackgroundPlayerId();
 };
 
 class BnMultiDisplayComposer:public BnInterface<IMultiDisplayComposer> {

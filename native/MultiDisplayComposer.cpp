@@ -64,6 +64,9 @@ MultiDisplayComposer::MultiDisplayComposer() {
     run("MIPIListener", PRIORITY_URGENT_DISPLAY);
     LOGI("%s: mMode: 0x%x", __func__, mMode);
     mDrmInit = true;
+    mEnablePlayInBackground = false;
+    mBackgroundPlayerId = 0;
+    mNativeSurface = NULL;
     initDisplayCapability_l();
 }
 
@@ -570,4 +573,30 @@ int MultiDisplayComposer::widi_rm_notifier_handler(void* cookie, int cmd, int da
     }
 
     return ret;
+}
+
+int MultiDisplayComposer::enablePlayInBackground(bool on, int playerId) {
+    Mutex::Autolock _l(mBackgroundPlayLock);
+    mEnablePlayInBackground = on;
+    mBackgroundPlayerId = playerId;
+    return MDS_NO_ERROR;
+}
+
+int MultiDisplayComposer::setNativeSurface(int* surface) {
+    if (surface == NULL)
+        return MDS_ERROR;
+    Mutex::Autolock _l(mBackgroundPlayLock);
+    mNativeSurface = surface;
+    return MDS_NO_ERROR;
+}
+
+int MultiDisplayComposer::isPlayInBackgroundEnabled() {
+    Mutex::Autolock _l(mBackgroundPlayLock);
+    int playInBgEnabled = (mEnablePlayInBackground == true ? 1 : 0);
+    return playInBgEnabled;
+}
+
+int MultiDisplayComposer::getBackgroundPlayerId() {
+    Mutex::Autolock _l(mBackgroundPlayLock);
+    return mBackgroundPlayerId;
 }

@@ -123,4 +123,25 @@ int MultiDisplayService::getDisplayCapability() {
     MDS_CHECK_MDS();
     return mMDC->getDisplayCapability();
 }
+
+int MultiDisplayService::enablePlayInBackground(bool on, int playerId) {
+    MDS_CHECK_MDS();
+    return mMDC->enablePlayInBackground(on, playerId);
+}
+
+int MultiDisplayService::setNativeSurface(int* surface) {
+    MDS_CHECK_MDS();
+    return mMDC->setNativeSurface(surface);
+}
+
+int MultiDisplayService::isPlayInBackgroundEnabled() {
+    MDS_CHECK_MDS();
+    return mMDC->isPlayInBackgroundEnabled();
+}
+
+int MultiDisplayService::getBackgroundPlayerId() {
+    MDS_CHECK_MDS();
+    return mMDC->getBackgroundPlayerId();
+}
+
 }
