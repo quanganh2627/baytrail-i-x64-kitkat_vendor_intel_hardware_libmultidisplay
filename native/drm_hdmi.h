@@ -42,7 +42,6 @@ bool drm_hdmi_onHdmiDisconnected(void);
 int  drm_hdmi_getModeInfo(int *pWidth, int* pHeight,
                           int *pRefresh, int *pInterlace, int *pRatio);
 bool drm_hdmi_setScaling(int scale_mode);
-int  drm_hdmi_getScaling();
 bool drm_hdmi_setScaleStep(int hValue, int vValue);
 int  drm_hdmi_getDeviceChange();
 int  drm_get_dev_fd();

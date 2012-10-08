@@ -31,6 +31,7 @@
 #include <utils/threads.h>
 #include <utils/Vector.h>
 #include <display/IExtendDisplayModeChangeListener.h>
+#include <display/MultiDisplayType.h>
 
 using namespace android;
 

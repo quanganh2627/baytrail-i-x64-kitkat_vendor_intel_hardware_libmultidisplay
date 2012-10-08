@@ -20,7 +20,6 @@
 #include <utils/Log.h>
 #include <binder/IServiceManager.h>
 #include <binder/IPCThreadState.h>
-#include <display/MultiDisplayType.h>
 #include <display/IMultiDisplayComposer.h>
 #include <display/MultiDisplayComposer.h>
 
@@ -32,6 +31,15 @@ extern "C" {
 }
 
 using namespace android;
+
+#define MDC_CHECK_INIT() \
+do { \
+    if (mDrmInit == false) { \
+        LOGE("%s: drm_init fails", __func__); \
+        return MDS_ERROR; \
+    } \
+} while(0)
+
 
 MultiDisplayComposer::MultiDisplayComposer() {
     mDrmInit = false;
@@ -77,10 +85,7 @@ MultiDisplayComposer::~MultiDisplayComposer() {
 }
 
 int MultiDisplayComposer::getMode(bool wait) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     if (wait)
         mLock.lock();
     else {
@@ -95,10 +100,7 @@ int MultiDisplayComposer::getMode(bool wait) {
 }
 
 int MultiDisplayComposer::notifyWidi(bool on) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     // It should hold mLock here instead. It is safe not holding any lock however.
     //Mutex::Autolock _l(mMipiLock);
     mWidiVideoExt = on;
@@ -112,10 +114,7 @@ int MultiDisplayComposer::notifyWidi(bool on) {
 }
 
 int MultiDisplayComposer::notifyMipi(bool on) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mMipiLock);
     mMipiReq = on ? MIPI_ON_REQ : MIPI_OFF_REQ;
     mMipiCon.signal();
@@ -123,20 +122,14 @@ int MultiDisplayComposer::notifyMipi(bool on) {
 }
 
 int MultiDisplayComposer::setHdmiPowerOff() {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     drm_hdmi_setHdmiPowerOff();
     return MDS_NO_ERROR;
 }
 
 int MultiDisplayComposer::updateVideoInfo(MDSVideoInfo* info) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     if (info == NULL) {
         LOGE("%s: video info is null", __func__);
         return MDS_ERROR;
@@ -363,20 +356,14 @@ int MultiDisplayComposer::setMipiMode_l(bool on) {
 }
 
 int MultiDisplayComposer::notifyHotPlug() {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     LOGV("%s: mipi policy: %d, hdmi policy: %d, mode: 0x%x", __func__, mMipiPolicy, mHdmiPolicy, mMode);
     Mutex::Autolock _l(mLock);
     return setHdmiMode_l();
 }
 
 int MultiDisplayComposer::setModePolicy(int policy) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     return setModePolicy_l(policy);
 }
@@ -418,10 +405,7 @@ int MultiDisplayComposer::setModePolicy_l(int policy) {
 int MultiDisplayComposer::registerModeChangeListener(
                 sp<IExtendDisplayModeChangeListener> listener, void *handle) {
     unsigned int i = 0;
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     LOGV("%s: mMode: 0x%x %x %d", __func__, mMode, (unsigned)handle, mMCListenerVector.size());
     for (i = 0; i < mMCListenerVector.size(); i++) {
@@ -437,10 +421,7 @@ int MultiDisplayComposer::registerModeChangeListener(
 int MultiDisplayComposer::unregisterModeChangeListener(
                 sp<IExtendDisplayModeChangeListener> listener, void *handle) {
     unsigned int i = 0;
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     LOGV("%s: mMode: 0x%x %x %d", __func__, mMode, (unsigned)handle, mMCListenerVector.size());
     for (i = 0; i < mMCListenerVector.size(); i++) {
@@ -459,10 +440,7 @@ int MultiDisplayComposer::getHdmiPlug_l() {
 int MultiDisplayComposer::getHdmiModeInfo(int* pWidth, int* pHeight,
                                           int* pRefresh, int* pInterlace,
                                           int *pRatio) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     LOGV("%s: mMode: 0x%x", __func__, mMode);
     if (pWidth == NULL || pHeight == NULL ||
@@ -476,10 +454,7 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
                             int refresh, int interlace, int ratio) {
     bool ret = false;
     MDSHDMITiming timing;
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     LOGV("%s: \
         \n  mMode: %d, \
@@ -501,10 +476,7 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
 }
 
 int MultiDisplayComposer::setHdmiScaleType(int type) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     bool ret = false;
     LOGV("%s: type: %d", __func__, type);
@@ -513,10 +485,7 @@ int MultiDisplayComposer::setHdmiScaleType(int type) {
 }
 
 int MultiDisplayComposer::setHdmiScaleStep(int hValue, int vValue) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     bool ret = false;
     LOGV("%s: hValue: %d, vValue: %d", __func__, hValue, vValue);
@@ -525,19 +494,13 @@ int MultiDisplayComposer::setHdmiScaleStep(int hValue, int vValue) {
 }
 
 int MultiDisplayComposer::getHdmiDeviceChange() {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     return drm_hdmi_getDeviceChange();
 }
 
 int MultiDisplayComposer::getVideoInfo(int* dw, int* dh, int* fps, int* interlace) {
-    if (mDrmInit == false) {
-        LOGE("%s: drm_init fails", __func__);
-        return MDS_ERROR;
-    }
+    MDC_CHECK_INIT();
     //TODO: here don't need to lock mLock
     if (!mVideo.isplaying) {
         LOGE("%s: Video player is not in playing state", __func__);

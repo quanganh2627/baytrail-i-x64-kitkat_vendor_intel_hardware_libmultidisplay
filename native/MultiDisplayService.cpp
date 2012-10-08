@@ -24,6 +24,14 @@
 
 namespace android {
 
+#define MDS_CHECK_MDS() \
+do { \
+    if (mMDC == NULL) { \
+        LOGE("%s: MDSComposer is null", __func__); \
+        return MDS_ERROR; \
+    } \
+} while(0)
+
 MultiDisplayService::MultiDisplayService() {
     mMDC = new MultiDisplayComposer();
 }
@@ -36,79 +44,78 @@ MultiDisplayService::~MultiDisplayService() {
 }
 
 int MultiDisplayService::getMode(bool wait) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->getMode(wait);
 }
 
 int MultiDisplayService::notifyWidi(bool on) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->notifyWidi(on);
 }
 
 int MultiDisplayService::notifyMipi(bool on) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->notifyMipi(on);
 }
 
 int MultiDisplayService::updateVideoInfo(MDSVideoInfo* info) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->updateVideoInfo(info);
 }
 
 int MultiDisplayService::notifyHotPlug() {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->notifyHotPlug();
 }
 
 int MultiDisplayService::setHdmiPowerOff() {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->setHdmiPowerOff();
 }
 
 int MultiDisplayService::setModePolicy(int policy) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->setModePolicy(policy);
 }
 
 int MultiDisplayService::registerModeChangeListener(
                             sp<IExtendDisplayModeChangeListener> listener, void *handle) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->registerModeChangeListener(listener, handle);
 }
 
 int MultiDisplayService::unregisterModeChangeListener(
                             sp<IExtendDisplayModeChangeListener> listener, void *handle) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->unregisterModeChangeListener(listener, handle);
 }
 
 int MultiDisplayService::getHdmiModeInfo(int* pWidth, int* pHeight,
                                          int* pRefresh, int* pInterlace, int* pRatio) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->getHdmiModeInfo(pWidth, pHeight, pRefresh, pInterlace, pRatio);
 }
 
 int MultiDisplayService::setHdmiModeInfo(int width, int height, int refresh, int interlace, int ratio) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->setHdmiModeInfo(width, height, refresh, interlace, ratio);
 }
 int MultiDisplayService::setHdmiScaleType(int type) {
-    if (mMDC == NULL) return MDS_ERROR;
     return mMDC->setHdmiScaleType(type);
 }
 
 int MultiDisplayService::setHdmiScaleStep(int hValue, int vValue) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->setHdmiScaleStep(hValue, vValue);
 }
 
 int MultiDisplayService::getHdmiDeviceChange() {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->getHdmiDeviceChange();
 }
 
 int MultiDisplayService::getVideoInfo(int* dw, int* dh, int* fps, int* interlace) {
-    if (mMDC == NULL) return MDS_ERROR;
+    MDS_CHECK_MDS();
     return mMDC->getVideoInfo(dw, dh, fps, interlace);
 }
 }

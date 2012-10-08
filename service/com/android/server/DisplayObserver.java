@@ -276,7 +276,7 @@ class DisplayObserver extends UEventObserver {
                 if (hasIncomingCall) {
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                     mDs.setModePolicy(mDs.HDMI_ON_NOT_ALLOWED);
-                } else if (((!hasIncomingCall) && IncomingCallFinished) && (mHdmiEnable ==1)) {
+                } else if (((!hasIncomingCall) && IncomingCallFinished) && (mHdmiEnable == 1)) {
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                     mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
                 }
