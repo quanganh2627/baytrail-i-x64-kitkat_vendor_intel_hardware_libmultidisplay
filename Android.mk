@@ -44,6 +44,7 @@ ifeq ($(ENABLE_IMG_GRAPHICS),true)
 
     LOCAL_SHARED_LIBRARIES += \
          libdrm \
+         libsrv_um \
          libpvr2d
 
     LOCAL_CFLAGS += -DENABLE_DRM
