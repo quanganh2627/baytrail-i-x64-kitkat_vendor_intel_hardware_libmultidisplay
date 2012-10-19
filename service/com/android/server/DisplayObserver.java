@@ -15,6 +15,8 @@
  */
 
 package com.android.server;
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningTaskInfo;
 
 import android.content.BroadcastReceiver;
 import android.content.IntentFilter;
@@ -37,6 +39,7 @@ import android.database.ContentObserver;
 
 import java.io.FileReader;
 import java.io.FileNotFoundException;
+import java.util.List;
 /**
  * <p>DisplayObserver.
  */
@@ -51,6 +54,7 @@ class DisplayObserver extends UEventObserver {
     private final int ROUTE_TO_HDMI    = 1;
     private final int HDMI_HOTPLUG     = 2;
     private final int HDMI_POWER_OFF   = 3;
+    private final int CHECK_INCALLSCREEN_ACTIVE = 4;
     private int mAudioRoute =  ROUTE_TO_SPEAKER;
     private int mPreAudioRoute = -1;
     private String mHDMIName;
@@ -66,14 +70,18 @@ class DisplayObserver extends UEventObserver {
 
     private Context mContext;
     private WakeLock mWakeLock;  // held while there is a pending route change
-    private boolean hasIncomingCall = false;
-    private boolean IncomingCallFinished = true;
+    private boolean mHasIncomingCall = false;
+    private boolean mInCallScreenFinished = true;
     private DisplaySetting mDs;
 
     //Message need to handle
     private final int HDMI_STATE_CHANGE = 0;
+    //For HDMI privacy protection UC
+    //InCallScreen activity name
+    private static final String INCALLSCREEN_ACTIVITY = "com.android.phone.InCallScreen";
+    //A timer of 3 seconds for rechecking InCallScreen's status
+    private static final long INCALLSCREEN_CHECK_TIMER = 3000;
 
-    private final String PHONE_INCALLSCREEN_FINISH = "com.android.phone_INCALLSCREEN_FINISH";
     private static final String HDMI_GET_INFO = "android.hdmi.GET_HDMI_INFO";
     private static final String HDMI_SET_INFO = "android.hdmi.SET_HDMI_INFO";
     private static final String HDMI_SERVER_GET_INFO = "HdmiObserver.GET_HDMI_INFO";
@@ -89,7 +97,6 @@ class DisplayObserver extends UEventObserver {
         mContext = context;
         mDs = new DisplaySetting();
         IntentFilter intentFilter = new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
-        intentFilter.addAction(PHONE_INCALLSCREEN_FINISH);
         intentFilter.addAction(HDMI_GET_INFO);
         intentFilter.addAction(HDMI_SET_INFO);
         intentFilter.addAction(Intent.HDMI_SET_STATUS);
@@ -118,10 +125,16 @@ class DisplayObserver extends UEventObserver {
         super.finalize();
     }
 
+    private void logv(String s) {
+        if (LOG) {
+            Slog.v(TAG, s);
+        }
+    }
+
     DisplaySetting.onMdsMessageListener mListener =
                         new DisplaySetting.onMdsMessageListener() {
         public boolean onMdsMessage(int event, int value) {
-            if (LOG) Slog.i(TAG, "mode is changed to " + Integer.toHexString(value));
+            logv("mode is changed to " + Integer.toHexString(value));
             return true;
         };
     };
@@ -129,7 +142,7 @@ class DisplayObserver extends UEventObserver {
     @Override
     public synchronized void onUEvent(UEventObserver.UEvent event) {
         if (event.toString().contains("HOTPLUG")) {
-            if (LOG) Slog.v(TAG, "HDMI UEVENT: " + event.toString());
+            logv("HDMI UEVENT: " + event.toString());
             int delay = 0;
             if (event.toString().contains("HOTPLUG_IN")) {
                 delay = 0;
@@ -149,11 +162,11 @@ class DisplayObserver extends UEventObserver {
     private synchronized void update(String newName, int newState) {
         // Retain only relevant bits
         int delay = 0;
-        Slog.v(TAG, "Set Audio output from " +
+        logv("Set Audio output from " +
                 (mAudioRoute == 0 ? "SPEAKER":"HDMI") +
                 " to " + (newState == 0 ? "SPEAKER":"HDMI"));
         if (newState == mAudioRoute) {
-            Slog.v(TAG, "Same Audio output, Don't set");
+            logv("Same Audio output, Don't set");
             return;
         }
         mHDMIName = newName;
@@ -178,7 +191,7 @@ class DisplayObserver extends UEventObserver {
     }
 
     private final void sendIntent(int hdmi, int State, int prev, String Name) {
-        if (LOG) Slog.v(TAG, "State:" + State + " prev:" + prev + " Name:" + Name);
+        logv("State:" + State + " prev:" + prev + " Name:" + Name);
         //  Pack up the values and broadcast them to everyone
         Intent intent = new Intent(Intent.ACTION_HDMI_AUDIO_PLUG);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
@@ -214,10 +227,27 @@ class DisplayObserver extends UEventObserver {
             update("HOTPLUG", ROUTE_TO_HDMI);
     }
 
+    private final boolean isInCallScreenActive() {
+        boolean isActive = false;
+        ActivityManager activityManager =
+                (ActivityManager)mContext.getSystemService(Context.ACTIVITY_SERVICE);
+        List<RunningTaskInfo> tasks = activityManager.getRunningTasks(1);
+        if (tasks != null && tasks.size() > 0) {
+            String className = tasks.get(0).topActivity.getClassName();
+            if (className != null && className.equals(INCALLSCREEN_ACTIVITY)) {
+                logv("InCallScreen is active");
+                isActive = true;
+            } else {
+                logv("InCallScreen is not active");
+            }
+        }
+        return isActive;
+    }
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
-            if (LOG) Slog.v(TAG, "handle message = " + (String)msg.obj);
+            logv("handle message = " + (String)msg.obj);
             switch(msg.what) {
             case HDMI_STATE_CHANGE:
                 sendIntents(msg.arg1, msg.arg2, (String)msg.obj);
@@ -233,7 +263,7 @@ class DisplayObserver extends UEventObserver {
 
                     boolean ret = mDs.notifyHotPlug();
                     if (!ret) {
-                        if (LOG) Slog.e(TAG, "fail to deal with hdmi hotlpug");
+                        logv("fail to deal with hdmi hotlpug");
                         return;
                     }
 
@@ -243,6 +273,18 @@ class DisplayObserver extends UEventObserver {
             case HDMI_POWER_OFF:
                 mDs.setHdmiPowerOff();
                 break;
+            case CHECK_INCALLSCREEN_ACTIVE:
+                if (isInCallScreenActive()) {
+                    mHandler.sendMessageDelayed(
+                            mHandler.obtainMessage(CHECK_INCALLSCREEN_ACTIVE),
+                            INCALLSCREEN_CHECK_TIMER);
+                } else {
+                    mInCallScreenFinished = true;
+                    logv("Call is terminated and Incallscreen disappeared");
+                    mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
+                    mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
+                }
+                break;
             }
         }
     };
@@ -251,43 +293,41 @@ class DisplayObserver extends UEventObserver {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action.equals(TelephonyManager.ACTION_PHONE_STATE_CHANGED) ||
-                                action.equals(PHONE_INCALLSCREEN_FINISH)) {
-                if (action.equals(PHONE_INCALLSCREEN_FINISH)) {
-                    IncomingCallFinished = true;
-                    if (LOG) Slog.v(TAG, "incoming call screen finished: " + IncomingCallFinished);
-                } else {
-                    if (TelephonyManager.EXTRA_STATE == null ||
-                                TelephonyManager.EXTRA_STATE_RINGING == null)
-                        return;
-                    String extras = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
-                    if (extras == null)
-                        return;
-                    if (extras.equals(TelephonyManager.EXTRA_STATE_RINGING)) {
-                        IncomingCallFinished = false;
-                        hasIncomingCall = true;
-                    } else if (extras.equals(TelephonyManager.EXTRA_STATE_IDLE))
-                        hasIncomingCall = false;
-                     else
-                        return;
-                    if (LOG) Slog.v(TAG, "incoming call " +
-                            (hasIncomingCall == true ? "initiated" : "terminated"));
-                }
-                if (hasIncomingCall) {
+            if (action.equals(TelephonyManager.ACTION_PHONE_STATE_CHANGED)) {
+                if (TelephonyManager.EXTRA_STATE == null ||
+                        TelephonyManager.EXTRA_STATE_RINGING == null)
+                    return;
+                String extras = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
+                if (extras == null)
+                    return;
+                mHandler.removeMessages(CHECK_INCALLSCREEN_ACTIVE);
+                if (extras.equals(TelephonyManager.EXTRA_STATE_RINGING)) {
+                    mHasIncomingCall = true;
+                    mInCallScreenFinished = false;
+                    logv("Incoming call is initiated");
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                     mDs.setModePolicy(mDs.HDMI_ON_NOT_ALLOWED);
-                } else if (((!hasIncomingCall) && IncomingCallFinished) && (mHdmiEnable == 1)) {
-                    mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
-                    mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
+                } else if (extras.equals(TelephonyManager.EXTRA_STATE_IDLE)) {
+                    mHasIncomingCall = false;
+                    if (isInCallScreenActive()) {
+                        mHandler.sendMessageDelayed(
+                                mHandler.obtainMessage(CHECK_INCALLSCREEN_ACTIVE),
+                                INCALLSCREEN_CHECK_TIMER);
+                    } else {
+                        mInCallScreenFinished = true;
+                        logv("Call is terminated and Incallscreen disappeared");
+                        mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
+                        mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
+                    }
                 }
-            }else if (action.equals(HDMI_GET_INFO)) {
+            } else if (action.equals(HDMI_GET_INFO)) {
                 // Handle HDMI_GET_INFO ACTION
-                if (LOG) Slog.v(TAG, "HDMI is plugged "+ (mHDMIConnected == 1 ? "in" : "out"));
+                logv("HDMI is plugged "+ (mHDMIConnected == 1 ? "in" : "out"));
                 if (mHDMIConnected != 0) {
                     // Get Number of Timing Info
                     int Count = mDs.getHdmiInfoCount();
                     mEdidChange = mDs.getHdmiDeviceChange();
-                    if (LOG) Slog.v(TAG, "HDMI timing number:" + Count);
+                    logv("HDMI timing number:" + Count);
                     Intent outIntent = new Intent(HDMI_SERVER_GET_INFO);
                     outIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
                     Bundle mBundle = new Bundle();
@@ -305,12 +345,12 @@ class DisplayObserver extends UEventObserver {
                         mBundle.putSerializable("ratio", arrRatio);
                         mBundle.putInt("count", Count);
                         mBundle.putInt("EdidChange",mEdidChange);
-                        mBundle.putBoolean("hasIncomingCall",hasIncomingCall);
+                        mBundle.putBoolean("mHasIncomingCall",mHasIncomingCall);
                         mEdidChange = 0;
                         outIntent.putExtras(mBundle);
                         mContext.sendBroadcast(outIntent);
                     } else {
-                        if (LOG) Slog.v(TAG, "fail to get HDMI info");
+                        logv("fail to get HDMI info");
                     }
                 }
             } else if (action.equals(HDMI_SET_INFO)) {
@@ -324,8 +364,8 @@ class DisplayObserver extends UEventObserver {
                 int Ratio = extras.getInt("ratio", 0);
                 int Interlace = extras.getInt("interlace", 0);
                 int vic = extras.getInt("vic", 0);
-                if (LOG) Slog.v(TAG, "set info <width:" + Width + "height:" + Height + "refresh:"
-                    + Refresh + "interlace:" + Interlace + "ratio;" + Ratio + "VIC" + vic);
+                logv("set info <width:" + Width + "height:" + Height + "refresh:"
+                        + Refresh + "interlace:" + Interlace + "ratio;" + Ratio + "VIC" + vic);
                 /*
                  * Use native_setHdmiInfo for processing vic information too,
                  * instead of creating a new interface or modifying the existing
@@ -333,23 +373,23 @@ class DisplayObserver extends UEventObserver {
                  * '0' to differentiate.
                  */
                 if (vic != 0) {
-                    Slog.v(TAG, "set info vic = " + vic);
+                    logv("set info vic = " + vic);
                     Width = vic;
                     Height = 0;
                 }
                 if (!mDs.setHdmiTiming(Width, Height, Refresh, Interlace, Ratio))
-                    if (LOG) Slog.v(TAG, "Set HDMI Timing Info error");
+                    logv("Set HDMI Timing Info error");
             } else if (action.equals(Intent.HDMI_SET_STATUS)) {
                 Bundle extras = intent.getExtras();
                 if (extras == null)
                      return;
                 mHdmiEnable = extras.getInt("Status", 0);
-                if (LOG) Slog.v(TAG, "HDMI_SET_STATUS,EnableHdmi: " +  mHdmiEnable);
+                logv("HDMI_SET_STATUS,EnableHdmi: " +  mHdmiEnable);
                 if (mHdmiEnable == 0) {
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                     mDs.setModePolicy(mDs.HDMI_ON_NOT_ALLOWED);
                 }
-                else if ((!hasIncomingCall) && IncomingCallFinished) {
+                else if ((!mHasIncomingCall) && mInCallScreenFinished) {
                     mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                 }
@@ -360,9 +400,9 @@ class DisplayObserver extends UEventObserver {
                      return;
                 int ScaleType = extras.getInt("Type", 0);
 
-                if (LOG) Slog.v(TAG, "set scale info Type:" +  ScaleType);
+                logv("set scale info Type:" +  ScaleType);
                 if (!mDs.setHdmiScaleType(ScaleType))
-                    if (LOG) Slog.v(TAG, "Set HDMI Scale error");
+                    logv("Set HDMI Scale error");
             }
             else if (action.equals(HDMI_SET_STEP_SCALE)) {
                 Bundle extras = intent.getExtras();
@@ -370,25 +410,25 @@ class DisplayObserver extends UEventObserver {
                      return;
                 int Step = extras.getInt("Step", 0);
                 int Orientation = extras.getInt("Orientation", 0);
-                if (LOG) Slog.i(TAG,"orientation" + Orientation) ;
+                logv("orientation" + Orientation);
                 if (Orientation == 0)
                     mHoriRatio = Step;
                 else
                     mVertRatio = Step;
-                if (LOG) Slog.v(TAG, "set scale info step:" +  Step);
+                logv("set scale info step:" +  Step);
                 if(!mDs.setHdmiScaleStep(mHoriRatio,mVertRatio))
-                    if (LOG) Slog.v(TAG, "Set HDMI Step Scale error");
+                    logv("Set HDMI Step Scale error");
             }
             else if (action.equals(HDMI_Get_DisplayBoot)) {
                 Intent outIntent = new Intent(HDMI_Set_DisplayBoot);
                 Bundle mBundle = new Bundle();
                 if (mDisplayBoot == 1) {
                     mBundle.putInt("DisplayBoot",mDisplayBoot);
-                    if (LOG) Slog.i(TAG,"mDisplayBoot: " + mDisplayBoot) ;
+                    logv("mDisplayBoot: " + mDisplayBoot);
                     mDisplayBoot = 0;
                 } else {
                     mBundle.putInt("DisplayBoot",mDisplayBoot);
-                    if (LOG) Slog.i(TAG,"mDisplayBoot: " + mDisplayBoot) ;
+                    logv("mDisplayBoot: " + mDisplayBoot);
                 }
                 outIntent.putExtras(mBundle);
                 mContext.sendBroadcast(outIntent);
