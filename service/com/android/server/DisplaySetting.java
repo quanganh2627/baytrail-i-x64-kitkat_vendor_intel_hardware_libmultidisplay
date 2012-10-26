@@ -38,6 +38,10 @@ class DisplaySetting {
     public static final int HDMI_CONNECT_STATUS_BIT = 0x1 << 3;
     public static final int HDMI_MODE_BIT           = 0x1 << 4;
 
+    // MDS message type
+    public static final int MDS_MODE_CHANGE = 0;
+    public static final int MDS_ORIENTATION_CHANGE = 1;
+
     private static onMdsMessageListener mListener = null;
     private static boolean mInit = false;
 
@@ -48,7 +52,8 @@ class DisplaySetting {
     private native boolean native_setHdmiPowerOff();
     private native boolean native_notifyHotPlug();
     private native int     native_getHdmiTiming(int width[],
-                                                int height[], int refresh[], int interlace[], int ratio[]);
+                                                int height[], int refresh[],
+                                                int interlace[], int ratio[]);
     private native boolean native_setHdmiTiming(int width, int height,
                             int refresh, int interlace, int ratio);
     private native int     native_getHdmiInfoCount();

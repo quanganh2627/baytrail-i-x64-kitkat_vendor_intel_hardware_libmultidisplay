@@ -87,7 +87,7 @@ void JNIMDSListener::onMdsMessage(int msg, int value) {
             mObj = NULL;
             return;
         }
-        mEnv->CallVoidMethod(*mObj, mid, value);
+        mEnv->CallVoidMethod(*mObj, mid, msg, value);
         mEnv = NULL;
         mObj = NULL;
     } else

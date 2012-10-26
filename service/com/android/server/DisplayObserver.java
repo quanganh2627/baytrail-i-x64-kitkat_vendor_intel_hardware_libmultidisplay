@@ -61,8 +61,8 @@ class DisplayObserver extends UEventObserver {
     private int mHdmiEnable = 1;
     private int mEdidChange = 0;
     private int mDisplayBoot = 1;
-    private int mHoriRatio =5;
-    private int mVertRatio =5;
+    private int mHoriRatio = 5;
+    private int mVertRatio = 5;
 
     // indicate HDMI connect state
     private int mHDMIConnected = 0;
@@ -73,6 +73,8 @@ class DisplayObserver extends UEventObserver {
     private boolean mHasIncomingCall = false;
     private boolean mInCallScreenFinished = true;
     private DisplaySetting mDs;
+    private int mHdmiPolicy = mDs.HDMI_ON_ALLOWED;
+    private int mMdsMode = 0;
 
     //Message need to handle
     private final int HDMI_STATE_CHANGE = 0;
@@ -133,8 +135,11 @@ class DisplayObserver extends UEventObserver {
 
     DisplaySetting.onMdsMessageListener mListener =
                         new DisplaySetting.onMdsMessageListener() {
-        public boolean onMdsMessage(int event, int value) {
-            logv("mode is changed to " + Integer.toHexString(value));
+        public boolean onMdsMessage(int msg, int value) {
+            if (msg == mDs.MDS_MODE_CHANGE) {
+                logv("mode is changed to 0x" + Integer.toHexString(value));
+                mMdsMode = value;
+            }
             return true;
         };
     };
@@ -152,7 +157,6 @@ class DisplayObserver extends UEventObserver {
                 mHDMIPlugEvent = 0;
             } else
                 return;
-
             mHandler.removeMessages(HDMI_HOTPLUG);
             Message msg = mHandler.obtainMessage(HDMI_HOTPLUG, mHDMIPlugEvent, 0);
             mHandler.sendMessageDelayed(msg, delay);
@@ -163,10 +167,18 @@ class DisplayObserver extends UEventObserver {
         // Retain only relevant bits
         int delay = 0;
         logv("Set Audio output from " +
-                (mAudioRoute == 0 ? "SPEAKER":"HDMI") +
-                " to " + (newState == 0 ? "SPEAKER":"HDMI"));
+                (mAudioRoute == ROUTE_TO_SPEAKER ? "SPEAKER":"HDMI") +
+                " to " + (newState == ROUTE_TO_SPEAKER ? "SPEAKER":"HDMI"));
         if (newState == mAudioRoute) {
             logv("Same Audio output, Don't set");
+            return;
+        }
+        // If HDMI policy is HDMI_ON_NOT_ALLOWED,
+        // there is no need to send an intent to notify Audio MW.
+        if (mHdmiPolicy == mDs.HDMI_ON_NOT_ALLOWED && newState == ROUTE_TO_HDMI) {
+            logv("Turning on HDMI is not allowed, don't have to notify audio, " +
+                    mHasIncomingCall + "," +
+                    mInCallScreenFinished + ", " + mHdmiEnable);
             return;
         }
         mHDMIName = newName;
@@ -244,6 +256,20 @@ class DisplayObserver extends UEventObserver {
         return isActive;
     }
 
+    private final void setHdmiPolicy(int policy) {
+        if (policy != mHdmiPolicy &&
+                (policy == mDs.HDMI_ON_ALLOWED || policy == mDs.HDMI_ON_NOT_ALLOWED)) {
+            mDs.setModePolicy(policy);
+            mHdmiPolicy = policy;
+            if (policy == mDs.HDMI_ON_ALLOWED &&
+                    ((mMdsMode & mDs.HDMI_MODE_BIT) == mDs.HDMI_MODE_BIT)) {
+                update("HOTPLUG", ROUTE_TO_HDMI);
+            } else {
+                update("HOTPLUG", ROUTE_TO_SPEAKER);
+            }
+        }
+    }
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -282,7 +308,7 @@ class DisplayObserver extends UEventObserver {
                     mInCallScreenFinished = true;
                     logv("Call is terminated and Incallscreen disappeared");
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
-                    mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
+                    setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
                 }
                 break;
             }
@@ -306,7 +332,7 @@ class DisplayObserver extends UEventObserver {
                     mInCallScreenFinished = false;
                     logv("Incoming call is initiated");
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
-                    mDs.setModePolicy(mDs.HDMI_ON_NOT_ALLOWED);
+                    setHdmiPolicy(mDs.HDMI_ON_NOT_ALLOWED);
                 } else if (extras.equals(TelephonyManager.EXTRA_STATE_IDLE)) {
                     mHasIncomingCall = false;
                     if (isInCallScreenActive()) {
@@ -317,7 +343,7 @@ class DisplayObserver extends UEventObserver {
                         mInCallScreenFinished = true;
                         logv("Call is terminated and Incallscreen disappeared");
                         mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
-                        mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
+                        setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
                     }
                 }
             } else if (action.equals(HDMI_GET_INFO)) {
@@ -387,11 +413,11 @@ class DisplayObserver extends UEventObserver {
                 logv("HDMI_SET_STATUS,EnableHdmi: " +  mHdmiEnable);
                 if (mHdmiEnable == 0) {
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
-                    mDs.setModePolicy(mDs.HDMI_ON_NOT_ALLOWED);
+                    setHdmiPolicy(mDs.HDMI_ON_NOT_ALLOWED);
                 }
                 else if ((!mHasIncomingCall) && mInCallScreenFinished) {
-                    mDs.setModePolicy(mDs.HDMI_ON_ALLOWED);
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
+                    setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
                 }
             }
             else if (action.equals(HDMI_SET_SCALE)) {
