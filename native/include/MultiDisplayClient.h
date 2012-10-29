@@ -150,6 +150,12 @@ public:
      *    MDS_NO_ERROR: on success
      */
     int getVideoInfo(int* displayW, int* displayH, int* fps, int* isinterlace);
+    /*
+     * get hardware display capability, support HDMI or WIDI?
+     * param:
+     * return: hardware display capability, refer MultiDisplayType.h
+     */
+    int getDisplayCapability();
 };
 
 #endif

@@ -125,3 +125,8 @@ int MultiDisplayClient::getVideoInfo(int* displayW, int* displayH, int* fps, int
     MDC_CHECK_IMDC();
     return mIMDComposer->getVideoInfo(displayW, displayH, fps, interlace);
 }
+
+int MultiDisplayClient::getDisplayCapability() {
+    MDC_CHECK_IMDC();
+    return mIMDComposer->getDisplayCapability();
+}

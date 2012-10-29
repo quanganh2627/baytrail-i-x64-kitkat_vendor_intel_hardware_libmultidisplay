@@ -55,6 +55,7 @@ public:
     int setHdmiScaleStep(int hValue, int vValue);
     int getHdmiDeviceChange();
     int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
+    int getDisplayCapability();
 };
 }; // namespace android
 #endif

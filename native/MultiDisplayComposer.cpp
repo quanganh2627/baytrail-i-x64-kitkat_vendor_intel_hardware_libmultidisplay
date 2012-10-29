@@ -64,6 +64,7 @@ MultiDisplayComposer::MultiDisplayComposer() {
     run("MIPIListener", PRIORITY_URGENT_DISPLAY);
     LOGI("%s: mMode: 0x%x", __func__, mMode);
     mDrmInit = true;
+    initDisplayCapability_l();
 }
 
 MultiDisplayComposer::~MultiDisplayComposer() {
@@ -516,6 +517,21 @@ int MultiDisplayComposer::getVideoInfo(int* dw, int* dh, int* fps, int* interlac
         *interlace = mVideo.isinterlace;
     return MDS_NO_ERROR;
 }
+
+void MultiDisplayComposer::initDisplayCapability_l()
+{
+    // Default value
+    mDisplayCapability = MDS_HW_SUPPORT_WIDI;
+    if (drm_check_hw_supportHdmi())
+        mDisplayCapability |= MDS_HW_SUPPORT_HDMI;
+    return;
+}
+
+int MultiDisplayComposer::getDisplayCapability()
+{
+    return mDisplayCapability;
+}
+
 
 bool MultiDisplayComposer::threadLoop() {
     bool mipiOn;

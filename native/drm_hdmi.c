@@ -77,6 +77,7 @@ typedef struct _drmJNI {
     int drmFD;
     int curMode;
     int ioctlOffset;
+    bool hasHdmi;
     IMG_graphic_hdmi_ex* ctx;
     HDMI_fb_mem_info cinfo;//clone
     HDMI_fb_mem_info einfo;//ext
@@ -124,6 +125,14 @@ static int hdmi_get_timinginfo(int cmd, MDSHDMITiming* info);
     do { \
         if (g_drm.drmFD < 0) { \
             LOGE("%s: Invalid drm device descriptor", __func__); \
+            return (ERROR_CODE); \
+        } \
+    } while(0)
+
+#define CHECK_HW_SUPPORT_HDMI(ERROR_CODE) \
+    do { \
+        if (g_drm.hasHdmi == false) { \
+            LOGE("%s: HW platform doesn't support HDMI", __func__); \
             return (ERROR_CODE); \
         } \
     } while(0)
@@ -407,6 +416,15 @@ static void rm_drmfb(int pfd, HDMI_fb_mem_info* fbinfo, bool old) {
             *(fbid+i) = 0;
         }
     }
+}
+
+static bool checkHwSupportHdmi() {
+    //TODO: also can check DRM_MODE_ENCODER_TMDS
+    if (get_connector(g_drm.drmFD, DRM_MODE_CONNECTOR_DVID) == NULL) {
+        LOGI("%s: HW platform doesn't support HDMI", __func__);
+        return false;
+    }
+    return true;
 }
 
 static void free_pvrmem(HDMI_fb_mem_info* fbinfo) {
@@ -1024,6 +1042,7 @@ bool drm_init()
     g_drm.configInfo.scaleType = DRM_MODE_SCALE_ASPECT;
     g_drm.configInfo.horiRatio = HDMI_STEP_HORVALUE;
     g_drm.configInfo.vertRatio = HDMI_STEP_VERVALUE;
+    g_drm.hasHdmi = false;
 
     ret = setup_drm();
     if (!ret)
@@ -1036,6 +1055,7 @@ bool drm_init()
         g_drm.ctx->register_notify_func(hdmi_rm_notifier_handler);
     if (getScaling() != DRM_MODE_SCALE_ASPECT)
         setScaling(DRM_MODE_SCALE_ASPECT);
+    g_drm.hasHdmi = checkHwSupportHdmi();
 End:
     pthread_mutex_unlock(&g_drm.mtx);
     return ret;
@@ -1051,11 +1071,16 @@ void drm_cleanup()
     }
     if (g_drm.hdmi_connector)
         drmModeFreeConnector(g_drm.hdmi_connector);
+    g_drm.hasHdmi = false;
     g_drm.hdmi_connector = NULL;
     pthread_mutex_unlock(&g_drm.mtx);
     pthread_mutex_destroy(&g_drm.mtx);
     memset(&g_drm,0,sizeof(drmJNI));
     g_drm.drmFD = -1;
+}
+
+bool drm_check_hw_supportHdmi() {
+    return g_drm.hasHdmi;
 }
 
 /*
@@ -1067,6 +1092,7 @@ bool drm_hdmi_setHdmiVideoOn()
     bool ret = true;
     struct drm_psb_disp_ctrl dp_ctrl;
 
+    CHECK_HW_SUPPORT_HDMI(false);
     CHECK_DRM_FD(false);
 
     pthread_mutex_lock(&g_drm.mtx);
@@ -1086,6 +1112,7 @@ bool drm_hdmi_setHdmiPowerOff()
 {
     bool ret = true;
     struct drm_psb_disp_ctrl dp_ctrl;
+    CHECK_HW_SUPPORT_HDMI(false);
     CHECK_DRM_FD(false);
 
     pthread_mutex_lock(&g_drm.mtx);
@@ -1106,6 +1133,7 @@ bool drm_hdmi_setHdmiVideoOff()
     struct drm_lnc_video_getparam_arg arg;
     struct drm_psb_disp_ctrl dp_ctrl;
 
+    CHECK_HW_SUPPORT_HDMI(false);
     CHECK_DRM_FD(false);
 
     pthread_mutex_lock(&g_drm.mtx);
@@ -1126,6 +1154,7 @@ int drm_hdmi_connectStatus()
     int ret = 0;
     char last_product_inf[8] ={0,0,0,0,0,0,0,0};
 
+    CHECK_HW_SUPPORT_HDMI(false);
     CHECK_DRM_FD(0);
 
     pthread_mutex_lock(&g_drm.mtx);
@@ -1237,6 +1266,7 @@ End:
 
 bool drm_hdmi_onHdmiDisconnected(void)
 {
+    CHECK_HW_SUPPORT_HDMI(false);
     CHECK_DRM_FD(false);
 
     pthread_mutex_lock(&g_drm.mtx);
@@ -1301,7 +1331,8 @@ End:
 int drm_hdmi_getModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInterlace, int *pRatio)
 {
     int ret = -1;
-    CHECK_DRM_FD(false);
+    CHECK_HW_SUPPORT_HDMI(MDS_ERROR);
+    CHECK_DRM_FD(MDS_ERROR);
     pthread_mutex_lock(&g_drm.mtx);
     ret = getHdmiModeInfo(pWidth, pHeight, pRefresh, pInterlace, pRatio);
     pthread_mutex_unlock(&g_drm.mtx);
@@ -1311,6 +1342,7 @@ int drm_hdmi_getModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInterla
 bool drm_hdmi_setScaling(int scaling_val)
 {
     int ret = 0;
+    CHECK_HW_SUPPORT_HDMI(false);
     CHECK_DRM_FD(false);
 
     pthread_mutex_lock(&g_drm.mtx);
@@ -1326,6 +1358,7 @@ bool drm_hdmi_setScaleStep(int hValue, int vValue)
     int i = 0;
     int value = 0;
     int scale = 0;
+    CHECK_HW_SUPPORT_HDMI(false);
     CHECK_DRM_FD(false);
     pthread_mutex_lock(&g_drm.mtx);
 
@@ -1355,6 +1388,7 @@ bool drm_hdmi_setScaleStep(int hValue, int vValue)
 int drm_hdmi_getDeviceChange()
 {
     int ret = 1;
+    CHECK_HW_SUPPORT_HDMI(0);
     CHECK_DRM_FD(0);
     pthread_mutex_lock(&g_drm.mtx);
     if (g_drm.configInfo.edidChange == 0 )
@@ -1369,6 +1403,7 @@ int drm_hdmi_notify_audio_hotplug(bool plugin)
     bool ret = true;
     struct drm_psb_disp_ctrl dp_ctrl;
 
+    CHECK_HW_SUPPORT_HDMI(MDS_ERROR);
     CHECK_DRM_FD(MDS_ERROR);
     pthread_mutex_lock(&g_drm.mtx);
 
@@ -1403,6 +1438,7 @@ bool drm_hdmi_setMode(int mode, MDSHDMITiming* info) {
     if (info != NULL)
         LOGI("%s: HDMI timing is %dx%d@%dHzx%d", __func__,
                 info->width, info->height, info->refresh, info->interlace);
+    CHECK_HW_SUPPORT_HDMI(false);
     CHECK_DRM_FD(false);
 
     return setHdmiMode(mode, info);

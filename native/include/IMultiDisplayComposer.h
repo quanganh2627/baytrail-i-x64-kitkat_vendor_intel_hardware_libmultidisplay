@@ -46,6 +46,7 @@ public:
     virtual int setHdmiScaleStep(int hValue, int vValue) = 0;
     virtual int getHdmiDeviceChange() = 0;
     virtual int getVideoInfo(int* dw, int* dh, int* fps, int* interlace) = 0;
+    virtual int getDisplayCapability() = 0;
 };
 
 class BpMultiDisplayComposer:public BpInterface<IMultiDisplayComposer> {
@@ -69,6 +70,7 @@ public:
     virtual int setHdmiScaleStep(int hValue, int vValue);
     virtual int getHdmiDeviceChange();
     virtual int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
+    virtual int getDisplayCapability();
 };
 
 class BnMultiDisplayComposer:public BnInterface<IMultiDisplayComposer> {

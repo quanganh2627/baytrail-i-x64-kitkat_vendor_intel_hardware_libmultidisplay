@@ -38,6 +38,7 @@ enum {
     MDS_SET_HDMISCALE_STEP,
     MDS_GET_HDMIDEVICE_CHANGE,
     MDS_GET_VIDEO_INFO,
+    MDS_GET_DISPLAY_CAPABILITY,
 };
 
 typedef struct _MDSVideoInfo {
@@ -82,6 +83,11 @@ enum {
     MDS_HDMI_ON_ALLOWED      = 1,
     MDS_MIPI_OFF_NOT_ALLOWED = 2,
     MDS_MIPI_OFF_ALLOWED     = 3
+};
+
+enum {
+    MDS_HW_SUPPORT_HDMI = 0x1,
+    MDS_HW_SUPPORT_WIDI = (0x1 << 1),
 };
 
 #define MDS_NO_ERROR (0)

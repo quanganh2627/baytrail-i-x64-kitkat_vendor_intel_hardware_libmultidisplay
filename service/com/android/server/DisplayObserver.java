@@ -75,6 +75,7 @@ class DisplayObserver extends UEventObserver {
     private DisplaySetting mDs;
     private int mHdmiPolicy = mDs.HDMI_ON_ALLOWED;
     private int mMdsMode = 0;
+    private int mDisplayCapability = 0;
 
     //Message need to handle
     private final int HDMI_STATE_CHANGE = 0;
@@ -112,8 +113,9 @@ class DisplayObserver extends UEventObserver {
         mWakeLock.setReferenceCounted(false);
         mDs.setMdsMessageListener(mListener);
         startObserving(HDMI_UEVENT_MATCH);
-        if ((mDs.getMode() & mDs.HDMI_MODE_BIT) ==
-                                    mDs.HDMI_MODE_BIT) {
+        mDisplayCapability = mDs.getDisplayCapability();
+        if (checkDisplayCapability(mDs.HW_SUPPORT_HDMI) &&
+                ((mDs.getMode() & mDs.HDMI_MODE_BIT) == mDs.HDMI_MODE_BIT)) {
             mHDMIConnected = 1;
             update("HOTPLUG", ROUTE_TO_HDMI);
         } else {
@@ -131,6 +133,12 @@ class DisplayObserver extends UEventObserver {
         if (LOG) {
             Slog.v(TAG, s);
         }
+    }
+
+    private boolean checkDisplayCapability(int value) {
+        if ((mDisplayCapability & value) == value)
+            return true;
+        return false;
     }
 
     DisplaySetting.onMdsMessageListener mListener =
@@ -257,6 +265,8 @@ class DisplayObserver extends UEventObserver {
     }
 
     private final void setHdmiPolicy(int policy) {
+        if (!checkDisplayCapability(mDs.HW_SUPPORT_HDMI))
+            return;
         if (policy != mHdmiPolicy &&
                 (policy == mDs.HDMI_ON_ALLOWED || policy == mDs.HDMI_ON_NOT_ALLOWED)) {
             mDs.setModePolicy(policy);

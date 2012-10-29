@@ -58,6 +58,7 @@ public:
     int setHdmiScaleStep(int hValue, int vValue);
     int getHdmiDeviceChange();
     int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
+    int getDisplayCapability();
     void setWidiOrientationInfo(int orientation);
 
 private:
@@ -69,6 +70,7 @@ private:
 
     bool mDrmInit;
     int mMode;
+    int mDisplayCapability;
     int mHdmiPolicy;
     int mMipiPolicy;
     bool mMipiOn;
@@ -85,6 +87,7 @@ private:
     int setMipiMode_l(bool);
     int setModePolicy_l(int);
     int getHdmiPlug_l();
+    void initDisplayCapability_l();
 
     virtual bool threadLoop();
 

@@ -239,30 +239,36 @@ static jboolean android_server_DisplaySetting_setHdmiTiming(JNIEnv* env, jobject
     return (ret == MDS_NO_ERROR ? true : false);
 }
 
-static jint android_server_HDMIObserver_getHdmiInfoCount(JNIEnv* env, jobject obj) {
+static jint android_server_DisplaySetting_getHdmiInfoCount(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return -1;
     AutoMutex _l(gMutex);
     return mMDClient->getHdmiModeInfo(NULL,NULL, NULL, NULL, NULL);
 }
 
-static jboolean android_server_HDMIObserver_HdmiScaleType(JNIEnv* env, jobject obj,jint Type)
+static jboolean android_server_DisplaySetting_HdmiScaleType(JNIEnv* env, jobject obj,jint Type)
 {
     if (mMDClient == NULL) return false;
     AutoMutex _l(gMutex);
     return mMDClient->setHdmiScaleType(Type);
 }
 
-static jboolean android_server_HDMIObserver_HdmiScaleStep(JNIEnv* env, jobject obj,jint hValue,jint vValue)
+static jboolean android_server_DisplaySetting_HdmiScaleStep(JNIEnv* env, jobject obj,jint hValue,jint vValue)
 {
     if (mMDClient == NULL) return false;
     AutoMutex _l(gMutex);
     return mMDClient->setHdmiScaleStep(hValue,vValue);
 }
 
-static jint android_server_HDMIObserver_getHdmiDeviceChange(JNIEnv* env, jobject obj) {
+static jint android_server_DisplaySetting_getHdmiDeviceChange(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return -1;
     AutoMutex _l(gMutex);
     return mMDClient->getHdmiDeviceChange();
+}
+
+static jint android_server_DisplaySetting_getDisplayCapability(JNIEnv* env, jobject obj) {
+    if (mMDClient == NULL) return -1;
+    AutoMutex _l(gMutex);
+    return mMDClient->getDisplayCapability();
 }
 
 static JNINativeMethod sMethods[] = {
@@ -275,10 +281,11 @@ static JNINativeMethod sMethods[] = {
     {"native_setHdmiPowerOff", "()Z", (void*)android_server_DisplaySetting_setHdmiPowerOff},
     {"native_setHdmiTiming", "(IIIII)Z", (void*)android_server_DisplaySetting_setHdmiTiming},
     {"native_getHdmiTiming", "([I[I[I[I[I)I", (void*)android_server_DisplaySetting_getHdmiTiming},
-    {"native_getHdmiInfoCount", "()I", (void*)android_server_HDMIObserver_getHdmiInfoCount},
-    {"native_setHdmiScaleType", "(I)Z", (void*)android_server_HDMIObserver_HdmiScaleType},
-    {"native_setHdmiScaleStep", "(II)Z", (void*)android_server_HDMIObserver_HdmiScaleStep},
-    {"native_getHdmiDeviceChange", "()I", (void*)android_server_HDMIObserver_getHdmiDeviceChange},
+    {"native_getHdmiInfoCount", "()I", (void*)android_server_DisplaySetting_getHdmiInfoCount},
+    {"native_setHdmiScaleType", "(I)Z", (void*)android_server_DisplaySetting_HdmiScaleType},
+    {"native_setHdmiScaleStep", "(II)Z", (void*)android_server_DisplaySetting_HdmiScaleStep},
+    {"native_getHdmiDeviceChange", "()I", (void*)android_server_DisplaySetting_getHdmiDeviceChange},
+    {"native_getDisplayCapability", "()I", (void*)android_server_DisplaySetting_getDisplayCapability},
 };
 
 

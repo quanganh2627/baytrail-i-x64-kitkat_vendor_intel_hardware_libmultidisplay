@@ -50,5 +50,6 @@ int  drm_get_ioctl_offset();
 bool drm_hdmi_setMode(int mode, MDSHDMITiming* info);
 int  widi_orientation_handler_cb(int cmd, int* data);
 bool drm_widi_notify(bool On, void* cookie, void* func);
+bool drm_check_hw_supportHdmi();
 
 #endif // _DRM_HDMI_H

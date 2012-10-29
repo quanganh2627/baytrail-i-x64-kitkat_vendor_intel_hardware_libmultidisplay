@@ -182,6 +182,14 @@ int BpMultiDisplayComposer::getVideoInfo(int* dw, int* dh, int* fps, int* interl
     return reply.readInt32();
 }
 
+int BpMultiDisplayComposer::getDisplayCapability() {
+    Parcel data, reply;
+    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+    remote()->transact(MDS_GET_DISPLAY_CAPABILITY, data, &reply);
+    return reply.readInt32();
+}
+
+
 IMPLEMENT_META_INTERFACE(MultiDisplayComposer,"com.intel.IMultiDisplayComposer");
 
 status_t BnMultiDisplayComposer::onTransact(uint32_t code,
@@ -326,6 +334,13 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
         fps = (int*)data.readIntPtr();
         interlace = (int*)data.readIntPtr();
         int ret = getVideoInfo(width, height, fps, interlace);
+        reply->writeInt32(ret);
+        return NO_ERROR;
+    }
+    break;
+    case MDS_GET_DISPLAY_CAPABILITY: {
+        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+        int ret = getDisplayCapability();
         reply->writeInt32(ret);
         return NO_ERROR;
     }

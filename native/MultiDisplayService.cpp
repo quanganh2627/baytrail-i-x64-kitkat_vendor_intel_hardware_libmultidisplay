@@ -118,4 +118,9 @@ int MultiDisplayService::getVideoInfo(int* dw, int* dh, int* fps, int* interlace
     MDS_CHECK_MDS();
     return mMDC->getVideoInfo(dw, dh, fps, interlace);
 }
+
+int MultiDisplayService::getDisplayCapability() {
+    MDS_CHECK_MDS();
+    return mMDC->getDisplayCapability();
+}
 }

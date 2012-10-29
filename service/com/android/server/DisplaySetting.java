@@ -42,6 +42,11 @@ class DisplaySetting {
     public static final int MDS_MODE_CHANGE = 0;
     public static final int MDS_ORIENTATION_CHANGE = 1;
 
+    // MDS display capability
+    public static final int HW_SUPPORT_HDMI = 0x1;
+    public static final int HW_SUPPORT_WIDI = 0x1 << 1;
+
+
     private static onMdsMessageListener mListener = null;
     private static boolean mInit = false;
 
@@ -60,6 +65,7 @@ class DisplaySetting {
     private native boolean native_setHdmiScaleType(int Type);
     private native boolean native_setHdmiScaleStep(int Step, int Orientation);
     private native int     native_getHdmiDeviceChange();
+    private native int     native_getDisplayCapability();
 
     public DisplaySetting() {
         if (mInit == false) {
@@ -127,6 +133,10 @@ class DisplaySetting {
 
     public int getHdmiDeviceChange() {
         return native_getHdmiDeviceChange();
+    }
+
+    public int getDisplayCapability() {
+        return native_getDisplayCapability();
     }
 }
 
