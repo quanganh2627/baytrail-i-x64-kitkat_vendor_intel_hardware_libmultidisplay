@@ -28,7 +28,7 @@
 #include "drm_hdmi.h"
 #include "drm_hdcp.h"
 
-#include "linux/psb_drm.h"
+#include "psb_drm.h"
 #include "xf86drm.h"
 #include "xf86drmMode.h"
 #include "libsepdrm/sepdrm.h"
@@ -45,7 +45,6 @@ static int g_hdcpStatusCheckTimer = 0;
 #define HDCP_DISABLE_IED_DELAY_USEC 120000 // 120 ms
 
 #define IED_SESSION_ID      0x11
-
 
 // Forward declaration
 static void drm_hdcp_check_link_status();
@@ -79,6 +78,55 @@ static bool drm_hdcp_isSupported()
     }
     return caps != 0;
 }
+
+static bool drm_hdcp_query_display_ied_caps()
+{
+    int fd, ret, platform;
+    fd = drm_get_dev_fd();
+    if (fd <= 0) {
+        LOGE("Invalid DRM file descriptor.");
+        return false;
+    }
+    ret = drmCommandRead(fd, DRM_PSB_QUERY_HDCP_DISPLAY_IED_CAPS, &platform, sizeof(platform));
+    if (ret != 0) {
+        LOGE("Failed to query platform type.");
+        return false;
+    }
+    return platform != 0;
+}
+
+static bool drm_hdcp_disable_display_ied()
+{
+    int fd, ret;
+    fd = drm_get_dev_fd();
+    if (fd <= 0) {
+        LOGE("Invalid DRM file descriptor.");
+        return false;
+    }
+    ret = drmCommandNone(fd, DRM_PSB_HDCP_DISPLAY_IED_OFF);
+    if (ret != 0) {
+        LOGE("Failed to disable HDCP-Display-IED.");
+        return false;
+    }
+    return true;
+}
+
+static bool drm_hdcp_enable_display_ied()
+{
+    int fd, ret;
+    fd = drm_get_dev_fd();
+    if (fd <= 0) {
+        LOGE("Invalid DRM file descriptor.");
+        return false;
+    }
+    ret = drmCommandNone(fd, DRM_PSB_HDCP_DISPLAY_IED_ON);
+    if (ret != 0) {
+        LOGE("Failed to enable HDCP-Display-IED.");
+        return false;
+    }
+    return true;
+}
+
 
 static bool drm_hdcp_enable()
 {
@@ -268,31 +316,53 @@ static bool drm_hdcp_enable_hdcp_work()
 #ifdef IED_SESSION_READ_FIX
     if (drm_check_ied_session()) {
 #endif
-        res = Drm_Library_Init();
-        if (res != 0) {
-            LOGW("Drm_Library_Init failed. Error = %#x", res);
-        }
-        // Disable IED temporarily so HDCP authentication can succeed
-        LOGV("Disabling IED session.");
-        res = Drm_Playback_Pause(IED_SESSION_ID);
-        if (res != 0) {
-            LOGW("Failed to disable IED session. Error = %#x", res);
+
+        if (drm_hdcp_query_display_ied_caps()) {
+            LOGV("Disabling Display IED ");
+            if (!drm_hdcp_disable_display_ied()) {
+                LOGE("drm_hdcp_disable_display_ied FAILED!!!");
+            }
+
+            ret = drm_hdcp_enable_and_check();
+            if (!ret) {
+                // Don't return here as HDCP can be re-authenticated during periodic time check.
+                LOGI("HDCP authentication will be restarted in %d seconds.", HDCP_STATUS_CHECK_INTERVAL);
+            }
+            LOGV("Re-enabling Display IED ");
+            if (!drm_hdcp_enable_display_ied()) {
+                LOGE("drm_hdcp_enable_display_ied FAILED!!!");
+            }
+
         } else {
-            // Delay for IED disable to take effect and hence successfully
-            // authenticate with some AV receivers
-            LOGV("IED session disabled delay for %dusec",
+            res = Drm_Library_Init();
+            if (res != 0) {
+                LOGW("Drm_Library_Init failed. Error = %#x", res);
+            }
+
+            // Disable IED temporarily so HDCP authentication can succeed
+            LOGV("Disabling IED session.");
+            res = Drm_Playback_Pause(IED_SESSION_ID);
+            if (res != 0) {
+                LOGW("Failed to disable IED session. Error = %#x", res);
+            } else {
+                // Delay for IED disable to take effect and hence successfully
+                // authenticate with some AV receivers
+                LOGV("IED session disabled delay for %dusec",
                                    HDCP_DISABLE_IED_DELAY_USEC);
-            usleep(HDCP_DISABLE_IED_DELAY_USEC);
-        }
-        ret = drm_hdcp_enable_and_check();
-        if (!ret) {
-            // Don't return here as HDCP can be re-authenticated during periodic time check.
-            LOGI("HDCP authentication will be restarted in %d seconds.", HDCP_STATUS_CHECK_INTERVAL);
-        }
-        LOGV("Re-enabling IED session.");
-        res = Drm_Playback_Resume(IED_SESSION_ID);
-        if (res != 0) {
-            LOGW("Failed to enable IED session. Error = %#x", res);
+                usleep(HDCP_DISABLE_IED_DELAY_USEC);
+            }
+
+            ret = drm_hdcp_enable_and_check();
+            if (!ret) {
+                // Don't return here as HDCP can be re-authenticated during periodic time check.
+                LOGI("HDCP authentication will be restarted in %d seconds.", HDCP_STATUS_CHECK_INTERVAL);
+            }
+
+            LOGV("Re-enabling IED session.");
+            res = Drm_Playback_Resume(IED_SESSION_ID);
+            if (res != 0) {
+                LOGW("Failed to enable IED session. Error = %#x", res);
+            }
         }
 #ifdef IED_SESSION_READ_FIX
     } else {
