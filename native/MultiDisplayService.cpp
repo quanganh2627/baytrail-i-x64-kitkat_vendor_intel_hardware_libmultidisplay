@@ -58,6 +58,11 @@ int MultiDisplayService::notifyMipi(bool on) {
     return mMDC->notifyMipi(on);
 }
 
+int MultiDisplayService::isMdsSurface(int* nw) {
+    MDS_CHECK_MDS();
+    return mMDC->isMdsSurface(nw);
+}
+
 int MultiDisplayService::updateVideoInfo(MDSVideoInfo* info) {
     MDS_CHECK_MDS();
     return mMDC->updateVideoInfo(info);

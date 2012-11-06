@@ -125,6 +125,11 @@ int MultiDisplayComposer::notifyMipi(bool on) {
     return MDS_NO_ERROR;
 }
 
+int MultiDisplayComposer::isMdsSurface(int* nw) {
+    Mutex::Autolock _l(mBackgroundPlayLock);
+    return(nw == mNativeSurface ? 1 : 0 );
+}
+
 int MultiDisplayComposer::setHdmiPowerOff() {
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);

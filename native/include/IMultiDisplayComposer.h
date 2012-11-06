@@ -35,6 +35,7 @@ public:
     virtual int updateVideoInfo(MDSVideoInfo*) = 0;
     virtual int notifyWidi(bool) = 0;
     virtual int notifyMipi(bool) = 0;
+    virtual int isMdsSurface(int* nw) = 0;
     virtual int notifyHotPlug() = 0;
     virtual int setHdmiPowerOff() = 0;
 
@@ -62,6 +63,7 @@ public:
     virtual int updateVideoInfo(MDSVideoInfo*);
     virtual int notifyWidi(bool);
     virtual int notifyMipi(bool);
+    virtual int isMdsSurface(int* nw);
     virtual int notifyHotPlug();
     virtual int setHdmiPowerOff();
 

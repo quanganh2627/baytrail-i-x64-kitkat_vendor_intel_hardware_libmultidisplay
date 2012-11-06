@@ -62,6 +62,16 @@ public:
      */
     int notifyMipi(bool on);
     /*
+     * verify with the MDS that NativeWindow belongs to
+     * surface  allocated by mds
+     * param:
+     * return:
+     *     1: MDS surface
+     *     0: Not MDS surface
+     *     MDS_ERROR: on failure
+     */
+    int isMdsSurface(int* nw);
+    /*
      * get display mode
      * param:
      *      wait: "ture" means this interface will be blocked

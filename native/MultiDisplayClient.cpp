@@ -71,6 +71,11 @@ int MultiDisplayClient::notifyMipi(bool on) {
     return mIMDComposer->notifyMipi(on);
 }
 
+int MultiDisplayClient::isMdsSurface(int* nw) {
+    MDC_CHECK_IMDC();
+    return mIMDComposer->isMdsSurface(nw);
+}
+
 int MultiDisplayClient::updateVideoInfo(MDSVideoInfo* info) {
     MDC_CHECK_IMDC();
     return mIMDComposer->updateVideoInfo(info);

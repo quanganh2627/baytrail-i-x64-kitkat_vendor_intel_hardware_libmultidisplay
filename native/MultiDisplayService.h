@@ -41,6 +41,7 @@ public:
     int getMode(bool wait);
     int notifyWidi(bool);
     int notifyMipi(bool);
+    int isMdsSurface(int* nw);
     int setModePolicy(int);
     int notifyHotPlug();
     int setHdmiPowerOff();

@@ -58,6 +58,15 @@ int BpMultiDisplayComposer::notifyMipi(bool on) {
     return reply.readInt32();
 }
 
+int BpMultiDisplayComposer::isMdsSurface(int* nw) {
+    Parcel data, reply;
+    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+    if (nw == NULL) return MDS_ERROR;
+    data.writeIntPtr((intptr_t)nw);
+    remote()->transact(MDS_VERIFY_BACKGROUND_SURFACE, data, &reply);
+    return reply.readInt32();
+}
+
 int BpMultiDisplayComposer::updateVideoInfo(MDSVideoInfo* info) {
     Parcel data, reply;
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
@@ -274,6 +283,13 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
         return NO_ERROR;
     }
     break;
+    case MDS_VERIFY_BACKGROUND_SURFACE: {
+        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+        int *nw = NULL;
+        nw = (int*)data.readIntPtr();
+        reply->writeInt32((isMdsSurface(nw) == 1 ? true : false));
+        return NO_ERROR;
+    }
     case MDS_HDMI_POWER_OFF: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
         reply->writeInt32(setHdmiPowerOff());

@@ -45,6 +45,7 @@ public:
     int setModePolicy(int);
     int notifyWidi(bool);
     int notifyMipi(bool);
+    int isMdsSurface(int* nw);
     int notifyHotPlug();
     int setHdmiPowerOff();
     int updateVideoInfo(MDSVideoInfo*);
