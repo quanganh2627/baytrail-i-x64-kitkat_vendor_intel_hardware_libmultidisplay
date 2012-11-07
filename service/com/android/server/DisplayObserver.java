@@ -73,7 +73,7 @@ class DisplayObserver extends UEventObserver {
     private boolean mHasIncomingCall = false;
     private boolean mInCallScreenFinished = true;
     private DisplaySetting mDs;
-    private int mHdmiPolicy = mDs.HDMI_ON_ALLOWED;
+    private int mHdmiPolicy = DisplaySetting.HDMI_ON_ALLOWED;
     private int mMdsMode = 0;
     private int mDisplayCapability = 0;
 
