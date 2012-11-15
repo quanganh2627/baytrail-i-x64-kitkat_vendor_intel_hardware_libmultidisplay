@@ -492,7 +492,7 @@ static int getHdmiModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInter
          */
         j = i;
 
-        while ((j--) >= 0) {
+        while ((--j) >= 0) {
 
             compare_flags = connector->modes[j].flags &
               (DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_PAR16_9 |
