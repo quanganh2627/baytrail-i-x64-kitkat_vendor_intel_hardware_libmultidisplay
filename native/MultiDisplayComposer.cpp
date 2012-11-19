@@ -68,6 +68,8 @@ MultiDisplayComposer::MultiDisplayComposer() {
     mBackgroundPlayerId = 0;
     mNativeSurface = NULL;
     mDrmInit = true;
+    mHdcpStatus = 0;
+
     initDisplayCapability_l();
     LOGI("%s: mMode: 0x%x", __func__, mMode);
 
@@ -299,7 +301,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMode &= ~MDS_HDMI_CLONE;
         mMipiPolicy = MDS_MIPI_OFF_ALLOWED;
 #ifdef ENABLE_HDCP
-        if (mVideo.isprotected) {
+        if ((mVideo.isprotected) || mHdcpStatus) {
             LOGI("Turning on HDCP...");
             if (drm_hdcp_enable_hdcp() == false) {
                 LOGE("Fail to enable HDCP.");
@@ -674,4 +676,12 @@ int MultiDisplayComposer::getBackgroundPlayerId() {
     Mutex::Autolock _l(mBackgroundPlayLock);
 #endif
     return mBackgroundPlayerId;
+}
+
+int MultiDisplayComposer::setHdcpStatus(int value) {
+    MDC_CHECK_INIT();
+    Mutex::Autolock _l(mLock);
+    LOGV("%s: HDCP Status: %d", __func__, value);
+    mHdcpStatus = value;
+    return MDS_NO_ERROR;
 }
