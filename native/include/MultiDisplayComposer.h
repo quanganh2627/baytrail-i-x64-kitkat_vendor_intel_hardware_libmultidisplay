@@ -68,6 +68,7 @@ public:
     int setNativeSurface(int* surface);
     int isPlayInBackgroundEnabled();
     int getBackgroundPlayerId();
+    int setHdcpStatus(int value);
 
 private:
     enum {
@@ -93,6 +94,7 @@ private:
     int* mNativeSurface;
     int mBackgroundPlayerId;
     mutable Mutex mBackgroundPlayLock;
+    int mHdcpStatus;
 
     // HDMI Scaling mode and scaling calibriation
     sp<SurfaceComposerClient> mSurfaceComposerClient;

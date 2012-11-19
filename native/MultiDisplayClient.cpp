@@ -197,3 +197,8 @@ int MultiDisplayClient::setPlayInBackground(bool on, int playerId) {
     MDC_CHECK_IMDC();
     return mIMDComposer->enablePlayInBackground(on, playerId);
 }
+
+int MultiDisplayClient::setHdcpStatus(int value) {
+    MDC_CHECK_IMDC();
+    return mIMDComposer->setHdcpStatus(value);
+}
