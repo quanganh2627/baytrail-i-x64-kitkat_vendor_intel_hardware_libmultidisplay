@@ -154,7 +154,7 @@ sp<ANativeWindow> MultiDisplayClient::createNewVideoSurface(int width, int heigh
             mComposerClient = new SurfaceComposerClient;
             CHECK_EQ(mComposerClient->initCheck(), (status_t)OK);
 
-            mSurfaceControl = mComposerClient->createSurface(String8("BackgroungPlaySurface"), 0,width,height, pixelFormat, 0);
+            mSurfaceControl = mComposerClient->createSurface(String8("BackgroungPlaySurface"), width, height, pixelFormat, 0);
             CHECK(mSurfaceControl != NULL);
             CHECK(mSurfaceControl->isValid());
 

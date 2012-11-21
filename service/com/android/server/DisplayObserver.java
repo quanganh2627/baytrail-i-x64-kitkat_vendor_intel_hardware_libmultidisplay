@@ -103,7 +103,7 @@ class DisplayObserver extends UEventObserver {
         IntentFilter intentFilter = new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
         intentFilter.addAction(HDMI_GET_INFO);
         intentFilter.addAction(HDMI_SET_INFO);
-        intentFilter.addAction(Intent.HDMI_SET_STATUS);
+        //intentFilter.addAction(Intent.HDMI_SET_STATUS);
         intentFilter.addAction(HDMI_SET_SCALE);
         intentFilter.addAction(HDMI_SET_STEP_SCALE);
         intentFilter.addAction(HDMI_Get_DisplayBoot);
@@ -221,7 +221,7 @@ class DisplayObserver extends UEventObserver {
         intent.putExtra("name", Name);
 
         // Should we require a permission?
-        ActivityManagerNative.broadcastStickyIntent(intent, null);
+        ActivityManagerNative.broadcastStickyIntent(intent, Name, 0);
     }
 
     private final void preNotifyHotplug(int event) {
@@ -417,7 +417,8 @@ class DisplayObserver extends UEventObserver {
                 }
                 if (!mDs.setHdmiTiming(Width, Height, Refresh, Interlace, Ratio))
                     logv("Set HDMI Timing Info error");
-            } else if (action.equals(Intent.HDMI_SET_STATUS)) {
+            }
+            /*else if (action.equals(Intent.HDMI_SET_STATUS)) {
                 Bundle extras = intent.getExtras();
                 if (extras == null)
                      return;
@@ -431,7 +432,7 @@ class DisplayObserver extends UEventObserver {
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                     setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
                 }
-            }
+            }*/
             else if (action.equals(HDMI_SET_SCALE)) {
                 Bundle extras = intent.getExtras();
                 if (extras == null)

@@ -35,7 +35,8 @@
 
 using namespace android;
 
-class MultiDisplayComposer : public Thread {
+class MultiDisplayComposer : public Thread
+{
 public:
     MultiDisplayComposer();
     ~MultiDisplayComposer();
@@ -92,14 +93,13 @@ private:
     mutable Mutex mBackgroundPlayLock;
 
     int setHdmiMode_l();
-    void broadcastMdsMessage_l(int msg, int value);
+    int broadcastMdsMessage_l(int msg, void* value, int size);
     int setMipiMode_l(bool);
     int setModePolicy_l(int);
     int getHdmiPlug_l();
     void initDisplayCapability_l();
 
     virtual bool threadLoop();
-
     inline bool checkMode(int value, int bit) {
         if ((value & bit) == bit)
             return true;

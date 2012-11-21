@@ -18,16 +18,23 @@
 //#define LOG_NDEBUG 0
 #include <utils/Log.h>
 #include <display/IExtendDisplayModeChangeListener.h>
+#include <display/MultiDisplayType.h>
 
 using namespace android;
 
-void BpExtendDisplayModeChangeListener::onMdsMessage(int msg, int value) {
-    LOGV("%s: mode %d", __func__, mode);
+int BpExtendDisplayModeChangeListener::onMdsMessage(int msg, void* value, int size) {
+    ALOGV("%s: mode %d", __func__, msg);
     Parcel data, reply;
     data.writeInterfaceToken(IExtendDisplayModeChangeListener::getInterfaceDescriptor());
+    if (value == NULL || size < sizeof(int))
+        return MDS_ERROR;
     data.writeInt32(msg);
-    data.writeInt32(value);
+    data.writeInt32(size);
+    data.write(value, size);
+    if (msg != MDS_SET_TIMING)
+        ALOGV("%s: mode %d, 0x%x", __func__, msg, *((int*)value));
     remote()->transact(ON_MDS_EVENT, data, &reply);
+    return reply.readInt32();
 }
 
 IMPLEMENT_META_INTERFACE(ExtendDisplayModeChangeListener, "com.intel.ExtendDisplayModeChangeListener");
@@ -38,11 +45,22 @@ status_t BnExtendDisplayModeChangeListener::onTransact(uint32_t code,
         uint32_t flags) {
     switch (code) {
     case ON_MDS_EVENT: {
-        LOGV("%s: ON_MDS_EVENT", __func__);
+        ALOGV("%s: ON_MDS_EVENT", __func__);
         CHECK_INTERFACE(IExtendDisplayModeChangeListener, data, replay);
         int32_t msg = data.readInt32();
-        int32_t value = data.readInt32();
-        onMdsMessage(msg, value);
+        int32_t size = data.readInt32();
+        void* value = (void*)malloc(size);
+        if (size < sizeof(int) || value == NULL)
+            return MDS_ERROR;
+        data.read(value, size);
+        if (msg != MDS_SET_TIMING)
+            ALOGV("%s: mode %d, 0x%x", __func__, msg, *((int*)value));
+        int32_t ret = onMdsMessage(msg, value, size);
+        reply->writeInt32(ret);
+        if (value) {
+            free(value);
+            value = NULL;
+        }
         return NO_ERROR;
     }
     break;

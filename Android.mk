@@ -26,20 +26,18 @@ LOCAL_MODULE:= libmultidisplay
 LOCAL_MODULE_TAGS := optional
 
 LOCAL_SHARED_LIBRARIES := \
-    libui libcutils libutils libbinder libsepdrm libgui libstagefright_foundation
+    libui libcutils libutils libbinder libgui libstagefright_foundation
 LOCAL_CFLAGS := -DLOG_TAG=\"MultiDisplay\"
 
 ifeq ($(ENABLE_IMG_GRAPHICS),true)
     LOCAL_SRC_FILES += \
-        native/drm_hdmi.c \
-        native/drm_hdcp.c
+        native/drm_hdmi.c
 
     LOCAL_C_INCLUDES = \
         $(TARGET_OUT_HEADERS)/drm \
         $(TARGET_OUT_HEADERS)/libdrm \
         $(TARGET_OUT_HEADERS)/pvr/pvr2d \
         $(TARGET_OUT_HEADERS)/libttm \
-        $(TARGET_OUT_HEADERS)/libspedrm \
         $(TOP)/hardware/intel/linux-2.6/drivers/staging/intel_media/common
 
     LOCAL_SHARED_LIBRARIES += \
@@ -51,6 +49,14 @@ ifeq ($(ENABLE_IMG_GRAPHICS),true)
     LOCAL_CFLAGS += -DDVI_SUPPORTED
     LOCAL_SHARED_LIBRARIES += libdl
 endif
+
+ifeq ($(ENABLE_HDCP),true)
+    LOCAL_SHARED_LIBRARIES += libsepdrm
+    LOCAL_SRC_FILES += native/drm_hdcp.c
+    LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/libspedrm
+    LOCAL_CFLAGS += -DENABLE_HDCP
+endif
+
 include $(BUILD_SHARED_LIBRARY)
 
 # Build JNI library

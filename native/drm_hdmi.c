@@ -48,29 +48,13 @@ software can still scale) */
 #define EDID_BLOCK_SIZE         128
 
 
-typedef enum  _ROTATION_ {
-    ROTATION_NONE = 0,
-    ROTATION_90,
-    ROTATION_180,
-    ROTATION_270
-} ROTATION_DEGREE;
-
-typedef struct _HDMI_fb_mem_info_ {
-    PVR2DCONTEXTHANDLE hPVR2DContext;
-    PVR2DMEMINFO *psMemInfo[PSB_HDMI_FLIP_MAX_SIZE];
-    unsigned int fb_id[PSB_HDMI_FLIP_MAX_SIZE];
-    unsigned int old_fb_id[PSB_HDMI_FLIP_MAX_SIZE];
-    unsigned int buf_cnt;
-    unsigned int new_buf_cnt;
-    unsigned int changed;
-    bool b_old_fb_cleared;
-} HDMI_fb_mem_info;
-
 typedef struct _HDMI_config_info_ {
     int edidChange;
+#if 0
     int scaleType;
     int horiRatio;
     int vertRatio;
+#endif
 } HDMI_config_info;
 
 typedef struct _drmJNI {
@@ -78,16 +62,11 @@ typedef struct _drmJNI {
     int curMode;
     int ioctlOffset;
     bool hasHdmi;
-    IMG_graphic_hdmi_ex* ctx;
-    HDMI_fb_mem_info cinfo;//clone
-    HDMI_fb_mem_info einfo;//ext
     drmModeConnectorPtr hdmi_connector;
     pthread_mutex_t mtx;
     HDMI_config_info configInfo;//hdmisetting
     int modeIndex;
     int cloneModeIndex;
-    void* cookie;
-    notify_func_widi_t widiNotifyFunc;
 } drmJNI;
 
 static inline uint32_t align_to(uint32_t arg, uint32_t align)
@@ -114,12 +93,7 @@ static const char *variant_keys[] = {
 static const int HAL_VARIANT_KEYS_COUNT =
     (sizeof(variant_keys)/sizeof(variant_keys[0]));
 
-static int hdmi_rm_notifier_handler(int cmd, void *data);
-static int select_hdmi_mode(drmModeConnector *hdmi_connector);
-static int setScaling(int scaling_val);
-static bool setScaleStep(int value);
 static drmModeConnectorPtr getHdmiConnector();
-static int hdmi_get_timinginfo(int cmd, MDSHDMITiming* info);
 
 #define CHECK_DRM_FD(ERROR_CODE) \
     do { \
@@ -403,21 +377,6 @@ static int get_gralloc_ex(IMG_graphic_hdmi_ex **pex)
     return status;
 }
 
-static void rm_drmfb(int pfd, HDMI_fb_mem_info* fbinfo, bool old) {
-    unsigned int i = 0;
-    unsigned int* fbid = NULL;
-    if (old)
-        fbid = fbinfo->old_fb_id;
-    else
-        fbid = fbinfo->fb_id;
-    for (i = 0;i < fbinfo->buf_cnt; i++) {
-        if (*(fbid+i)) {
-            drmModeRmFB(pfd, *(fbid+i));
-            *(fbid+i) = 0;
-        }
-    }
-}
-
 static bool checkHwSupportHdmi() {
     //TODO: also can check DRM_MODE_ENCODER_TMDS
     if (get_connector(g_drm.drmFD, DRM_MODE_CONNECTOR_DVID) == NULL) {
@@ -425,396 +384,6 @@ static bool checkHwSupportHdmi() {
         return false;
     }
     return true;
-}
-
-static void free_pvrmem(HDMI_fb_mem_info* fbinfo) {
-    unsigned int i = 0;
-    for (i = 0; i < fbinfo->buf_cnt; i++) {
-        if (fbinfo->psMemInfo[i]) {
-            PVR2DMemFree(fbinfo->hPVR2DContext, fbinfo->psMemInfo[i]);
-            fbinfo->psMemInfo[i] = NULL;
-        }
-    }
-}
-
-static void cleanup_hdmi_fb(int pfd, int mode)
-{
-    unsigned int hdmi_fb_id = 0, mipi_fb_id = 0;
-    unsigned int i = 0;
-    HDMI_fb_mem_info *fb_info = NULL;
-    if (mode == DRM_HDMI_CLONE)
-        fb_info = &g_drm.cinfo;
-    else if (mode == DRM_HDMI_VIDEO_EXT)
-        fb_info = &g_drm.einfo;
-    else
-        return;
-    hdmi_fb_id = fb_info->fb_id[0];
-    mipi_fb_id = get_fb_id(pfd, DRM_MODE_ENCODER_MIPI);
-    if (hdmi_fb_id && hdmi_fb_id != mipi_fb_id) {
-        rm_drmfb(pfd, fb_info, false);
-        free_pvrmem(fb_info);
-    }
-}
-
-static int setup_hdmi_fb(int width, int height, int mode)
-{
-    int stride = 0, ret = 0;
-    uint32_t fb_size = 0;
-    unsigned int hdmi_fb_id = 0, re_use = 0, mipi_fb_id = 0, length = 0;
-    drmModeFBPtr hdmi_fb = 0;
-    PVR2DERROR ePVR2DStatus;
-    PVR2D_ULONG uFlags = 0;
-    HDMI_fb_mem_info *fb_info = NULL;
-    unsigned int i = 0;
-    if (mode == DRM_HDMI_CLONE) {
-        uFlags = 0;
-        fb_info = &g_drm.cinfo;
-    } else if (mode == DRM_HDMI_VIDEO_EXT) {
-        uFlags |= PVR2D_MEM_NO_GPU_ADDR;
-        fb_info = &g_drm.einfo;
-    } else
-        return -1;
-    if (!fb_info->hPVR2DContext || fb_info->new_buf_cnt > PSB_HDMI_FLIP_MAX_SIZE) {
-        LOGE("%s: Invalid input parameters", __func__);
-        return -1;
-    }
-
-    /*default to unchanged*/
-    fb_info->changed = 0;
-    fb_info->b_old_fb_cleared = 1;
-    hdmi_fb_id = fb_info->fb_id[0];
-    mipi_fb_id = get_fb_id(g_drm.drmFD, DRM_MODE_ENCODER_MIPI);
-    LOGI("%s: %d, %d, %d, %d, %d, %d, %d, %d", __func__, __LINE__,
-            hdmi_fb_id, mipi_fb_id,
-            stride, length, width, height, fb_size);
-    if (hdmi_fb_id) {
-        hdmi_fb = drmModeGetFB(g_drm.drmFD, hdmi_fb_id);
-        if (!hdmi_fb) {
-            LOGE("%s: Failed to get hdmi fb", __func__);
-            return -1;
-        }
-        LOGI("%s: %d, %d, %d, %d, %d", __func__, __LINE__, width, height, hdmi_fb->width, hdmi_fb->height);
-        if (((uint32_t)width == hdmi_fb->width) &&
-                ((uint32_t)height == hdmi_fb->height)) {
-            re_use = 1;
-        } else if (hdmi_fb_id && (hdmi_fb_id != mipi_fb_id)) {
-            for (i = 0; i < fb_info->buf_cnt; i++) {
-                if (fb_info->fb_id[i])
-                    fb_info->old_fb_id[i] = fb_info->fb_id[i];
-            }
-            free_pvrmem(fb_info);
-            fb_info->b_old_fb_cleared = 0;
-        }
-        drmModeFreeFB(hdmi_fb);
-    }
-
-    length = width > height ? width : height;
-    if (mode == DRM_HDMI_CLONE)
-        stride = length * 4;
-    else
-        stride = width * 4;
-    /*stride must align to 64B*/
-    stride = align_to(stride, 64);
-    if (mode == DRM_HDMI_CLONE)
-        fb_size = stride * length;
-    else
-        fb_size = stride * height;
-    /*buffer size should align to page size*/
-    fb_size = align_to(fb_size, getpagesize());
-    LOGV("%s: %d, %d, %d, %d, %d, %d", __func__,
-            stride, length, width, height, fb_size, re_use);
-
-    if (re_use) {
-        for (i = 0; i < fb_info->buf_cnt; i++) {
-            if (fb_info->psMemInfo[i] && fb_info->psMemInfo[i]->pBase)
-                memset(fb_info->psMemInfo[i]->pBase, 0, fb_info->psMemInfo[i]->ui32MemSize);
-        }
-    } else {
-        fb_info->changed = 1;
-        fb_info->buf_cnt = fb_info->new_buf_cnt;
-
-        for (i = 0; i < fb_info->new_buf_cnt; i++) {
-            ePVR2DStatus = PVR2DMemAlloc(fb_info->hPVR2DContext,
-                                         fb_size,
-                                         1,
-                                         uFlags,
-                                         &fb_info->psMemInfo[i]);
-            if (ePVR2DStatus != PVR2D_OK) {
-                LOGE("%s: Failed to alloc memory", __func__);
-                goto Err;
-            }
-            /* HDMI would display black screen, after setting to extended/clone mode. */
-            memset(fb_info->psMemInfo[i]->pBase, 0, fb_size);
-            ret = drmModeAddFB(g_drm.drmFD, width, height, 24, 32,
-                    stride, (uint32_t)(fb_info->psMemInfo[i]->hPrivateMapData), &hdmi_fb_id);
-            if (ret) {
-                LOGE("%s: Failed to add fb, error is %s", __func__, strerror(errno));
-                goto Err;
-            }
-
-            fb_info->fb_id[i] = hdmi_fb_id;
-            LOGV("%s: %d, %d, %d, %d, %p, %ld", __func__, __LINE__,
-                    i, hdmi_fb_id, fb_info->buf_cnt,
-                    fb_info->psMemInfo[i]->pBase, fb_info->psMemInfo[i]->ui32MemSize);
-        }
-    }
-    return 0;
-Err:
-    rm_drmfb(g_drm.drmFD, fb_info, false);
-    free_pvrmem(fb_info);
-    return -1;
-}
-
-static bool set_hdmi_state(int state)
-{
-    bool ret = true;
-    if (g_drm.ioctlOffset <= 0 || g_drm.drmFD <= 0) {
-        LOGE("Failed to set HDMI state. DRM file descriptor or IOCTL offset is invalid.");
-        return false;
-    }
-
-    struct drm_lnc_video_getparam_arg arg;
-    /* Record the hdmi state in kernel */
-    arg.key = IMG_VIDEO_SET_HDMI_STATE;
-    arg.value = (uint64_t)state;
-    int cmdWRret = drmCommandWriteRead(g_drm.drmFD, g_drm.ioctlOffset, &arg, sizeof(arg));
-    CHECK_COMMAND_WR_ERR();
-    return ret;
-}
-
-static bool set_clone_mode_internal(unsigned int  degree)
-{
-    unsigned int i = 0;
-    bool ret = false;
-    drmModeConnector *connector = NULL;
-    uint32_t hdmi_crtc_id = 0;
-    unsigned int hdmi_fb_id = 0;
-    int index = 0;
-    uint16_t hdisplay = 0;
-    int hdmi_mode_width = 0;
-    int hdmi_mode_height = 0;
-    int hdmi_fb_width = 0;
-    int hdmi_fb_height = 0;
-    drmModeModeInfoPtr mode = NULL;
-
-    if ((connector = getHdmiConnector()) == NULL)
-        return false;
-    CHECK_CONNECTOR_STATUS_ERR_RETURN(false);
-    index = select_hdmi_mode(connector);
-    if (index == -1)
-        return false;
-    else {
-        mode = &(connector->modes[index]);
-        hdmi_mode_width = mode->hdisplay;
-        hdmi_mode_height = mode->vdisplay;
-    }
-    hdmi_fb_width = hdmi_mode_width > hdmi_mode_height ? hdmi_mode_width : hdmi_mode_height;
-    hdmi_fb_height = hdmi_mode_width < hdmi_mode_height ? hdmi_mode_width : hdmi_mode_height;
-
-    hdmi_fb_width = align_to(hdmi_fb_width, 16);
-    hdmi_fb_height = align_to(hdmi_fb_height, 16);
-    if (0 != setup_hdmi_fb(hdmi_fb_width, hdmi_fb_height, DRM_HDMI_CLONE))
-        goto End;
-    hdmi_fb_id = g_drm.cinfo.fb_id[0];
-    hdmi_crtc_id = get_crtc_id(g_drm.drmFD, DRM_MODE_ENCODER_TMDS);
-
-    LOGV("%s: Clone mode timing is %dx%d@%dHz, %dx%d, %d", __func__,
-                hdmi_fb_width, hdmi_fb_height, mode->vrefresh,
-                hdmi_mode_width, hdmi_mode_height, hdmi_fb_id);
-    /* Mode setting with the largest resolution (e.g 1920x1080), to set HDMI with clone mode. */
-    int tmp = drmModeSetCrtc(g_drm.drmFD, hdmi_crtc_id, hdmi_fb_id, 0, 0,
-                         &connector->connector_id, 1, mode);
-
-    /*clear the old fb id*/
-    if (!g_drm.cinfo.b_old_fb_cleared) {
-        rm_drmfb(g_drm.drmFD, &g_drm.cinfo, true);
-        g_drm.cinfo.b_old_fb_cleared = 1;
-    }
-    if (tmp)
-        LOGE("%s: Failed to set CRTC %d, error is %s", __func__, ret,strerror(errno));
-    else {
-        ret = true;
-        g_drm.cloneModeIndex = index;
-    }
-End:
-    return ret;
-}
-
-static int select_hdmi_mode(drmModeConnector *hdmi_connector)
-{
-    int index = 0;
-    int i = 0;
-    LOGI("%s: mode index is %d", __func__, g_drm.modeIndex);
-    if (g_drm.modeIndex != -1) {
-        return g_drm.modeIndex;
-    }
-    /*mode sort as big --> small, default use index =0, the max one*/
-    for (i = 0; i < hdmi_connector->count_modes; i++) {
-        /*set to prefer mode */
-        if (hdmi_connector->modes[i].type &
-                        DRM_MODE_TYPE_PREFERRED)
-            index = i;
-    }
-    if (index == hdmi_connector->count_modes) {
-        LOGE("%s: Failed to select mode, count is %d",
-                __func__, hdmi_connector->count_modes);
-        return -1;
-    }
-    return index;
-}
-
-static bool set_clone_mode(MDSHDMITiming* info)
-{
-    int ret = -1;
-    if (g_drm.ctx->notify_gralloc)
-        ret = g_drm.ctx->notify_gralloc(CMD_CLONE_MODE, info);
-    return (ret == 0 ? true: false);
-}
-
-static bool set_ext_video_mode(MDSHDMITiming* info)
-{
-    int ret = -1;
-    if (g_drm.ctx->notify_gralloc)
-        ret = g_drm.ctx->notify_gralloc(CMD_VIDEO_MODE, info);
-    return (ret == 0 ? true: false);
-}
-
-static bool set_ext_video_mode_internal()
-{
-    unsigned int i = 0;
-    int width = 0;
-    int height = 0;
-    unsigned int hdmi_fb_id = 0;
-    int index = 0;
-    uint32_t hdmi_crtc_id = 0;
-    drmModeConnectorPtr connector = NULL;
-    drmModeModeInfoPtr mode = NULL;
-
-    if ((connector = getHdmiConnector()) == NULL)
-        return false;
-    CHECK_CONNECTOR_STATUS_ERR_RETURN(false);
-    index = select_hdmi_mode(connector);
-    if (index == -1) {
-        return false;
-    } else {
-        mode = &(connector->modes[index]);
-        width = mode->hdisplay;
-        height = mode->vdisplay;
-    }
-    width = width > height ? width : height;
-    height = width < height ? width : height;
-    width = align_to(width, 16);
-    height = align_to(height, 16);
-
-    LOGV("%s: Extended Mode timing is %dx%d@%dHz",
-            __func__, width, height, mode->vrefresh);
-    if (0 != setup_hdmi_fb(width, height, DRM_HDMI_VIDEO_EXT)) {
-        goto Err;
-    }
-    hdmi_fb_id = g_drm.einfo.fb_id[0];
-    hdmi_crtc_id = get_crtc_id(g_drm.drmFD, DRM_MODE_ENCODER_TMDS);
-    /* Mode setting with the largest resolution (e.g. 1920x1080) */
-    int tmp = drmModeSetCrtc(g_drm.drmFD, hdmi_crtc_id, hdmi_fb_id, 0, 0,
-                         &connector->connector_id, 1, mode);
-    if (tmp) {
-        LOGE("%s: Failed to set CRTC", __func__);
-        goto Err;
-    }
-    if (!g_drm.einfo.b_old_fb_cleared) {
-        rm_drmfb(g_drm.drmFD, &g_drm.einfo, true);
-        g_drm.einfo.b_old_fb_cleared = 1;
-    }
-    set_hdmi_state(DRM_HDMI_VIDEO_EXT);
-    return true;
-
-Err:
-    cleanup_hdmi_fb(g_drm.drmFD, DRM_HDMI_VIDEO_EXT);
-    return false;
-}
-
-static int hdmi_rm_notifier_handler(int cmd, void *data)
-{
-    bool ret = false;
-    unsigned int i = 0;
-
-    HDMI_mem_info_t *hdmi_info = (HDMI_mem_info_t *)data;
-
-    pthread_mutex_lock(&g_drm.mtx);
-
-    hdmi_get_timinginfo(cmd, hdmi_info->TimingInfo);
-
-    switch (cmd) {
-    case CMD_ROTATION_MODE:
-        g_drm.cinfo.hPVR2DContext = hdmi_info->h2DCtx;
-        g_drm.cinfo.new_buf_cnt = hdmi_info->size;
-        ret = set_clone_mode_internal(hdmi_info->Orientation);
-        if (ret) {
-            for (i = 0; i < hdmi_info->size; i++) {
-                hdmi_info->fb_id[i] = g_drm.cinfo.fb_id[i];
-                hdmi_info->pHDMIMemInfo[i] = g_drm.cinfo.psMemInfo[i];
-            }
-            hdmi_info->changed = g_drm.cinfo.changed;
-        } else
-            hdmi_info->changed = 0;
-        g_drm.curMode = CMD_CLONE_MODE;
-        /*clear ext video mode*/
-        cleanup_hdmi_fb(g_drm.drmFD, DRM_HDMI_VIDEO_EXT);
-        break;
-    case CMD_VIDEO_MODE:
-        g_drm.einfo.hPVR2DContext = hdmi_info->h2DCtx;
-        g_drm.einfo.new_buf_cnt = hdmi_info->size;
-        ret = set_ext_video_mode_internal();
-        if (ret) {
-            for (i = 0; i < hdmi_info->size; i++) {
-                hdmi_info->fb_id[i] = g_drm.einfo.fb_id[i];
-                hdmi_info->pHDMIMemInfo[i] = g_drm.einfo.psMemInfo[i];
-            }
-            hdmi_info->changed = g_drm.einfo.changed;
-        } else
-            hdmi_info->changed = 0;
-        g_drm.curMode = CMD_VIDEO_MODE;
-        break;
-    case CMD_NON_ROTATION_MODE:
-        g_drm.cinfo.hPVR2DContext = hdmi_info->h2DCtx;
-        g_drm.cinfo.new_buf_cnt = hdmi_info->size;
-        ret = set_clone_mode_internal(hdmi_info->Orientation);
-        if (ret) {
-            for (i = 0; i < hdmi_info->size; i++) {
-                hdmi_info->fb_id[i] = g_drm.cinfo.fb_id[i];
-                hdmi_info->pHDMIMemInfo[i] = g_drm.cinfo.psMemInfo[i];
-            }
-            hdmi_info->changed = g_drm.cinfo.changed;
-        } else
-            hdmi_info->changed = 0;
-        g_drm.curMode = CMD_CLONE_MODE;
-        /*clear ext video mode*/
-        cleanup_hdmi_fb(g_drm.drmFD, DRM_HDMI_VIDEO_EXT);
-        break;
-    }
-
-    pthread_mutex_unlock(&g_drm.mtx);
-    return (ret == true ? 0 : -1);
-}
-
-static int setScaling(int scaling_val)
-{
-    LOGV("%s: scale type is %d", __func__, scaling_val);
-    /* notify gralloc to use set scale step*/
-    return g_drm.ctx->notify_gralloc(CMD_SET_SCALE_TYPE, &scaling_val);
-}
-
-static int getScaling()
-{
-    return g_drm.configInfo.scaleType;
-}
-
-static bool setScaleStep(int value)
-{
-    int ret = 0;
-    LOGV("%s: scale mode %x", __func__, value);
-    /* notify gralloc to use set scale step*/
-    ret = g_drm.ctx->notify_gralloc(CMD_SET_SCALE_STEP, &value);
-    return ret;
 }
 
 static drmModeConnectorPtr getHdmiConnector()
@@ -830,23 +399,6 @@ static drmModeConnectorPtr getHdmiConnector()
     return g_drm.hdmi_connector;
 }
 
-static bool setHdmiMode(int mode, MDSHDMITiming* info)
-{
-    int i = 0;
-    bool ret = false;
-    switch (mode) {
-    case DRM_HDMI_CLONE:
-        ret = set_clone_mode(info);
-        break;
-    case DRM_HDMI_VIDEO_EXT:
-        ret = set_ext_video_mode(info);
-        break;
-    default:
-        break;
-    }
-    return ret;
-}
-
 static int checkHdmiTiming(int index) {
     drmModeConnectorPtr connector = NULL;
     connector = getHdmiConnector();
@@ -856,15 +408,10 @@ static int checkHdmiTiming(int index) {
     return index;
 }
 
-static int getMatchingHdmiTiming(int mode, MDSHDMITiming* in) {
+static int getMatchingHdmiTiming(drmModeConnectorPtr connector, int mode, MDSHDMITiming* in) {
     int index = 0;
     int firstRefreshMatchIndex = -1;
     int totalMatchIndex = -1;
-    drmModeConnectorPtr connector = NULL;
-    if ((connector = getHdmiConnector()) == NULL)
-        return -1;
-    CHECK_CONNECTOR_STATUS_ERR_RETURN(-1);
-
     uint32_t temp_flags = 0;
     if (in->interlace)
         temp_flags |= DRM_MODE_FLAG_INTERLACE;
@@ -991,39 +538,58 @@ End:
     return iCount;
 }
 
-static int hdmi_get_timinginfo(int cmd, MDSHDMITiming* info)
+static int get_hdmi_preferedTimingIndex(drmModeConnector *hdmi_connector)
+{
+    int i = 0;
+    /*mode sort as big --> small, default use index =0, the max one*/
+    for (i = 0; i < hdmi_connector->count_modes; i++) {
+        /*set to prefer mode */
+        if (hdmi_connector->modes[i].type &
+                        DRM_MODE_TYPE_PREFERRED)
+            break;
+    }
+    if (i == hdmi_connector->count_modes)
+        return 0;
+
+    return i;
+}
+
+static void get_hdmi_get_TimingByIndex(drmModeConnectorPtr connector, int index, MDSHDMITiming* info)
+{
+    info->width = connector->modes[index].hdisplay;
+    info->height = connector->modes[index].vdisplay;
+    info->refresh = connector->modes[index].vrefresh;
+}
+
+int drm_hdmi_checkTiming(int mode, MDSHDMITiming* info)
 {
     int index = 0;
-    int mode = 0;
-    if (cmd == CMD_VIDEO_MODE)
-        mode = DRM_HDMI_VIDEO_EXT;
-    else if ((cmd == CMD_ROTATION_MODE) || (cmd == CMD_ROTATION_MODE))
-        mode = DRM_HDMI_CLONE;
+    if (info == NULL)
+        return MDS_ERROR;
+    LOGI("%s: HDMI timing is %dx%d@%dHzx%d", __func__,
+            info->width, info->height, info->refresh, info->interlace);
 
-    if ((mode != DRM_HDMI_CLONE && mode != DRM_HDMI_VIDEO_EXT)
-       || (mode == DRM_HDMI_VIDEO_EXT && info == NULL)) {
-       LOGE("%s: Failed to get invalid parameters", __func__);
-       return -1;
-    }
+    drmModeConnectorPtr connector = NULL;
+    if ((connector = getHdmiConnector()) == NULL)
+        return -1;
+    CHECK_CONNECTOR_STATUS_ERR_RETURN(-1);
 
-    if (info != NULL)
-        LOGI("%s: HDMI timing is %dx%d@%dHzx%d", __func__,
-                info->width, info->height, info->refresh, info->interlace);
-
-    if (mode == DRM_HDMI_VIDEO_EXT) {
-        g_drm.modeIndex = getMatchingHdmiTiming(DRM_HDMI_VIDEO_EXT, info);
-        if (g_drm.modeIndex == -1)
-            g_drm.modeIndex = checkHdmiTiming(g_drm.cloneModeIndex);
-    } else if (mode == DRM_HDMI_CLONE){
-        if (info != NULL) {
-            g_drm.modeIndex = getMatchingHdmiTiming(DRM_HDMI_CLONE, info);
-        } else {
-            g_drm.modeIndex = checkHdmiTiming(g_drm.cloneModeIndex);
+    if (mode == DRM_HDMI_VIDEO_EXT)
+        g_drm.modeIndex = getMatchingHdmiTiming(connector, DRM_HDMI_VIDEO_EXT, info);
+    else if (mode == DRM_HDMI_CLONE)
+        g_drm.modeIndex = getMatchingHdmiTiming(connector, DRM_HDMI_CLONE, info);
+    if (g_drm.modeIndex == -1) {
+        if (g_drm.cloneModeIndex != -1)
+            g_drm.modeIndex = g_drm.cloneModeIndex;
+        else {
+            g_drm.modeIndex = get_hdmi_preferedTimingIndex(connector);
+            g_drm.cloneModeIndex = g_drm.modeIndex;
         }
     }
-
-    LOGD("%s: Switching to mode %d", __func__, g_drm.modeIndex);
-    return 0;
+    get_hdmi_get_TimingByIndex(connector, g_drm.modeIndex, info);
+    LOGD("%s, Switching to Timing, %dx%d@%dHzx%dx%d, %d", __func__,
+            info->width, info->height, info->refresh, info->ratio, info->interlace, g_drm.modeIndex);
+    return MDS_NO_ERROR;
 }
 
 
@@ -1036,25 +602,19 @@ bool drm_init()
     pthread_mutex_lock(&g_drm.mtx);
     g_drm.drmFD = -1;
     g_drm.hdmi_connector = NULL;
-    g_drm.configInfo.edidChange = 0;
     g_drm.cloneModeIndex = -1;
     g_drm.modeIndex = -1;
+    g_drm.configInfo.edidChange = 0;
+#if 0
     g_drm.configInfo.scaleType = DRM_MODE_SCALE_ASPECT;
     g_drm.configInfo.horiRatio = HDMI_STEP_HORVALUE;
     g_drm.configInfo.vertRatio = HDMI_STEP_VERVALUE;
+#endif
     g_drm.hasHdmi = false;
 
     ret = setup_drm();
     if (!ret)
         goto End;
-    int tmp = get_gralloc_ex(&g_drm.ctx);
-    ret = (tmp == 0 ? true:false);
-    if(!ret)
-        goto End;
-    if (g_drm.ctx->register_notify_func)
-        g_drm.ctx->register_notify_func(hdmi_rm_notifier_handler);
-    if (getScaling() != DRM_MODE_SCALE_ASPECT)
-        setScaling(DRM_MODE_SCALE_ASPECT);
     g_drm.hasHdmi = checkHwSupportHdmi();
 End:
     pthread_mutex_unlock(&g_drm.mtx);
@@ -1064,11 +624,8 @@ End:
 void drm_cleanup()
 {
     pthread_mutex_lock(&g_drm.mtx);
-    if (g_drm.drmFD >= 0) {
-        cleanup_hdmi_fb(g_drm.drmFD, DRM_HDMI_VIDEO_EXT);
-        cleanup_hdmi_fb(g_drm.drmFD, DRM_HDMI_CLONE);
+    if (g_drm.drmFD >= 0)
         drmClose(g_drm.drmFD);
-    }
     if (g_drm.hdmi_connector)
         drmModeFreeConnector(g_drm.hdmi_connector);
     g_drm.hasHdmi = false;
@@ -1243,12 +800,12 @@ End:
         g_drm.cloneModeIndex = -1;
     }
 
+#if 0
     if ((g_drm.configInfo.scaleType != DRM_MODE_SCALE_ASPECT) &&
         (g_drm.configInfo.edidChange == 1)) {
         g_drm.configInfo.scaleType = DRM_MODE_SCALE_ASPECT;
         setScaling(DRM_MODE_SCALE_ASPECT);
     }
-
     if (((g_drm.configInfo.horiRatio != HDMI_STEP_HORVALUE) ||
         (g_drm.configInfo.vertRatio != HDMI_STEP_VERVALUE))
         && (g_drm.configInfo.edidChange == 1)) {
@@ -1256,6 +813,7 @@ End:
         g_drm.configInfo.vertRatio = HDMI_STEP_VERVALUE;
         setScaleStep(0);
     }
+#endif
 
     pthread_mutex_unlock(&g_drm.mtx);
 
@@ -1270,12 +828,6 @@ bool drm_hdmi_onHdmiDisconnected(void)
     CHECK_DRM_FD(false);
 
     pthread_mutex_lock(&g_drm.mtx);
-    /*notify disonnect message*/
-    if (g_drm.ctx->notify_gralloc)
-        g_drm.ctx->notify_gralloc(CMD_HDMI_DISCONNECTED, NULL);
-    /*clear memory*/
-    cleanup_hdmi_fb(g_drm.drmFD, DRM_HDMI_VIDEO_EXT);
-    cleanup_hdmi_fb(g_drm.drmFD, DRM_HDMI_CLONE);
     /* release hdmi_connector when disconnected */
     if (g_drm.hdmi_connector)
         drmModeFreeConnector(g_drm.hdmi_connector);
@@ -1342,6 +894,7 @@ int drm_hdmi_getModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInterla
 bool drm_hdmi_setScaling(int scaling_val)
 {
     int ret = 0;
+#if 0
     CHECK_HW_SUPPORT_HDMI(false);
     CHECK_DRM_FD(false);
 
@@ -1350,11 +903,15 @@ bool drm_hdmi_setScaling(int scaling_val)
     ret = setScaling(scaling_val);
     pthread_mutex_unlock(&g_drm.mtx);
     return (ret == 1 ? true : false);
+#else
+    return false;
+#endif
 }
 
 bool drm_hdmi_setScaleStep(int hValue, int vValue)
 {
     bool ret = false;
+#if 0
     int i = 0;
     int value = 0;
     int scale = 0;
@@ -1382,6 +939,7 @@ bool drm_hdmi_setScaleStep(int hValue, int vValue)
 
     ret = setScaleStep(value);
     pthread_mutex_unlock(&g_drm.mtx);
+#endif
     return ret;
 }
 
@@ -1426,45 +984,4 @@ int drm_get_dev_fd()
 int drm_get_ioctl_offset()
 {
     return g_drm.ioctlOffset;
-}
-
-bool drm_hdmi_setMode(int mode, MDSHDMITiming* info) {
-    int index = 0;
-    if ((mode != DRM_HDMI_CLONE && mode != DRM_HDMI_VIDEO_EXT) ||
-            (mode == DRM_HDMI_VIDEO_EXT && info == NULL)) {
-        LOGE("%s: Failed to get invalid parameters", __func__);
-        return false;
-    }
-    if (info != NULL)
-        LOGI("%s: HDMI timing is %dx%d@%dHzx%d", __func__,
-                info->width, info->height, info->refresh, info->interlace);
-    CHECK_HW_SUPPORT_HDMI(false);
-    CHECK_DRM_FD(false);
-
-    return setHdmiMode(mode, info);
-}
-
-int widi_orientation_handler_cb(int cmd, int* data) {
-
-    int ret = 0;
-    if (g_drm.widiNotifyFunc)
-        ret = g_drm.widiNotifyFunc(g_drm.cookie, cmd, *data);
-    return ret;
-}
-
-bool drm_widi_notify(bool On, void* cookie, void* func) {
-    int ret = 0;
-    g_drm.cookie = cookie;
-    if (On) {
-        g_drm.widiNotifyFunc = (notify_func_widi_t)func;
-        if (g_drm.ctx->register_widi_notify_func)
-            g_drm.ctx->register_widi_notify_func((notify_func_t)widi_orientation_handler_cb);
-        if (g_drm.ctx->notify_gralloc)
-            ret = g_drm.ctx->notify_gralloc(CMD_WIDI_CONNECTED, 0);
-     } else {
-        g_drm.widiNotifyFunc = NULL;
-        if (g_drm.ctx->notify_gralloc)
-            ret = g_drm.ctx->notify_gralloc(CMD_WIDI_DISCONNECTED, 0);
-    }
-    return (ret == 0 ? true:false);
 }

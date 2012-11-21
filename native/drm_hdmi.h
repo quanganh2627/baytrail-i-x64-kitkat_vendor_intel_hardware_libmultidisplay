@@ -20,6 +20,7 @@
 #define _DRM_HDMI_H
 #include <display/MultiDisplayType.h>
 
+
 #define DRM_MIPI_OFF            (0)
 #define DRM_MIPI_ON             (1)
 
@@ -47,9 +48,7 @@ int  drm_hdmi_getDeviceChange();
 int  drm_get_dev_fd();
 int  drm_hdmi_notify_audio_hotplug(bool plugin);
 int  drm_get_ioctl_offset();
-bool drm_hdmi_setMode(int mode, MDSHDMITiming* info);
-int  widi_orientation_handler_cb(int cmd, int* data);
-bool drm_widi_notify(bool On, void* cookie, void* func);
+int  drm_hdmi_checkTiming(int mode, MDSHDMITiming* info);
 bool drm_check_hw_supportHdmi();
 
 #endif // _DRM_HDMI_H

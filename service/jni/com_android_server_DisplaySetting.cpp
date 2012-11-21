@@ -34,7 +34,7 @@ class JNIMDSListener : public BnExtendDisplayModeChangeListener {
 public:
     JNIMDSListener();
     ~JNIMDSListener();
-    void onMdsMessage(int msg, int value);
+    int onMdsMessage(int msg, void* value, int size);
     void setEnv(JNIEnv*, jobject*);
 private:
     JNIEnv* mEnv;
@@ -67,9 +67,11 @@ static MultiDisplayClient* mMDClient = NULL;
 static Mutex gMutex;
 static JavaVM* gJvm = NULL;
 
-void JNIMDSListener::onMdsMessage(int msg, int value) {
+int JNIMDSListener::onMdsMessage(int msg, void* value, int size) {
     jmethodID mid = NULL;
-    if (mEnv != NULL && mObj != NULL && gJvm != NULL) {
+    if (mEnv != NULL && mObj != NULL &&
+            gJvm != NULL && msg == MDS_MODE_CHANGE && size == sizeof(int)) {
+        LOGD("%s: Get msg frm MDS, %d, 0x%x", __func__, msg, *((int*)value));
         void* eenv = NULL;
         jint ret = gJvm->GetEnv(&eenv, JNI_VERSION_1_4);
         JNIEnv* env = (JNIEnv*)eenv;
@@ -77,7 +79,7 @@ void JNIMDSListener::onMdsMessage(int msg, int value) {
             LOGE("%s: invalid java env, ignore onMdsMessage callback", __func__);
             mEnv = NULL;
             mObj = NULL;
-            return;
+            return MDS_ERROR;
         }
         jclass clazz = mEnv->GetObjectClass(*mObj);
         mid = mEnv->GetMethodID(clazz, "onMdsMessage", "(II)V");
@@ -85,13 +87,13 @@ void JNIMDSListener::onMdsMessage(int msg, int value) {
             LOGE("%s: fail to get onMdsMessage", __func__);
             mEnv = NULL;
             mObj = NULL;
-            return;
+            return MDS_ERROR;
         }
-        mEnv->CallVoidMethod(*mObj, mid, msg, value);
+        mEnv->CallVoidMethod(*mObj, mid, msg, *((int*)value));
         mEnv = NULL;
         mObj = NULL;
-    } else
-        LOGI("%s: No need to call onMdsMessage, 0x%x", __func__, value);
+    }
+    return MDS_NO_ERROR;
 }
 
 static void initMDC() {
@@ -121,47 +123,6 @@ static void DeInitMDC() {
     }
 }
 
-static String16 get_interface_name(sp<IBinder> service) {
-    if (service != NULL) {
-        Parcel data, reply;
-        status_t err = service->transact(IBinder::INTERFACE_TRANSACTION, data, &reply);
-        if (err == NO_ERROR) {
-            return reply.readString16();
-        }
-    }
-    return String16();
-}
-
-static sp<IBinder> getService(String16 sname) {
-    int err;
-    sp<IServiceManager> sm = defaultServiceManager();
-    if (sm == NULL) {
-        LOGE("%s: fail to getservice manager", __func__);
-        return NULL;
-    }
-
-    sp<IBinder> service = sm->checkService(sname);
-    if (service == NULL) {
-        LOGE("%s: fail to get surfacefinger service", __func__);
-        return NULL;
-    }
-    return service;
-}
-
-static int updateSurface() {
-    int err = -1;
-    sp<IBinder> service = getService(String16("SurfaceFlinger"));
-    String16 ifName = get_interface_name(service);
-    android::Parcel data, reply;
-    data.writeInterfaceToken(ifName);
-    err = service->transact(1008, data, &reply, 0);
-    if (err != 0) {
-        LOGE("%s: fail to transact", __func__);
-        return -1;
-    }
-    return 0;
-}
-
 static jboolean android_server_DisplaySetting_InitMDSClient(JNIEnv* env, jobject thiz) {
     AutoMutex _l(gMutex);
     initMDC();
@@ -186,8 +147,6 @@ static jboolean android_server_DisplaySetting_setModePolicy(JNIEnv* env, jobject
     mListener->setEnv(env, &obj);
     env->GetJavaVM(&gJvm);
     int ret = mMDClient->setModePolicy(policy);
-    if (ret == MDS_NO_ERROR)
-        updateSurface();
     return (ret == MDS_NO_ERROR ? true : false);
 }
 
@@ -197,8 +156,6 @@ static jboolean android_server_DisplaySetting_notifyHotPlug(JNIEnv* env, jobject
     mListener->setEnv(env, &obj);
     env->GetJavaVM(&gJvm);
     int ret = mMDClient->notifyHotPlug();
-    if (ret == MDS_NO_ERROR)
-        updateSurface();
     return (ret == MDS_NO_ERROR ? true : false);
 }
 

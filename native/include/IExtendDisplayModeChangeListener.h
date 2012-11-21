@@ -31,13 +31,13 @@ public:
         ON_MDS_EVENT = IBinder::FIRST_CALL_TRANSACTION,
     };
     DECLARE_META_INTERFACE(ExtendDisplayModeChangeListener);
-    virtual void onMdsMessage(int msg, int value) = 0;
+    virtual int onMdsMessage(int msg, void* value, int size) = 0;
 };
 class BpExtendDisplayModeChangeListener : public BpInterface<IExtendDisplayModeChangeListener> {
 public:
     BpExtendDisplayModeChangeListener(const sp<IBinder>& impl)
         : BpInterface<IExtendDisplayModeChangeListener>(impl) {}
-    virtual void onMdsMessage(int msg, int value);
+    virtual int onMdsMessage(int msg, void* value, int size);
 };
 
 class BnExtendDisplayModeChangeListener : public BnInterface<IExtendDisplayModeChangeListener> {
