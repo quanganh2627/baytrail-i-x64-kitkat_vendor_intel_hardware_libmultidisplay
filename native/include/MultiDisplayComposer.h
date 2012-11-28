@@ -32,6 +32,8 @@
 #include <utils/Vector.h>
 #include <display/IExtendDisplayModeChangeListener.h>
 #include <display/MultiDisplayType.h>
+#include <gui/SurfaceComposerClient.h>
+#include <hardware/hwcomposer.h>
 
 using namespace android;
 
@@ -91,6 +93,12 @@ private:
     int* mNativeSurface;
     int mBackgroundPlayerId;
     mutable Mutex mBackgroundPlayLock;
+
+    // HDMI Scaling mode and scaling calibriation
+    sp<SurfaceComposerClient> mSurfaceComposerClient;
+    uint32_t mScaleMode;
+    uint32_t mScaleStepX;
+    uint32_t mScaleStepY;
 
     int setHdmiMode_l();
     int broadcastMdsMessage_l(int msg, void* value, int size);

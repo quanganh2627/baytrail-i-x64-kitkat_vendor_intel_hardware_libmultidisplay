@@ -70,6 +70,10 @@ MultiDisplayComposer::MultiDisplayComposer() {
     mDrmInit = true;
     initDisplayCapability_l();
     LOGI("%s: mMode: 0x%x", __func__, mMode);
+
+    mScaleMode = 0;
+    mScaleStepX = 0;
+    mScaleStepY = 0;
 }
 
 MultiDisplayComposer::~MultiDisplayComposer() {
@@ -514,23 +518,46 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
 int MultiDisplayComposer::setHdmiScaleType(int type) {
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
-    bool ret = false;
-    LOGV("%s: type: %d", __func__, type);
-#if 0
-    ret = drm_hdmi_setScaling(type);
-#endif
-    return (ret == true ? 0 : -1);
+
+    sp<IBinder> token =
+        SurfaceComposerClient::getBuiltInDisplay(HWC_DISPLAY_EXTERNAL);
+
+    if (mSurfaceComposerClient == NULL) {
+        mSurfaceComposerClient = new SurfaceComposerClient();
+    }
+    if (mSurfaceComposerClient == NULL || token == NULL)
+        return -1;
+
+    mScaleMode = type;
+    SurfaceComposerClient::openGlobalTransaction();
+    mSurfaceComposerClient->setDisplayScaling(token,
+        mScaleMode, mScaleStepX, mScaleStepY);
+    SurfaceComposerClient::closeGlobalTransaction();
+
+    return 0;
 }
 
 int MultiDisplayComposer::setHdmiScaleStep(int hValue, int vValue) {
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
-    bool ret = false;
-    LOGV("%s: hValue: %d, vValue: %d", __func__, hValue, vValue);
-#if 0
-    ret = drm_hdmi_setScaleStep(hValue, vValue);
-#endif
-    return (ret == true ? 0 : -1);
+
+    sp<IBinder> token =
+        SurfaceComposerClient::getBuiltInDisplay(HWC_DISPLAY_EXTERNAL);
+
+    if (mSurfaceComposerClient == NULL) {
+        mSurfaceComposerClient = new SurfaceComposerClient();
+    }
+    if (mSurfaceComposerClient == NULL || token == NULL)
+        return -1;
+
+    mScaleStepX = (hValue > 5) ? 0: (5 - hValue);
+    mScaleStepY = (vValue > 5) ? 0: (5 - vValue);
+    SurfaceComposerClient::openGlobalTransaction();
+    mSurfaceComposerClient->setDisplayScaling(token,
+        mScaleMode, mScaleStepX, mScaleStepY);
+    SurfaceComposerClient::closeGlobalTransaction();
+
+    return 0;
 }
 
 int MultiDisplayComposer::getHdmiDeviceChange() {
