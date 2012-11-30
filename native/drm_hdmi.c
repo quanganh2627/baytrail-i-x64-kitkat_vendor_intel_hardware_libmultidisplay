@@ -401,7 +401,8 @@ static drmModeConnectorPtr getHdmiConnector()
 
 static int checkHdmiTiming(int index) {
     drmModeConnectorPtr connector = NULL;
-    connector = getHdmiConnector();
+    if ((connector = getHdmiConnector()) == NULL)
+        return -1;
     CHECK_CONNECTOR_STATUS_ERR_RETURN(-1);
     if (index > connector->count_modes)
         return -1;
