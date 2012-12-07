@@ -321,8 +321,10 @@ class DisplayObserver extends UEventObserver {
                 } else {
                     mInCallScreenFinished = true;
                     logv("Call is terminated and Incallscreen disappeared");
-                    mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
-                    setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
+                    if (mHdmiEnable == 1) {
+                        mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
+                        setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
+                    }
                 }
                 break;
             }
@@ -356,8 +358,10 @@ class DisplayObserver extends UEventObserver {
                     } else {
                         mInCallScreenFinished = true;
                         logv("Call is terminated and Incallscreen disappeared");
-                        mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
-                        setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
+                        if (mHdmiEnable == 1) {
+                            mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
+                            setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
+                        }
                     }
                 }
             } else if (action.equals(HDMI_GET_INFO)) {
