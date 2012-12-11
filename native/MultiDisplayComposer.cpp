@@ -685,3 +685,15 @@ int MultiDisplayComposer::setHdcpStatus(int value) {
     mHdcpStatus = value;
     return MDS_NO_ERROR;
 }
+
+int MultiDisplayComposer::notifyScreenOff() {
+    MDC_CHECK_INIT();
+    Mutex::Autolock _l(mLock);
+    int ret = 0;
+    LOGV("%s: NotifySceenOff", __func__);
+    if (mVideo.isplaying == true) {
+        mVideo.isplaying = false;
+        ret = setHdmiMode_l();
+   }
+   return ret;
+}

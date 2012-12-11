@@ -202,3 +202,8 @@ int MultiDisplayClient::setHdcpStatus(int value) {
     MDC_CHECK_IMDC();
     return mIMDComposer->setHdcpStatus(value);
 }
+
+int MultiDisplayClient::notifyScreenOff() {
+    MDC_CHECK_IMDC();
+    return mIMDComposer->notifyScreenOff();
+}

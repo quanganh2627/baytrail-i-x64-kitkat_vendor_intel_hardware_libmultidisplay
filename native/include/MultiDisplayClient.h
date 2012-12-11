@@ -216,6 +216,16 @@ public:
      */
     int setHdcpStatus(int value);
 
+    /*
+     * Notice Screen Off
+     * input param:
+     *    None
+     * return:
+     *    MDS_ERROR: on error
+     *    !=0: on success
+     */
+    int notifyScreenOff();
+
 };
 
 #endif

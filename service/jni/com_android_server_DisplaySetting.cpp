@@ -248,6 +248,12 @@ static jint android_server_DisplaySetting_setHdcpStatus(JNIEnv* env, jobject thi
     return mMDClient->setHdcpStatus(value);
 }
 
+static jint android_server_DisplaySetting_notifyScreenOff(JNIEnv* env, jobject obj) {
+    if (mMDClient == NULL) return -1;
+    AutoMutex _l(gMutex);
+    return mMDClient->notifyScreenOff();
+}
+
 static JNINativeMethod sMethods[] = {
     /* name, signature, funcPtr */
     {"native_InitMDSClient", "()Z", (void*)android_server_DisplaySetting_InitMDSClient},
@@ -265,6 +271,7 @@ static JNINativeMethod sMethods[] = {
     {"native_getDisplayCapability", "()I", (void*)android_server_DisplaySetting_getDisplayCapability},
     {"native_setPlayInBackground", "(ZI)I", (void*)android_server_DisplaySetting_setPlayInBackground},
     {"native_setHdcpStatus", "(I)I", (void*)android_server_DisplaySetting_setHdcpStatus},
+    {"native_notifyScreenOff", "()I", (void*)android_server_DisplaySetting_notifyScreenOff},
 };
 
 

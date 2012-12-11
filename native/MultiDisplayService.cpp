@@ -154,4 +154,9 @@ int MultiDisplayService::setHdcpStatus(int value) {
     return mMDC->setHdcpStatus(value);
 }
 
+int MultiDisplayService::notifyScreenOff() {
+    MDS_CHECK_MDS();
+    return mMDC->notifyScreenOff();
+}
+
 }

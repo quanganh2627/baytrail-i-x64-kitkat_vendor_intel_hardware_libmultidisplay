@@ -242,6 +242,12 @@ int BpMultiDisplayComposer::setHdcpStatus(int Value) {
     return reply.readInt32();
 }
 
+int BpMultiDisplayComposer::notifyScreenOff() {
+    Parcel data, reply;
+    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+    remote()->transact(MDS_NOTIFY_SCREENOFF, data, &reply);
+    return reply.readInt32();
+}
 
 IMPLEMENT_META_INTERFACE(MultiDisplayComposer,"com.intel.IMultiDisplayComposer");
 
@@ -447,6 +453,14 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
         int value;
         value = data.readInt32();
         int ret = setHdcpStatus(value);
+        reply->writeInt32(ret);
+        return NO_ERROR;
+    }
+    break;
+
+    case MDS_NOTIFY_SCREENOFF: {
+        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+        int ret = notifyScreenOff();
         reply->writeInt32(ret);
         return NO_ERROR;
     }
