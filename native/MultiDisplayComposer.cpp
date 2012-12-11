@@ -272,17 +272,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         return MDS_NO_ERROR;
     }
 
-    // Common case, turn on HDMI if necessary
     if (!checkMode(mMode, MDS_HDMI_ON)) {
-        LOGI("Turn on HDMI...");
-        if (!drm_hdmi_setHdmiVideoOn()) {
-            LOGE("Fail to turn on HDMI.");
-            mMode &= ~MDS_HDCP_ON;
-            mMode &= ~MDS_HDMI_CLONE;
-            mMode &= ~MDS_HDMI_VIDEO_EXT;
-            broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
-            return MDS_ERROR;
-        }
         mMode |= MDS_HDMI_ON;
     }
 
@@ -367,6 +357,17 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMode &= ~MDS_HDMI_VIDEO_EXT;
         mMode |= MDS_HDMI_CLONE;
         broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
+    }
+
+    // Common case, turn on HDMI if necessary
+    LOGI("Turn on HDMI...");
+    if (!drm_hdmi_setHdmiVideoOn()) {
+        LOGI("Fail to turn on HDMI.");
+        mMode &= ~MDS_HDCP_ON;
+        mMode &= ~MDS_HDMI_CLONE;
+        mMode &= ~MDS_HDMI_VIDEO_EXT;
+        broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
+        return MDS_ERROR;
     }
 
     if (notify_audio_hotplug && mDrmInit) {
