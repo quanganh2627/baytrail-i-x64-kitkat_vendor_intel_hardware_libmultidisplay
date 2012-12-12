@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 #ifndef __MULTIDISPLAY_COMPOSER_H__
@@ -30,12 +31,36 @@
 #include <errno.h>
 #include <utils/threads.h>
 #include <utils/Vector.h>
-#include <display/IExtendDisplayModeChangeListener.h>
+#include <display/IExtendDisplayListener.h>
 #include <display/MultiDisplayType.h>
 #include <gui/SurfaceComposerClient.h>
 #include <hardware/hwcomposer.h>
 
 using namespace android;
+
+class MultiDisplayListener {
+private:
+    int   mMsg;
+    char* mName;
+    sp<IExtendDisplayListener> mIEListener;
+public:
+    MultiDisplayListener(int msg, const char* client, sp<IExtendDisplayListener>);
+    ~MultiDisplayListener();
+    inline char* getName() {
+        return mName;
+    }
+    inline int getMsg() {
+        return mMsg;
+    }
+    inline sp<IExtendDisplayListener> getIEListener() {
+        return mIEListener;
+    }
+    inline bool checkMsg(int msg) {
+        if (msg & mMsg)
+            return true;
+        return false;
+    }
+};
 
 class MultiDisplayComposer : public Thread
 {
@@ -53,8 +78,8 @@ public:
     int setHdmiPowerOff();
     int updateVideoInfo(MDSVideoInfo*);
 
-    int registerModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
-    int unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
+    int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);
+    int unregisterListener(sp<IExtendDisplayListener>, void *);
 
     int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio);
     int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio);
@@ -90,7 +115,7 @@ private:
     mutable Mutex mLock;
     Condition mMipiCon;
     mutable Mutex mMipiLock;
-    KeyedVector<void *, sp<IExtendDisplayModeChangeListener> > mMCListenerVector;
+    KeyedVector<void *, MultiDisplayListener* > mListener;
     bool mEnablePlayInBackground;
     int* mNativeSurface;
     int mBackgroundPlayerId;
@@ -104,11 +129,13 @@ private:
     uint32_t mScaleStepY;
 
     int setHdmiMode_l();
-    int broadcastMdsMessage_l(int msg, void* value, int size);
     int setMipiMode_l(bool);
     int setModePolicy_l(int);
     int getHdmiPlug_l();
     void initDisplayCapability_l();
+
+    void broadcastMessage_l(int msg, void* value, int size);
+    int  setHdmiTiming_l(int msg, void* value, int size);
 
     virtual bool threadLoop();
     inline bool checkMode(int value, int bit) {

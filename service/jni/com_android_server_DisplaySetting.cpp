@@ -26,11 +26,11 @@
 #include <binder/ProcessState.h>
 #include <binder/IServiceManager.h>
 #include <display/MultiDisplayClient.h>
-#include <display/IExtendDisplayModeChangeListener.h>
+#include <display/IExtendDisplayListener.h>
 
 namespace android {
 
-class JNIMDSListener : public BnExtendDisplayModeChangeListener {
+class JNIMDSListener : public BnExtendDisplayListener {
 public:
     JNIMDSListener();
     ~JNIMDSListener();
@@ -71,7 +71,7 @@ int JNIMDSListener::onMdsMessage(int msg, void* value, int size) {
     jmethodID mid = NULL;
     if (mEnv != NULL && mObj != NULL &&
             gJvm != NULL && msg == MDS_MODE_CHANGE && size == sizeof(int)) {
-        LOGD("%s: Get msg frm MDS, %d, 0x%x", __func__, msg, *((int*)value));
+        LOGD("%s: Get message from MDS, %d, 0x%x", __func__, msg, *((int*)value));
         void* eenv = NULL;
         jint ret = gJvm->GetEnv(&eenv, JNI_VERSION_1_4);
         JNIEnv* env = (JNIEnv*)eenv;
@@ -103,7 +103,7 @@ static void initMDC() {
     }
     if (mListener == NULL) {
         mListener = new JNIMDSListener();
-        mMDClient->registerModeChangeListener(mListener);
+        mMDClient->registerListener(mListener, "DisplaySetting", MDS_MODE_CHANGE);
     }
     mListener->setEnv(NULL, NULL);
 }
@@ -114,7 +114,7 @@ static void DeInitMDC() {
         if (mListener != NULL) {
             gJvm = NULL;
             mListener->setEnv(NULL, NULL);
-            mMDClient->unregisterModeChangeListener(mListener);
+            mMDClient->unregisterListener(mListener);
             delete mListener;
             mListener = NULL;
         }

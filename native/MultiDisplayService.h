@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 #ifndef ANDROID_MULTIDISPLAYSERVICE_H
@@ -23,7 +24,7 @@
 #include <binder/BinderService.h>
 #include <display/IMultiDisplayComposer.h>
 #include <display/MultiDisplayComposer.h>
-#include <display/IExtendDisplayModeChangeListener.h>
+#include <display/IExtendDisplayListener.h>
 
 namespace android {
 
@@ -36,7 +37,7 @@ public:
     static char* const getServiceName() { return "MultiDisplay"; }
 
     MultiDisplayService();
-    virtual ~MultiDisplayService();
+    ~MultiDisplayService();
 
     int getMode(bool wait);
     int notifyWidi(bool);
@@ -47,8 +48,8 @@ public:
     int setHdmiPowerOff();
     int updateVideoInfo(MDSVideoInfo*);
 
-    int registerModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
-    int unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
+    int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);
+    int unregisterListener(sp<IExtendDisplayListener>, void *);
 
     int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio);
     int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio);

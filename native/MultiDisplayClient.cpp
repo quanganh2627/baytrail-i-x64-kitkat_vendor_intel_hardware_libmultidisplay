@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 
@@ -91,14 +92,16 @@ int MultiDisplayClient::setHdmiPowerOff() {
     return mIMDComposer->setHdmiPowerOff();
 }
 
-int MultiDisplayClient::registerModeChangeListener(sp<IExtendDisplayModeChangeListener> listener) {
+int MultiDisplayClient::registerListener(
+        sp<IExtendDisplayListener> listener, char* client, int msg) {
     MDC_CHECK_IMDC();
-    return mIMDComposer->registerModeChangeListener(listener, static_cast<void *>(this));
+    return mIMDComposer->registerListener(listener,
+            static_cast<void *>(this), client, msg);
 }
 
-int MultiDisplayClient::unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener> listener) {
+int MultiDisplayClient::unregisterListener(sp<IExtendDisplayListener> listener) {
     MDC_CHECK_IMDC();
-    return mIMDComposer->unregisterModeChangeListener(listener, static_cast<void *>(this));
+    return mIMDComposer->unregisterListener(listener, static_cast<void *>(this));
 }
 
 

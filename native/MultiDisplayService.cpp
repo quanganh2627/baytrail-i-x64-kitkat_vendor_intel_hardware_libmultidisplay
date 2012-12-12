@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 //#define LOG_NDEBUG 0
@@ -83,16 +84,17 @@ int MultiDisplayService::setModePolicy(int policy) {
     return mMDC->setModePolicy(policy);
 }
 
-int MultiDisplayService::registerModeChangeListener(
-                            sp<IExtendDisplayModeChangeListener> listener, void *handle) {
+int MultiDisplayService::registerListener(
+                            sp<IExtendDisplayListener> listener,
+                            void *handle, const char* client, int msg) {
     MDS_CHECK_MDS();
-    return mMDC->registerModeChangeListener(listener, handle);
+    return mMDC->registerListener(listener, handle, client, msg);
 }
 
-int MultiDisplayService::unregisterModeChangeListener(
-                            sp<IExtendDisplayModeChangeListener> listener, void *handle) {
+int MultiDisplayService::unregisterListener(
+                            sp<IExtendDisplayListener> listener, void *handle) {
     MDS_CHECK_MDS();
-    return mMDC->unregisterModeChangeListener(listener, handle);
+    return mMDC->unregisterListener(listener, handle);
 }
 
 int MultiDisplayService::getHdmiModeInfo(int* pWidth, int* pHeight,

@@ -12,6 +12,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 package com.android.server;
@@ -39,8 +40,9 @@ class DisplaySetting {
     public static final int HDMI_MODE_BIT           = 0x1 << 4;
 
     // MDS message type
-    public static final int MDS_MODE_CHANGE = 0;
-    public static final int MDS_ORIENTATION_CHANGE = 1;
+    public static final int MDS_MODE_CHANGE        = 0x1;
+    public static final int MDS_ORIENTATION_CHANGE = 0x1 << 1;
+    public static final int MDS_SET_TIMING         = 0x1 << 2;
 
     // MDS display capability
     public static final int HW_SUPPORT_HDMI = 0x1;

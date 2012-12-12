@@ -1,3 +1,5 @@
+# Author: tianyang.zhu@intel.com
+
 LOCAL_PATH:= $(call my-dir)
 
 ifeq ($(TARGET_HAS_MULTIPLE_DISPLAY),true)
@@ -5,7 +7,7 @@ ifeq ($(TARGET_HAS_MULTIPLE_DISPLAY),true)
 include $(CLEAR_VARS)
 LOCAL_COPY_HEADERS_TO := display
 LOCAL_COPY_HEADERS := \
-    native/include/IExtendDisplayModeChangeListener.h \
+    native/include/IExtendDisplayListener.h \
     native/include/IMultiDisplayComposer.h \
     native/include/MultiDisplayClient.h \
     native/include/MultiDisplayComposer.h \
@@ -20,7 +22,7 @@ LOCAL_SRC_FILES:= \
     native/MultiDisplayClient.cpp \
     native/IMultiDisplayComposer.cpp \
     native/MultiDisplayComposer.cpp \
-    native/IExtendDisplayModeChangeListener.cpp
+    native/IExtendDisplayListener.cpp
 
 LOCAL_MODULE:= libmultidisplay
 LOCAL_MODULE_TAGS := optional

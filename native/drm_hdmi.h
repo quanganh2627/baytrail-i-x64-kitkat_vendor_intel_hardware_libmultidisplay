@@ -42,13 +42,12 @@ bool drm_mipi_setMode(int mode);
 bool drm_hdmi_onHdmiDisconnected(void);
 int  drm_hdmi_getModeInfo(int *pWidth, int* pHeight,
                           int *pRefresh, int *pInterlace, int *pRatio);
-bool drm_hdmi_setScaling(int scale_mode);
-bool drm_hdmi_setScaleStep(int hValue, int vValue);
 int  drm_hdmi_getDeviceChange();
 int  drm_get_dev_fd();
 int  drm_hdmi_notify_audio_hotplug(bool plugin);
 int  drm_get_ioctl_offset();
 int  drm_hdmi_checkTiming(int mode, MDSHDMITiming* info);
 bool drm_check_hw_supportHdmi();
+int  drm_hdmi_saveMode(int mode, int index);
 
 #endif // _DRM_HDMI_H

@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 #ifndef __MULTIDISPLAY_CLIENT_H__
@@ -21,7 +22,7 @@
 #include <binder/IServiceManager.h>
 #include <display/MultiDisplayType.h>
 #include <display/IMultiDisplayComposer.h>
-#include <display/IExtendDisplayModeChangeListener.h>
+#include <display/IExtendDisplayListener.h>
 #include <gui/SurfaceComposerClient.h>
 #include <media/stagefright/foundation/ADebug.h>
 
@@ -108,7 +109,7 @@ public:
      *       0: on success
      *     !=0: on failure
      */
-    int registerModeChangeListener(sp<IExtendDisplayModeChangeListener>);
+    int registerListener(sp<IExtendDisplayListener>, char*, int);
     /*
      * unregister mode change listener
      * param:
@@ -116,7 +117,7 @@ public:
      *       0: on success
      *     !=0: on failure
      */
-    int unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener>);
+    int unregisterListener(sp<IExtendDisplayListener>);
     /*
      * set HDMI Timing info
      * param:

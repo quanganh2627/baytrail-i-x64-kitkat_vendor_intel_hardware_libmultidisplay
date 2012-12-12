@@ -13,19 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 //#define LOG_NDEBUG 0
 #include <utils/Log.h>
-#include <display/IExtendDisplayModeChangeListener.h>
+#include <display/IExtendDisplayListener.h>
 #include <display/MultiDisplayType.h>
 
 using namespace android;
 
-int BpExtendDisplayModeChangeListener::onMdsMessage(int msg, void* value, int size) {
+int BpExtendDisplayListener::onMdsMessage(int msg, void* value, int size) {
     ALOGV("%s: mode %d", __func__, msg);
     Parcel data, reply;
-    data.writeInterfaceToken(IExtendDisplayModeChangeListener::getInterfaceDescriptor());
+    data.writeInterfaceToken(IExtendDisplayListener::getInterfaceDescriptor());
     if (value == NULL || size < sizeof(int))
         return MDS_ERROR;
     data.writeInt32(msg);
@@ -37,16 +38,16 @@ int BpExtendDisplayModeChangeListener::onMdsMessage(int msg, void* value, int si
     return reply.readInt32();
 }
 
-IMPLEMENT_META_INTERFACE(ExtendDisplayModeChangeListener, "com.intel.ExtendDisplayModeChangeListener");
+IMPLEMENT_META_INTERFACE(ExtendDisplayListener, "com.intel.ExtendDisplayListener");
 
-status_t BnExtendDisplayModeChangeListener::onTransact(uint32_t code,
+status_t BnExtendDisplayListener::onTransact(uint32_t code,
         const Parcel& data,
         Parcel* reply,
         uint32_t flags) {
     switch (code) {
     case ON_MDS_EVENT: {
         ALOGV("%s: ON_MDS_EVENT", __func__);
-        CHECK_INTERFACE(IExtendDisplayModeChangeListener, data, replay);
+        CHECK_INTERFACE(IExtendDisplayListener, data, replay);
         int32_t msg = data.readInt32();
         int32_t size = data.readInt32();
         void* value = (void*)malloc(size);

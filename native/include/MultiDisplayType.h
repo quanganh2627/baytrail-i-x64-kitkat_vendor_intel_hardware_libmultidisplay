@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 #ifndef ANDROID_MULTIDISPLAYTYPE_H
@@ -32,8 +33,8 @@ enum {
     MDS_GET_HDMIMODE_INFO_COUNT,
     MDS_GET_HDMIMODE_INFO,
     MDS_SET_HDMIMODE_INFO,
-    MDS_REGISTER_MODE_CHANGE_LISTENER,
-    MDS_UNREGISTER_MODE_CHANGE_LISTENER,
+    MDS_REGISTER_LISTENER,
+    MDS_UNREGISTER_LISTENER,
     MDS_SET_HDMISCALE_TYPE,
     MDS_SET_HDMISCALE_STEP,
     MDS_GET_HDMIDEVICE_CHANGE,
@@ -66,9 +67,9 @@ typedef struct _MDSHDMITiming {
 } MDSHDMITiming;
 
 typedef enum _MDSMessageType {
-    MDS_MODE_CHANGE = 0,
-    MDS_ORIENTATION_CHANGE = 1,
-    MDS_SET_TIMING
+    MDS_MODE_CHANGE = 0x1,
+    MDS_ORIENTATION_CHANGE = 0x1 << 1,
+    MDS_SET_TIMING = 0x1 << 2
 } MDSMessageType;
 
 typedef enum _MDSMode {

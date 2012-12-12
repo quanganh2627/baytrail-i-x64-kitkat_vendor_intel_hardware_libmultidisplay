@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 #ifndef __I_MULTIDISPLAY_COMPOSER_H__
@@ -22,7 +23,7 @@
 #include <binder/IInterface.h>
 #include <binder/Parcel.h>
 #include <display/MultiDisplayType.h>
-#include <display/IExtendDisplayModeChangeListener.h>
+#include <display/IExtendDisplayListener.h>
 
 namespace android {
 
@@ -39,8 +40,8 @@ public:
     virtual int notifyHotPlug() = 0;
     virtual int setHdmiPowerOff() = 0;
 
-    virtual int registerModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *) = 0;
-    virtual int unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *) = 0;
+    virtual int registerListener(sp<IExtendDisplayListener>, void *, const char*, int) = 0;
+    virtual int unregisterListener(sp<IExtendDisplayListener>, void *) = 0;
     virtual int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio) = 0;
     virtual int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio) = 0;
     virtual int setHdmiScaleType(int type) = 0;
@@ -69,8 +70,8 @@ public:
     virtual int notifyHotPlug();
     virtual int setHdmiPowerOff();
 
-    virtual int registerModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
-    virtual int unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener>, void *);
+    virtual int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);
+    virtual int unregisterListener(sp<IExtendDisplayListener>, void *);
 
     virtual int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio);
     virtual int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio);

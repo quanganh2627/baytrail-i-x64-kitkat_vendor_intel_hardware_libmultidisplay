@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
-#ifndef __IEXTEND_DISPLAY_MODE_CHANGE_LISTENER_H__
-#define __IEXTEND_DISPLAY_MODE_CHANGE_LISTENER_H__
+#ifndef __IEXTEND_DISPLAY_LISTENER_H__
+#define __IEXTEND_DISPLAY_LISTENER_H__
 
 #include <utils/RefBase.h>
 #include <binder/IInterface.h>
@@ -25,26 +26,26 @@
 
 namespace android {
 
-class IExtendDisplayModeChangeListener : public IInterface {
+class IExtendDisplayListener : public IInterface {
 public:
     enum {
         ON_MDS_EVENT = IBinder::FIRST_CALL_TRANSACTION,
     };
-    DECLARE_META_INTERFACE(ExtendDisplayModeChangeListener);
+    DECLARE_META_INTERFACE(ExtendDisplayListener);
     virtual int onMdsMessage(int msg, void* value, int size) = 0;
 };
-class BpExtendDisplayModeChangeListener : public BpInterface<IExtendDisplayModeChangeListener> {
+class BpExtendDisplayListener : public BpInterface<IExtendDisplayListener> {
 public:
-    BpExtendDisplayModeChangeListener(const sp<IBinder>& impl)
-        : BpInterface<IExtendDisplayModeChangeListener>(impl) {}
+    BpExtendDisplayListener(const sp<IBinder>& impl)
+        : BpInterface<IExtendDisplayListener>(impl) {}
     virtual int onMdsMessage(int msg, void* value, int size);
 };
 
-class BnExtendDisplayModeChangeListener : public BnInterface<IExtendDisplayModeChangeListener> {
+class BnExtendDisplayListener : public BnInterface<IExtendDisplayListener> {
 public:
     virtual status_t onTransact(uint32_t code, const Parcel& data, Parcel* reply, uint32_t flags = 0);
 };
 
 }; // namespace android
 
-#endif /* __IEXTEND_DISPLAY_MODE_CHANGE_LISTENER_H__ */
+#endif /* __IEXTEND_DISPLAY_LISTENER_H__ */

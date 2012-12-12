@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
+ * Author: tianyang.zhu@intel.com
  */
 
 //#define LOG_NDEBUG 0
@@ -22,7 +23,7 @@
 #include <binder/IServiceManager.h>
 #include <display/IMultiDisplayComposer.h>
 #include <display/MultiDisplayType.h>
-#include <display/IExtendDisplayModeChangeListener.h>
+#include <display/IExtendDisplayListener.h>
 
 using namespace android;
 
@@ -101,21 +102,28 @@ int BpMultiDisplayComposer::setHdmiPowerOff() {
     return reply.readInt32();
 }
 
-int BpMultiDisplayComposer::registerModeChangeListener(sp<IExtendDisplayModeChangeListener> listener, void *handle) {
+int BpMultiDisplayComposer::registerListener(
+        sp<IExtendDisplayListener> listener, void *handle, const char* name, int msg) {
     Parcel data, reply;
+    if (!name || msg <= 0) {
+        LOGE("%s: Parameter is null", __func__);
+        return MDS_ERROR;
+    }
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
     data.writeStrongBinder(listener->asBinder());
     data.writeIntPtr(reinterpret_cast<intptr_t>(handle));
-    remote()->transact(MDS_REGISTER_MODE_CHANGE_LISTENER, data, &reply);
+    data.writeCString(name);
+    data.writeInt32(msg);
+    remote()->transact(MDS_REGISTER_LISTENER, data, &reply);
     return reply.readInt32();
 }
 
-int BpMultiDisplayComposer::unregisterModeChangeListener(sp<IExtendDisplayModeChangeListener> listener, void *handle) {
+int BpMultiDisplayComposer::unregisterListener(sp<IExtendDisplayListener> listener, void *handle) {
     Parcel data, reply;
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
     data.writeStrongBinder(listener->asBinder());
     data.writeIntPtr(reinterpret_cast<intptr_t>(handle));
-    remote()->transact(MDS_UNREGISTER_MODE_CHANGE_LISTENER, data, &reply);
+    remote()->transact(MDS_UNREGISTER_LISTENER, data, &reply);
     return reply.readInt32();
 }
 
@@ -181,7 +189,7 @@ int BpMultiDisplayComposer::getVideoInfo(int* dw, int* dh, int* fps, int* interl
     if (dw == NULL || dh == NULL
             || fps == NULL || interlace == NULL) {
         LOGE("%s: parameter is null", __func__);
-        return -1;
+        return MDS_ERROR;
     }
     data.writeIntPtr((intptr_t)dw);
     data.writeIntPtr((intptr_t)dh);
@@ -312,21 +320,23 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
         return NO_ERROR;
     }
     break;
-    case MDS_REGISTER_MODE_CHANGE_LISTENER: {
+    case MDS_REGISTER_LISTENER: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
         sp<IBinder> listener = data.readStrongBinder();
-        int ret = registerModeChangeListener(
-                    interface_cast<IExtendDisplayModeChangeListener>(listener),
-                    reinterpret_cast<void *>(data.readIntPtr()));
+        void* handle = reinterpret_cast<void *>(data.readIntPtr());
+        const char* client = data.readCString();
+        int msg = data.readInt32();
+        int ret = registerListener(
+                    interface_cast<IExtendDisplayListener>(listener), handle, client, msg);
         reply->writeInt32(ret);
         return NO_ERROR;
     }
     break;
-    case MDS_UNREGISTER_MODE_CHANGE_LISTENER: {
+    case MDS_UNREGISTER_LISTENER: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
         sp<IBinder> listener = data.readStrongBinder();
-        int ret = unregisterModeChangeListener(
-                    interface_cast<IExtendDisplayModeChangeListener>(listener),
+        int ret = unregisterListener(
+                    interface_cast<IExtendDisplayListener>(listener),
                     reinterpret_cast<void *>(data.readIntPtr()));
         reply->writeInt32(ret);
         return NO_ERROR;
