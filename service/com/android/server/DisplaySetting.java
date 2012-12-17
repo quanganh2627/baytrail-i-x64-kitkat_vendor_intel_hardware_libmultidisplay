@@ -67,7 +67,6 @@ class DisplaySetting {
     private native int     native_getHdmiDeviceChange();
     private native int     native_getDisplayCapability();
     private native int     native_setPlayInBackground(boolean value, int playerId);
-    private native int     native_setHdcpStatus(int value);
 
     public DisplaySetting() {
         if (mInit == false) {
@@ -143,10 +142,6 @@ class DisplaySetting {
 
     public int setPlayInBackground(boolean enablePlayInBackground, int playerId) {
         return native_setPlayInBackground(enablePlayInBackground, playerId);
-    }
-
-    public int setHdcpStatus(int value) {
-        return native_setHdcpStatus(value);
     }
 }
 

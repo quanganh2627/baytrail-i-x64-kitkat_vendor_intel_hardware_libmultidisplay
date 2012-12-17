@@ -93,7 +93,6 @@ class DisplayObserver extends UEventObserver {
     private static final String HDMI_Get_DisplayBoot = "android.hdmi.GET_HDMI_Boot";
     private static final String HDMI_Set_DisplayBoot = "HdmiObserver.SET_HDMI_Boot";
     private static final String SET_PLAY_IN_BACKGROUND = "android.mds.SET_PLAY_IN_BACKGROUND";
-    private static final String HDMI_SET_HDCP = "HdmiObserver.SET_HDMI_HDCP";
 
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
@@ -109,7 +108,6 @@ class DisplayObserver extends UEventObserver {
         intentFilter.addAction(HDMI_SET_STEP_SCALE);
         intentFilter.addAction(HDMI_Get_DisplayBoot);
         intentFilter.addAction(SET_PLAY_IN_BACKGROUND);
-        intentFilter.addAction(HDMI_SET_HDCP);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
@@ -481,14 +479,6 @@ class DisplayObserver extends UEventObserver {
                 logv("PlayInBackground " + enablePlayInBackground);
                 logv("NativePlayerId " + playerId);
                 mDs.setPlayInBackground(enablePlayInBackground, playerId);
-            }
-            else if (action.equals(HDMI_SET_HDCP)) {
-                Bundle extras = intent.getExtras();
-                if (extras == null)
-                    return;
-                int HdcpStatus = extras.getInt("Status", 0);
-                logv("HDMI_SET_HDCP_STATUS,EnableHdcp: " +	HdcpStatus);
-                mDs.setHdcpStatus(HdcpStatus);
             }
         }
     }

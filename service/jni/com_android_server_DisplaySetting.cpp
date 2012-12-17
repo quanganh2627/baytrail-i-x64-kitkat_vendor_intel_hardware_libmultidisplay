@@ -238,16 +238,6 @@ static jint android_server_DisplaySetting_setPlayInBackground(JNIEnv* env, jobje
     return mMDClient->setPlayInBackground(value, playerId);
 }
 
-static jint android_server_DisplaySetting_setHdcpStatus(JNIEnv* env, jobject thiz, jint value)
-{
-    if (mMDClient == NULL) {
-        LOGE("%s: mMDClient NULL", __func__);
-        return -1;
-    }
-    AutoMutex _l(gMutex);
-    return mMDClient->setHdcpStatus(value);
-}
-
 static JNINativeMethod sMethods[] = {
     /* name, signature, funcPtr */
     {"native_InitMDSClient", "()Z", (void*)android_server_DisplaySetting_InitMDSClient},
@@ -264,7 +254,6 @@ static JNINativeMethod sMethods[] = {
     {"native_getHdmiDeviceChange", "()I", (void*)android_server_DisplaySetting_getHdmiDeviceChange},
     {"native_getDisplayCapability", "()I", (void*)android_server_DisplaySetting_getDisplayCapability},
     {"native_setPlayInBackground", "(ZI)I", (void*)android_server_DisplaySetting_setPlayInBackground},
-    {"native_setHdcpStatus", "(I)I", (void*)android_server_DisplaySetting_setHdcpStatus},
 };
 
 
