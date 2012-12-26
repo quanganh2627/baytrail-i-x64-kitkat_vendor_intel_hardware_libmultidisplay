@@ -35,6 +35,7 @@ private:
     MultiDisplayComposer* mMDC;
 public:
     static char* const getServiceName() { return "MultiDisplay"; }
+    static void instantiate();
 
     MultiDisplayService();
     ~MultiDisplayService();

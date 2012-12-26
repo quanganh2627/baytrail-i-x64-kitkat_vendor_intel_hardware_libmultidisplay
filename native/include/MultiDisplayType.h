@@ -102,5 +102,7 @@ enum {
 #define MDS_NO_ERROR (0)
 #define MDS_ERROR    (-1)
 
+#define HDMI_TIMING_MAX (128)
+
 #endif
 

@@ -139,8 +139,8 @@ int BpMultiDisplayComposer::setHdmiModeInfo(int width, int height, int refresh, 
     return reply.readInt32();
 }
 
-int BpMultiDisplayComposer::getHdmiModeInfo(int* widthArray, int* heightArray, int* refreshArray, int* interlaceArray,
-                                            int* ratioArray) {
+int BpMultiDisplayComposer::getHdmiModeInfo(int* widthArray, int* heightArray,
+        int* refreshArray, int* interlaceArray, int* ratioArray) {
     Parcel data, reply;
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
     if (widthArray == NULL || heightArray == NULL
@@ -149,13 +149,16 @@ int BpMultiDisplayComposer::getHdmiModeInfo(int* widthArray, int* heightArray, i
         remote()->transact(MDS_GET_HDMIMODE_INFO_COUNT, data, &reply);
         return reply.readInt32();
     }
-    data.writeIntPtr((intptr_t)widthArray);
-    data.writeIntPtr((intptr_t)heightArray);
-    data.writeIntPtr((intptr_t)refreshArray);
-    data.writeIntPtr((intptr_t)interlaceArray);
-    data.writeIntPtr((intptr_t)ratioArray);
     remote()->transact(MDS_GET_HDMIMODE_INFO, data, &reply);
-    return reply.readInt32();
+    int count = reply.readInt32();
+    for (int i = 0; i < count; i++) {
+        *(widthArray + i)= reply.readInt32();
+        *(heightArray + i)= reply.readInt32();
+        *(refreshArray + i)= reply.readInt32();
+        *(interlaceArray + i)= reply.readInt32();
+        *(ratioArray + i)= reply.readInt32();
+    }
+    return count;
 }
 
 int BpMultiDisplayComposer::setHdmiScaleType(int Type) {
@@ -357,15 +360,27 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
     break;
     case MDS_GET_HDMIMODE_INFO: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        int *width, *height, *refresh, *interlace, *ratio;
-        width = height = refresh = interlace = NULL;
-        width = (int*)data.readIntPtr();
-        height = (int*)data.readIntPtr();
-        refresh = (int*)data.readIntPtr();
-        interlace = (int*)data.readIntPtr();
-        ratio = (int*)data.readIntPtr();
-        int ret = getHdmiModeInfo(width, height, refresh, interlace, ratio);
-        reply->writeInt32(ret);
+        int width[HDMI_TIMING_MAX];
+        int height[HDMI_TIMING_MAX];
+        int refresh[HDMI_TIMING_MAX];
+        int interlace[HDMI_TIMING_MAX];
+        int ratio[HDMI_TIMING_MAX];
+        memset(width, 0 , HDMI_TIMING_MAX * sizeof(int));
+        memset(height, 0 , HDMI_TIMING_MAX * sizeof(int));
+        memset(refresh, 0 , HDMI_TIMING_MAX * sizeof(int));
+        memset(interlace, 0 , HDMI_TIMING_MAX * sizeof(int));
+        memset(ratio, 0 , HDMI_TIMING_MAX * sizeof(int));
+        int count = getHdmiModeInfo(width, height, refresh, interlace, ratio);
+        if (count < 0 || count > HDMI_TIMING_MAX)
+            count = -1;
+        reply->writeInt32(count);
+        for(int i = 0; i < count; i++) {
+            reply->writeInt32(*(width + i));
+            reply->writeInt32(*(height + i));
+            reply->writeInt32(*(refresh + i));
+            reply->writeInt32(*(interlace + i));
+            reply->writeInt32(*(ratio + i));
+        }
         return NO_ERROR;
     }
     break;

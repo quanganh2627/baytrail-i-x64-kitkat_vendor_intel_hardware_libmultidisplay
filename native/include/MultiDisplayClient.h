@@ -105,11 +105,14 @@ public:
     /*
      * register mode change listener
      * param:
+     *      listener: Inherit and implement IextendDisplayListener
+     *          name: client name, ensure it is not a null pointer
+     *           msg: messge type, refer MultiDisplayType.h
      * return:
      *       0: on success
      *     !=0: on failure
      */
-    int registerListener(sp<IExtendDisplayListener>, char*, int);
+    int registerListener(sp<IExtendDisplayListener> listener, char* name, int msg);
     /*
      * unregister mode change listener
      * param:

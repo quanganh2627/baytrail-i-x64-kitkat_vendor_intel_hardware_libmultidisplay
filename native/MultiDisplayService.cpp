@@ -20,8 +20,8 @@
 #include <binder/IServiceManager.h>
 #include <binder/IPCThreadState.h>
 #include <display/MultiDisplayType.h>
+#include <display/MultiDisplayService.h>
 #include <utils/Log.h>
-#include "MultiDisplayService.h"
 
 namespace android {
 
@@ -34,6 +34,7 @@ do { \
 } while(0)
 
 MultiDisplayService::MultiDisplayService() {
+    LOGI("%s: create a MultiDisplay service, %p", __func__, this);
     mMDC = new MultiDisplayComposer();
 }
 
@@ -42,6 +43,11 @@ MultiDisplayService::~MultiDisplayService() {
         delete mMDC;
         mMDC = NULL;
     }
+}
+
+void MultiDisplayService::instantiate() {
+    defaultServiceManager()->addService(
+            String16("MultiDisplay"), new MultiDisplayService());
 }
 
 int MultiDisplayService::getMode(bool wait) {

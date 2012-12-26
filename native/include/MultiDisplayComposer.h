@@ -135,7 +135,7 @@ private:
     void initDisplayCapability_l();
 
     void broadcastMessage_l(int msg, void* value, int size);
-    int  setHdmiTiming_l(int msg, void* value, int size);
+    int  setHdmiTiming_l(void* value, int size);
 
     virtual bool threadLoop();
     inline bool checkMode(int value, int bit) {

@@ -300,7 +300,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         timing.ratio = 0;
 
         int index = drm_hdmi_checkTiming(DRM_HDMI_VIDEO_EXT, &timing);
-        int ret = setHdmiTiming_l(MDS_SET_TIMING, (void*)&timing, sizeof(MDSHDMITiming));
+        int ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
         if (ret < MDS_NO_ERROR) {
             LOGE("Fail to set HDMI extended mode");
             broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
@@ -343,7 +343,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
 #endif
 
         int index = drm_hdmi_checkTiming(DRM_HDMI_CLONE, &timing);
-        int ret = setHdmiTiming_l(MDS_SET_TIMING, (void*)&timing, sizeof(MDSHDMITiming));
+        int ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
         if (ret < MDS_NO_ERROR) {
             LOGE("Fail to set HDMI clone mode");
             broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
@@ -395,7 +395,7 @@ void MultiDisplayComposer::broadcastMessage_l(int msg, void* value, int size) {
     }
 }
 
-int MultiDisplayComposer::setHdmiTiming_l(int msg, void* value, int size) {
+int MultiDisplayComposer::setHdmiTiming_l(void* value, int size) {
     int ret = MDS_ERROR;
     sp<IExtendDisplayListener> ielistener = NULL;
     bool hasHwc = false;
@@ -406,15 +406,15 @@ int MultiDisplayComposer::setHdmiTiming_l(int msg, void* value, int size) {
         char* client = listener->getName();
         if (client && !strcmp(client, "HWComposer")) {
             hasHwc = true;
-            if (listener->checkMsg(msg)) {
-                LOGI("%s: Set HDMI timing through HWC", __func__);
+            if (listener->checkMsg(MDS_SET_TIMING)) {
+                LOGV("%s: Set HDMI timing through HWC", __func__);
                 ielistener = listener->getIEListener();
                 break;
             }
         }
     }
     if (ielistener != NULL)
-        ret = ielistener->onMdsMessage(msg, value, size);
+        ret = ielistener->onMdsMessage(MDS_SET_TIMING, value, size);
     else if (!hasHwc)
         ret = MDS_NO_ERROR;
     return ret;
@@ -570,7 +570,7 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
     timing.ratio = ratio;
 
     int index = drm_hdmi_checkTiming(DRM_HDMI_CLONE, &timing);
-    int ret = setHdmiTiming_l(MDS_SET_TIMING, (void*)&timing, sizeof(MDSHDMITiming));
+    int ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
     if (ret < MDS_NO_ERROR) {
         LOGE("%s: Failed to set HDMI clone mode", __func__);
         broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));

@@ -16,7 +16,7 @@
  */
 
 
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 
 #include <utils/Log.h>
 #include <errno.h>
@@ -35,15 +35,6 @@
 #include "xf86drmMode.h"
 
 
-#define DRM_MODE_SCALE_NONE             0 /* Unmodified timing (display or
-software can still scale) */
-#define DRM_MODE_SCALE_FULLSCREEN       1 /* Full screen, ignore aspect */
-#define DRM_MODE_SCALE_CENTER           2 /* Centered, no scaling */
-#define DRM_MODE_SCALE_ASPECT           3 /* Full screen, preserve aspect */
-
-#define HDMI_STEP_HORVALUE      5
-#define HDMI_STEP_VERVALUE      5
-
 #define HDMI_FORCE_VIDEO_ON_OFF 1
 #define EDID_BLOCK_SIZE         128
 
@@ -54,7 +45,6 @@ typedef struct _HDMI_config_info_ {
 
 typedef struct _drmJNI {
     int drmFD;
-    int curMode;
     int ioctlOffset;
     bool hasHdmi;
     drmModeConnectorPtr hdmi_connector;
@@ -63,11 +53,6 @@ typedef struct _drmJNI {
     int modeIndex;
     int cloneModeIndex;
 } drmJNI;
-
-static inline uint32_t align_to(uint32_t arg, uint32_t align)
-{
-    return ((arg + (align - 1)) & (~(align - 1)));
-}
 
 /** Base path of the hal modules */
 #define DRM_DEVICE_NAME     "/dev/card0"
@@ -414,6 +399,8 @@ static int getHdmiModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInter
     CHECK_CONNECTOR_STATUS_ERR_GOTOEND();
 
     iCount = connector->count_modes;
+    if (iCount < 0 || iCount > HDMI_TIMING_MAX)
+        return -1;
     /* get resolution of each mode */
     for (i = 0; i < iCount; i++) {
         unsigned int temp_hdisplay = connector->modes[i].hdisplay;
@@ -465,7 +452,7 @@ static int getHdmiModeInfo(int *pWidth, int *pHeight, int *pRefresh, int *pInter
                     pRatio[valid_mode_count] = 0;
             }
 
-            LOGD("Adding mode[%d]: %dx%d@%d with flags = 0x%x\n", valid_mode_count,
+            LOGV("Adding mode[%d]: %dx%d@%d with flags = 0x%x\n", valid_mode_count,
                  temp_hdisplay, temp_vdisplay, temp_refresh, temp_flags);
             valid_mode_count++;
         }
@@ -821,7 +808,7 @@ int drm_hdmi_getDeviceChange()
     CHECK_HW_SUPPORT_HDMI(0);
     CHECK_DRM_FD(0);
     pthread_mutex_lock(&g_drm.mtx);
-    if (g_drm.configInfo.edidChange == 0 )
+    if (g_drm.configInfo.edidChange == 0)
         ret = 0;
     g_drm.configInfo.edidChange = 0;
     pthread_mutex_unlock(&g_drm.mtx);

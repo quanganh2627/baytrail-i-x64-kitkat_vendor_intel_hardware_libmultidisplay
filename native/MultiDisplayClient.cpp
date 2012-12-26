@@ -35,12 +35,12 @@ MultiDisplayClient::MultiDisplayClient() {
     mIMDComposer = NULL;
     sp<IServiceManager> sm = defaultServiceManager();
     if (sm == NULL) {
-        LOGE("%s: fail to get service manager", __func__);
+        LOGE("%s: Fail to get service manager", __func__);
         return;
     }
     sp<IBinder> service = sm->checkService(String16("MultiDisplay"));
     if (service == NULL) {
-        LOGE("%s: fail to get MultiDisplay service", __func__);
+        LOGE("%s: Fail to get MultiDisplay service", __func__);
         return;
     } else
         mIMDComposer = interface_cast<IMultiDisplayComposer>(service);

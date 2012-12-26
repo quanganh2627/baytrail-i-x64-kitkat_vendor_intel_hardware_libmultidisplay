@@ -15,7 +15,8 @@
  *
  */
 
-package com.android.server;
+package com.intel.multidisplay;
+
 import android.app.ActivityManager;
 import android.app.ActivityManager.RunningTaskInfo;
 
@@ -33,7 +34,6 @@ import android.os.UEventObserver;
 import android.util.Slog;
 import android.media.AudioManager;
 import android.telephony.TelephonyManager;
-import com.android.server.DisplaySetting;
 import android.provider.Settings;
 import android.content.ContentResolver;
 import android.database.ContentObserver;
@@ -41,11 +41,12 @@ import android.database.ContentObserver;
 import java.io.FileReader;
 import java.io.FileNotFoundException;
 import java.util.List;
+import com.intel.multidisplay.DisplaySetting;
 /**
  * <p>DisplayObserver.
  */
-class DisplayObserver extends UEventObserver {
-    private static final String TAG = "MultiDisplay-DisplayObserver";
+public class DisplayObserver extends UEventObserver {
+    private static final String TAG = "MultiDisplay-java";
     private static final boolean LOG = true;
 
     private final String HDMI_UEVENT_MATCH = "DEVPATH=/devices/pci0000:00/0000:00:02.0/drm/card0";

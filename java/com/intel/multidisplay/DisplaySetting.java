@@ -15,13 +15,13 @@
  * Author: tianyang.zhu@intel.com
  */
 
-package com.android.server;
+package com.intel.multidisplay;
 
 import java.io.IOException;
 import android.util.Slog;
 
 
-class DisplaySetting {
+public class DisplaySetting {
     private final String TAG = "MultiDisplay-DisplaySetting";
     private final boolean LOG = true;
 

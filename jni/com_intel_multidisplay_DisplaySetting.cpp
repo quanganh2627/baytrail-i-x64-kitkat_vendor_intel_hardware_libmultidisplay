@@ -15,7 +15,7 @@
  *
  */
 
-#define LOG_TAG "MultiDisplay-DisplaySetting-Jni"
+#define LOG_TAG "MultiDisplay-Jni"
 
 #include "JNIHelp.h"
 #include "jni.h"
@@ -123,25 +123,25 @@ static void DeInitMDC() {
     }
 }
 
-static jboolean android_server_DisplaySetting_InitMDSClient(JNIEnv* env, jobject thiz) {
+static jboolean intel_multidisplayDisplaySetting_InitMDSClient(JNIEnv* env, jobject thiz) {
     AutoMutex _l(gMutex);
     initMDC();
     return true;
 }
 
-static jboolean android_server_DisplaySetting_DeInitMDSClient(JNIEnv* env, jobject obj) {
+static jboolean intel_multidisplayDisplaySetting_DeInitMDSClient(JNIEnv* env, jobject obj) {
     AutoMutex _l(gMutex);
     DeInitMDC();
     return true;
 }
 
-static jint android_server_DisplaySetting_getMode(JNIEnv* env, jobject obj) {
+static jint intel_multidisplayDisplaySetting_getMode(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return -1;
     AutoMutex _l(gMutex);
     return mMDClient->getMode(true);
 }
 
-static jboolean android_server_DisplaySetting_setModePolicy(JNIEnv* env, jobject obj, jint policy) {
+static jboolean intel_multidisplayDisplaySetting_setModePolicy(JNIEnv* env, jobject obj, jint policy) {
     if (mMDClient == NULL) return false;
     AutoMutex _l(gMutex);
     mListener->setEnv(env, &obj);
@@ -150,7 +150,7 @@ static jboolean android_server_DisplaySetting_setModePolicy(JNIEnv* env, jobject
     return (ret == MDS_NO_ERROR ? true : false);
 }
 
-static jboolean android_server_DisplaySetting_notifyHotPlug(JNIEnv* env, jobject obj) {
+static jboolean intel_multidisplayDisplaySetting_notifyHotPlug(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return false;
     AutoMutex _l(gMutex);
     mListener->setEnv(env, &obj);
@@ -159,14 +159,14 @@ static jboolean android_server_DisplaySetting_notifyHotPlug(JNIEnv* env, jobject
     return (ret == MDS_NO_ERROR ? true : false);
 }
 
-static jboolean android_server_DisplaySetting_setHdmiPowerOff(JNIEnv* env, jobject obj) {
+static jboolean intel_multidisplayDisplaySetting_setHdmiPowerOff(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return false;
     AutoMutex _l(gMutex);
     int ret = mMDClient->setHdmiPowerOff();
     return (ret == 0 ? true : false);
 }
 
-static jint android_server_DisplaySetting_getHdmiTiming(JNIEnv* env, jobject obj,
+static jint intel_multidisplayDisplaySetting_getHdmiTiming(JNIEnv* env, jobject obj,
                                                         jintArray width, jintArray height,
                                                         jintArray refresh, jintArray interlace,
                                                         jintArray ratio) {
@@ -186,7 +186,7 @@ static jint android_server_DisplaySetting_getHdmiTiming(JNIEnv* env, jobject obj
     return iCount;
 }
 
-static jboolean android_server_DisplaySetting_setHdmiTiming(JNIEnv* env, jobject obj,
+static jboolean intel_multidisplayDisplaySetting_setHdmiTiming(JNIEnv* env, jobject obj,
              jint width, jint height, jint refresh, jint interlace, jint ratio) {
     if (mMDClient == NULL) return false;
     AutoMutex _l(gMutex);
@@ -196,39 +196,39 @@ static jboolean android_server_DisplaySetting_setHdmiTiming(JNIEnv* env, jobject
     return (ret == MDS_NO_ERROR ? true : false);
 }
 
-static jint android_server_DisplaySetting_getHdmiInfoCount(JNIEnv* env, jobject obj) {
+static jint intel_multidisplayDisplaySetting_getHdmiInfoCount(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return -1;
     AutoMutex _l(gMutex);
     return mMDClient->getHdmiModeInfo(NULL,NULL, NULL, NULL, NULL);
 }
 
-static jboolean android_server_DisplaySetting_HdmiScaleType(JNIEnv* env, jobject obj,jint Type)
+static jboolean intel_multidisplayDisplaySetting_HdmiScaleType(JNIEnv* env, jobject obj,jint Type)
 {
     if (mMDClient == NULL) return false;
     AutoMutex _l(gMutex);
     return mMDClient->setHdmiScaleType(Type);
 }
 
-static jboolean android_server_DisplaySetting_HdmiScaleStep(JNIEnv* env, jobject obj,jint hValue,jint vValue)
+static jboolean intel_multidisplayDisplaySetting_HdmiScaleStep(JNIEnv* env, jobject obj,jint hValue,jint vValue)
 {
     if (mMDClient == NULL) return false;
     AutoMutex _l(gMutex);
     return mMDClient->setHdmiScaleStep(hValue,vValue);
 }
 
-static jint android_server_DisplaySetting_getHdmiDeviceChange(JNIEnv* env, jobject obj) {
+static jint intel_multidisplayDisplaySetting_getHdmiDeviceChange(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return -1;
     AutoMutex _l(gMutex);
     return mMDClient->getHdmiDeviceChange();
 }
 
-static jint android_server_DisplaySetting_getDisplayCapability(JNIEnv* env, jobject obj) {
+static jint intel_multidisplayDisplaySetting_getDisplayCapability(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return -1;
     AutoMutex _l(gMutex);
     return mMDClient->getDisplayCapability();
 }
 
-static jint android_server_DisplaySetting_setPlayInBackground(JNIEnv* env, jobject thiz, jboolean value, jint playerId)
+static jint intel_multidisplayDisplaySetting_setPlayInBackground(JNIEnv* env, jobject thiz, jboolean value, jint playerId)
 {
     if (mMDClient == NULL) {
         LOGE("%s: mMDClient NULL", __func__);
@@ -238,7 +238,7 @@ static jint android_server_DisplaySetting_setPlayInBackground(JNIEnv* env, jobje
     return mMDClient->setPlayInBackground(value, playerId);
 }
 
-static jint android_server_DisplaySetting_setHdcpStatus(JNIEnv* env, jobject thiz, jint value)
+static jint intel_multidisplay_DisplaySetting_setHdcpStatus(JNIEnv* env, jobject thiz, jint value)
 {
     if (mMDClient == NULL) {
         LOGE("%s: mMDClient NULL", __func__);
@@ -248,7 +248,7 @@ static jint android_server_DisplaySetting_setHdcpStatus(JNIEnv* env, jobject thi
     return mMDClient->setHdcpStatus(value);
 }
 
-static jint android_server_DisplaySetting_notifyScreenOff(JNIEnv* env, jobject obj) {
+static jint intel_multidisplay_DisplaySetting_notifyScreenOff(JNIEnv* env, jobject obj) {
     if (mMDClient == NULL) return -1;
     AutoMutex _l(gMutex);
     return mMDClient->notifyScreenOff();
@@ -256,32 +256,32 @@ static jint android_server_DisplaySetting_notifyScreenOff(JNIEnv* env, jobject o
 
 static JNINativeMethod sMethods[] = {
     /* name, signature, funcPtr */
-    {"native_InitMDSClient", "()Z", (void*)android_server_DisplaySetting_InitMDSClient},
-    {"native_DeInitMDSClient", "()Z", (void*)android_server_DisplaySetting_DeInitMDSClient},
-    {"native_getMode", "()I", (void*)android_server_DisplaySetting_getMode},
-    {"native_setModePolicy", "(I)Z", (void*)android_server_DisplaySetting_setModePolicy},
-    {"native_notifyHotPlug", "()Z", (void*)android_server_DisplaySetting_notifyHotPlug},
-    {"native_setHdmiPowerOff", "()Z", (void*)android_server_DisplaySetting_setHdmiPowerOff},
-    {"native_setHdmiTiming", "(IIIII)Z", (void*)android_server_DisplaySetting_setHdmiTiming},
-    {"native_getHdmiTiming", "([I[I[I[I[I)I", (void*)android_server_DisplaySetting_getHdmiTiming},
-    {"native_getHdmiInfoCount", "()I", (void*)android_server_DisplaySetting_getHdmiInfoCount},
-    {"native_setHdmiScaleType", "(I)Z", (void*)android_server_DisplaySetting_HdmiScaleType},
-    {"native_setHdmiScaleStep", "(II)Z", (void*)android_server_DisplaySetting_HdmiScaleStep},
-    {"native_getHdmiDeviceChange", "()I", (void*)android_server_DisplaySetting_getHdmiDeviceChange},
-    {"native_getDisplayCapability", "()I", (void*)android_server_DisplaySetting_getDisplayCapability},
-    {"native_setPlayInBackground", "(ZI)I", (void*)android_server_DisplaySetting_setPlayInBackground},
-    {"native_setHdcpStatus", "(I)I", (void*)android_server_DisplaySetting_setHdcpStatus},
-    {"native_notifyScreenOff", "()I", (void*)android_server_DisplaySetting_notifyScreenOff},
+    {"native_InitMDSClient", "()Z", (void*)intel_multidisplayDisplaySetting_InitMDSClient},
+    {"native_DeInitMDSClient", "()Z", (void*)intel_multidisplayDisplaySetting_DeInitMDSClient},
+    {"native_getMode", "()I", (void*)intel_multidisplayDisplaySetting_getMode},
+    {"native_setModePolicy", "(I)Z", (void*)intel_multidisplayDisplaySetting_setModePolicy},
+    {"native_notifyHotPlug", "()Z", (void*)intel_multidisplayDisplaySetting_notifyHotPlug},
+    {"native_setHdmiPowerOff", "()Z", (void*)intel_multidisplayDisplaySetting_setHdmiPowerOff},
+    {"native_setHdmiTiming", "(IIIII)Z", (void*)intel_multidisplayDisplaySetting_setHdmiTiming},
+    {"native_getHdmiTiming", "([I[I[I[I[I)I", (void*)intel_multidisplayDisplaySetting_getHdmiTiming},
+    {"native_getHdmiInfoCount", "()I", (void*)intel_multidisplayDisplaySetting_getHdmiInfoCount},
+    {"native_setHdmiScaleType", "(I)Z", (void*)intel_multidisplayDisplaySetting_HdmiScaleType},
+    {"native_setHdmiScaleStep", "(II)Z", (void*)intel_multidisplayDisplaySetting_HdmiScaleStep},
+    {"native_getHdmiDeviceChange", "()I", (void*)intel_multidisplayDisplaySetting_getHdmiDeviceChange},
+    {"native_getDisplayCapability", "()I", (void*)intel_multidisplayDisplaySetting_getDisplayCapability},
+    {"native_setPlayInBackground", "(ZI)I", (void*)intel_multidisplayDisplaySetting_setPlayInBackground},
+    {"native_setHdcpStatus", "(I)I", (void*)intel_multidisplay_DisplaySetting_setHdcpStatus},
+    {"native_notifyScreenOff", "()I", (void*)intel_multidisplay_DisplaySetting_notifyScreenOff},
 };
 
 
-int register_android_server_DisplaySetting(JNIEnv* env) {
-    jclass clazz = env->FindClass("com/android/server/DisplaySetting");
+int register_intel_multidisplay_DisplaySetting(JNIEnv* env) {
+    jclass clazz = env->FindClass("com/intel/multidisplay/DisplaySetting");
     if (clazz == NULL) {
-        LOGE("%s: fail to find DisplaySetting class", __func__);
+        LOGE("%s: Fail to find DisplaySetting class", __func__);
         return -1;
     }
-    return jniRegisterNativeMethods(env, "com/android/server/DisplaySetting", sMethods, NELEM(sMethods));
+    return jniRegisterNativeMethods(env, "com/intel/multidisplay/DisplaySetting", sMethods, NELEM(sMethods));
 }
 
 } /* namespace android */
