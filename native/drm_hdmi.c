@@ -674,13 +674,15 @@ int drm_hdmi_connectStatus()
             ret = 2; //DVI
             edid = &connector->prop_values[i];
             edidBlob = drmModeGetPropertyBlob(g_drm.drmFD, *edid);
-            if (edidBlob == NULL || edidBlob->length < EDID_BLOCK_SIZE) {
+            if (edidBlob == NULL ||
+                edidBlob->data == NULL ||
+                edidBlob->length < EDID_BLOCK_SIZE) {
                 LOGE("%s: Invalid EDID Blob.", __func__);
                 drmModeFreeProperty(props);
                 continue;
             }
 
-            edid_binary = (char*)&edidBlob->data[0];
+            edid_binary = (char *)edidBlob->data;
             if (edid_binary[126] == 0) {
                 ret = 2;
                 break;
