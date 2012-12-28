@@ -335,6 +335,8 @@ static int getMatchingHdmiTiming(drmModeConnectorPtr connector, int mode, MDSHDM
     int firstRefreshMatchIndex = -1;
     int totalMatchIndex = -1;
     uint32_t temp_flags = 0;
+    uint32_t videoFps = in->refresh;
+
     if (in->interlace)
         temp_flags |= DRM_MODE_FLAG_INTERLACE;
     if (in->ratio == 1)
@@ -360,17 +362,28 @@ static int getMatchingHdmiTiming(drmModeConnectorPtr connector, int mode, MDSHDM
              connector->modes[index].hdisplay, connector->modes[index].vdisplay,
              connector->modes[index].vrefresh, connector->modes[index].flags,
              compare_flags, connector->modes[index].type);
+        if (videoFps == 0 || videoFps > 60) {
+            LOGW("Invalid refresh rate: %d from decoder!", videoFps);
+            // FIXME: Set a guessed fps. Need the decoder pass the correct one.
+            videoFps = 30;
+        }
+
         if (mode == DRM_HDMI_VIDEO_EXT &&
                 firstRefreshMatchIndex == -1 &&
-                in->refresh == connector->modes[index].vrefresh) {
+                videoFps == connector->modes[index].vrefresh) {
             firstRefreshMatchIndex = index;
         }
-        if (in->refresh == connector->modes[index].vrefresh &&
-                in->width == connector->modes[index].hdisplay &&
-                in->height == connector->modes[index].vdisplay &&
-                temp_flags == compare_flags) {
-            totalMatchIndex = index;
-            break;
+
+        if (in->width == connector->modes[index].hdisplay &&
+            in->height == connector->modes[index].vdisplay &&
+            temp_flags == compare_flags) {
+            int refreshRate = connector->modes[index].vrefresh;
+            if ((refreshRate << 1)  % videoFps == 0) {
+                totalMatchIndex = index;
+                // Prefer a higher refresh rate for smooth display
+                if (refreshRate == 60 || refreshRate == 50)
+                    break;
+            }
         }
     }
     LOGD("%s: %d, %d, %d", __func__, index, firstRefreshMatchIndex, totalMatchIndex);
