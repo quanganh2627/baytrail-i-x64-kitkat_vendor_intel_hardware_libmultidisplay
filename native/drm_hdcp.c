@@ -15,20 +15,15 @@
  *
  */
 
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 
 #include <utils/Log.h>
 #include <errno.h>
 #include <sys/types.h>
-#include <string.h>
-//#include <fcntl.h>
 #include <stdbool.h>
-//#include <dlfcn.h>
-
 #include "drm_hdmi.h"
 #include "drm_hdcp.h"
-
-#include "psb_drm.h"
+#include "linux/psb_drm.h"
 #include "xf86drm.h"
 #include "xf86drmMode.h"
 #include "libsepdrm/sepdrm.h"
@@ -53,26 +48,16 @@ static void drm_hdcp_stop_link_checking();
 static bool drm_hdcp_enable_and_check();
 static bool drm_hdcp_enable_hdcp_work();
 
-static bool hdcpIoctl(unsigned long request, void *arg)
+static bool drm_hdcp_isSupported()
 {
-    int ret = -1;
     int fd = drm_get_dev_fd();
     if (fd <= 0) {
         LOGE("Invalid DRM file descriptor.");
         return false;
     }
-    do {
-        ret = ioctl(fd, request, arg);
-    } while (ret == -1 && (errno == EINTR || errno == EAGAIN));
-
-    return ret == 0;
-}
-
-static bool drm_hdcp_isSupported()
-{
     unsigned int caps = 0;
-    bool ret = hdcpIoctl(DRM_IOCTL_PSB_QUERY_HDCP, &caps);
-    if (!ret) {
+    int ret = drmCommandRead(fd, DRM_PSB_QUERY_HDCP, &caps, sizeof(caps));
+    if (ret != 0) {
         LOGE("Failed to query HDCP capability.");
         return false;
     }
@@ -130,8 +115,13 @@ static bool drm_hdcp_enable_display_ied()
 
 static bool drm_hdcp_enable()
 {
-    bool ret = hdcpIoctl(DRM_IOCTL_PSB_ENABLE_HDCP, NULL);
-    if (!ret) {
+    int fd = drm_get_dev_fd();
+    if (fd <= 0) {
+        LOGE("Invalid DRM file descriptor.");
+        return false;
+    }
+    int ret = drmCommandNone(fd, DRM_PSB_ENABLE_HDCP);
+    if (ret != 0) {
         LOGE("Failed to enable HDCP.");
         return false;
     }
@@ -140,8 +130,13 @@ static bool drm_hdcp_enable()
 
 static bool drm_hdcp_disable()
 {
-    bool ret = hdcpIoctl(DRM_IOCTL_PSB_DISABLE_HDCP, NULL);
-    if (!ret) {
+    int fd = drm_get_dev_fd();
+    if (fd <= 0) {
+        LOGE("Invalid DRM file descriptor.");
+        return false;
+    }
+    int ret = drmCommandNone(fd, DRM_PSB_DISABLE_HDCP);
+    if (ret != 0) {
         LOGW("Failed to disable HDCP.");
         return false;
     }
@@ -150,9 +145,14 @@ static bool drm_hdcp_disable()
 
 static bool drm_hdcp_isAuthenticated()
 {
+    int fd = drm_get_dev_fd();
+    if (fd <= 0) {
+        LOGE("Invalid DRM file descriptor.");
+        return false;
+    }
     unsigned int match = 0;
-    bool ret = hdcpIoctl(DRM_IOCTL_PSB_GET_HDCP_LINK_STATUS, &match);
-    if (!ret) {
+    int ret = drmCommandRead(fd, DRM_PSB_GET_HDCP_LINK_STATUS, &match, sizeof(match));
+    if (ret != 0) {
         LOGE("Failed to check hdcp link status.");
         return false;
     }
@@ -165,7 +165,6 @@ static bool drm_hdcp_isAuthenticated()
     }
 }
 
-#ifdef IED_SESSION_READ_FIX
 // check whether there is an active IED session (Inline Decryption and Encryption)
 static bool drm_check_ied_session()
 {
@@ -200,7 +199,6 @@ static bool drm_check_ied_session()
         return false;
     }
 }
-#endif
 
 static void drm_hdcp_check_link_status()
 {
@@ -313,10 +311,7 @@ static bool drm_hdcp_enable_hdcp_work()
     bool ret = true;
     sec_result_t res;
 
-#ifdef IED_SESSION_READ_FIX
     if (drm_check_ied_session()) {
-#endif
-
         if (drm_hdcp_query_display_ied_caps()) {
             LOGV("Disabling Display IED ");
             if (!drm_hdcp_disable_display_ied()) {
@@ -364,12 +359,10 @@ static bool drm_hdcp_enable_hdcp_work()
                 LOGW("Failed to enable IED session. Error = %#x", res);
             }
         }
-#ifdef IED_SESSION_READ_FIX
     } else {
         // IED session is inactive yet, start HDCP enabling and checking without tearing down IED session.
         ret = drm_hdcp_enable_and_check();
     }
-#endif
 
     return ret;
 }

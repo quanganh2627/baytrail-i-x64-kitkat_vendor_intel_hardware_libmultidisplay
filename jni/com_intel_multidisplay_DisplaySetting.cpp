@@ -15,7 +15,7 @@
  *
  */
 
-#define LOG_TAG "MultiDisplay-Jni"
+#define LOG_TAG "MultiDisplay"
 
 #include "JNIHelp.h"
 #include "jni.h"

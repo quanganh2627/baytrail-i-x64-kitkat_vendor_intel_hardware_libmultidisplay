@@ -46,7 +46,7 @@ import com.intel.multidisplay.DisplaySetting;
  * <p>DisplayObserver.
  */
 public class DisplayObserver extends UEventObserver {
-    private static final String TAG = "MultiDisplay-java";
+    private static final String TAG = "MultiDisplay";
     private static final boolean LOG = true;
 
     private final String HDMI_UEVENT_MATCH = "DEVPATH=/devices/pci0000:00/0000:00:02.0/drm/card0";

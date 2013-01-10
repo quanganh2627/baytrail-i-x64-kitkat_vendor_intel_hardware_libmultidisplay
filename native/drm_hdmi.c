@@ -23,13 +23,7 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <string.h>
-#include <stdbool.h>
-#include <dlfcn.h>
-#include <cutils/properties.h>
-#include <hardware/gralloc.h>
-#include "pvr2d.h"
 #include "linux/psb_drm.h"
-#include "pvr_android.h"
 #include "drm_hdmi.h"
 #include "xf86drm.h"
 #include "xf86drmMode.h"
@@ -247,55 +241,6 @@ static unsigned int get_fb_id(int pfd, uint32_t encoder_type)
     drmModeFreeCrtc(crtc);
 
     return fb_id;
-}
-
-/**
- * Load the file defined by the variant and if successful
- * return the dlopen handle and the hmi.
- * @return 0 = success, !0 = failure.
- */
-static int load(const char *id,
-                const char *path,
-                const IMG_graphic_hdmi_ex **pex)
-{
-    int status = -EINVAL;
-    void *handle;
-    IMG_graphic_hdmi_ex *ex;
-
-    /*
-     * load the symbols resolving undefined symbols before
-     * dlopen returns. Since RTLD_GLOBAL is not or'd in with
-     * RTLD_NOW the external symbols will not be global
-     */
-    handle = dlopen(path, RTLD_NOW);
-    if (handle == NULL) {
-        char const *err_str = dlerror();
-        LOGE("%s: Failed to load %s, error is %s",
-                __func__, path, (err_str ? err_str : "unknown"));
-        goto done;
-    }
-
-    /* Get the address of the struct hal_module_info. */
-    const char *sym = "HAL_GR_HDMI_SYM";
-    ex = (IMG_graphic_hdmi_ex *)dlsym(handle, sym);
-    if (ex == NULL) {
-        LOGE("%s: Failed to find symbol %s", __func__, sym);
-        goto done;
-    }
-    /* success */
-    status = 0;
-done:
-    if (status != 0) {
-        ex = NULL;
-        if (handle != NULL) {
-            dlclose(handle);
-            handle = NULL;
-        }
-    } else
-        LOGV("%s: loaded HAL id=%s path=%s hmi=%p handle=%p",
-             __func__, id, path, *pex, handle);
-    *pex = ex;
-    return status;
 }
 
 static bool checkHwSupportHdmi() {

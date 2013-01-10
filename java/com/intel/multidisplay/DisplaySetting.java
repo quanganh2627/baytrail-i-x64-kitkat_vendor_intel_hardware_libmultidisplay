@@ -22,7 +22,7 @@ import android.util.Slog;
 
 
 public class DisplaySetting {
-    private final String TAG = "MultiDisplay-DisplaySetting";
+    private final String TAG = "MultiDisplay";
     private final boolean LOG = true;
 
     // mode setting policy

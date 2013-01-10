@@ -29,8 +29,6 @@ extern "C" {
 #ifdef ENABLE_HDCP
 #include "drm_hdcp.h"
 #endif
-#include "pvr2d.h"
-#include "pvr_android.h"
 }
 
 using namespace android;

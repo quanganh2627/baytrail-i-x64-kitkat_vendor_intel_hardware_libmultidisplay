@@ -36,16 +36,11 @@ ifeq ($(ENABLE_IMG_GRAPHICS),true)
         native/drm_hdmi.c
 
     LOCAL_C_INCLUDES = \
-        $(TARGET_OUT_HEADERS)/drm \
         $(TARGET_OUT_HEADERS)/libdrm \
-        $(TARGET_OUT_HEADERS)/pvr/pvr2d \
-        $(TARGET_OUT_HEADERS)/libttm \
-        $(TOP)/hardware/intel/linux-2.6/drivers/staging/intel_media/common
+        $(TARGET_OUT_HEADERS)/libttm
 
     LOCAL_SHARED_LIBRARIES += \
-         libdrm \
-         libsrv_um \
-         libpvr2d
+         libdrm
 
     LOCAL_CFLAGS += -DENABLE_DRM
     LOCAL_CFLAGS += -DDVI_SUPPORTED
