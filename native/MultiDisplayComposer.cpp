@@ -192,7 +192,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
     MDSHDMITiming timing;
 
     memset(&timing, 0, sizeof(MDSHDMITiming));
-    LOGV("Entering %s, current mode = %#x", __func__, mMode);
+    LOGI("Entering %s, current mode = %#x", __func__, mMode);
     // Common case, update video status
     if (mVideo.isplaying) {
         mMode |= MDS_VIDEO_PLAYING;
@@ -239,6 +239,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMode &= ~MDS_HDCP_ON;
         mMode &= ~MDS_HDMI_CLONE;
         mMode &= ~MDS_HDMI_VIDEO_EXT;
+        mMode &= ~MDS_OVERLAY_OFF;
         broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
         drm_hdmi_onHdmiDisconnected();
         return MDS_NO_ERROR;
@@ -265,15 +266,11 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMode &= ~MDS_HDMI_ON;
         mMode &= ~MDS_HDMI_CLONE;
         mMode &= ~MDS_HDMI_VIDEO_EXT;
+        mMode &= ~MDS_OVERLAY_OFF;
         broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
         drm_hdmi_setHdmiVideoOff();
         return MDS_NO_ERROR;
     }
-
-    if (!checkMode(mMode, MDS_HDMI_ON)) {
-        mMode |= MDS_HDMI_ON;
-    }
-
     // Turn off overlay temporarily during mode transition.
     // Make sure overlay is turned on when this function exits.
     // Transition mode starts with standalone local mipi mode (no cloned, no video extended).
@@ -309,9 +306,6 @@ int MultiDisplayComposer::setHdmiMode_l() {
                 LOGW("%s: Using HDMI mode %d to instead of %d", __func__, ret, index);
         }
 
-        mMode |= MDS_HDMI_VIDEO_EXT;
-        mMode &= ~MDS_HDMI_CLONE;
-        mMipiPolicy = MDS_MIPI_OFF_ALLOWED;
 #ifdef ENABLE_HDCP
         if ((mVideo.isprotected) || mHdcpStatus) {
             LOGI("Turning on HDCP...");
@@ -323,6 +317,11 @@ int MultiDisplayComposer::setHdmiMode_l() {
             mMode |= MDS_HDCP_ON;
         }
 #endif
+        mMode |= MDS_HDMI_VIDEO_EXT;
+        mMode &= ~MDS_HDMI_CLONE;
+        mMipiPolicy = MDS_MIPI_OFF_ALLOWED;
+        //prolong overlay off time
+        mMode |= MDS_OVERLAY_OFF;
         broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
     } else {
         LOGI("Video is not in playing state. Mode = %#x", mMode);
@@ -354,19 +353,31 @@ int MultiDisplayComposer::setHdmiMode_l() {
 
         mMode &= ~MDS_HDMI_VIDEO_EXT;
         mMode |= MDS_HDMI_CLONE;
+        //prolong overlay off time
+        mMode |= MDS_OVERLAY_OFF;
         broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
     }
 
     // Common case, turn on HDMI if necessary
-    LOGI("Turn on HDMI...");
-    if (!drm_hdmi_setHdmiVideoOn()) {
-        LOGI("Fail to turn on HDMI.");
-        mMode &= ~MDS_HDCP_ON;
-        mMode &= ~MDS_HDMI_CLONE;
-        mMode &= ~MDS_HDMI_VIDEO_EXT;
-        broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
-        return MDS_ERROR;
+    if (!checkMode(mMode, MDS_HDMI_ON)) {
+        LOGI("Turn on HDMI...");
+        if (!drm_hdmi_setHdmiVideoOn()) {
+            LOGI("Fail to turn on HDMI.");
+            mMode &= ~MDS_HDCP_ON;
+            mMode &= ~MDS_HDMI_CLONE;
+            mMode &= ~MDS_HDMI_VIDEO_EXT;
+            broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
+            return MDS_ERROR;
+        }
     }
+
+    mMode |= MDS_HDMI_ON;
+    if (checkMode(mMode, MDS_HDMI_VIDEO_EXT)) {
+        //Enable overlay lastly
+        mMode &= ~MDS_OVERLAY_OFF;
+    }
+
+    broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
 
     if (notify_audio_hotplug && mDrmInit) {
         // Do not need to notify HDMI audio driver about hotplug during startup.
@@ -374,7 +385,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         drm_hdmi_notify_audio_hotplug(true);
     }
 
-    LOGV("Leaving %s, new mode is %#x", __func__, mMode);
+    LOGI("Leaving %s, new mode is %#x", __func__, mMode);
     return MDS_NO_ERROR;
 }
 
