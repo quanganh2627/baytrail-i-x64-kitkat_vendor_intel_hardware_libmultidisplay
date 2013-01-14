@@ -33,8 +33,6 @@
 #include <utils/Vector.h>
 #include <display/IExtendDisplayListener.h>
 #include <display/MultiDisplayType.h>
-#include <gui/SurfaceComposerClient.h>
-#include <hardware/hwcomposer.h>
 
 using namespace android;
 
@@ -123,10 +121,12 @@ private:
     int mHdcpStatus;
 
     // HDMI Scaling mode and scaling calibriation
-    sp<SurfaceComposerClient> mSurfaceComposerClient;
+    sp<IBinder> mSurfaceComposer;
     uint32_t mScaleMode;
     uint32_t mScaleStepX;
     uint32_t mScaleStepY;
+    int setDisplayScalingLocked(uint32_t mode,
+         uint32_t stepx, uint32_t stepy);
 
     int setHdmiMode_l();
     int setMipiMode_l(bool);

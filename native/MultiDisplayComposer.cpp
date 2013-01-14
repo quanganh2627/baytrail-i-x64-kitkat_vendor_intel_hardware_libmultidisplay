@@ -90,6 +90,7 @@ MultiDisplayComposer::MultiDisplayComposer() {
     initDisplayCapability_l();
     LOGI("%s: mMode: 0x%x", __func__, mMode);
 
+    mSurfaceComposer = NULL;
     mScaleMode = 0;
     mScaleStepX = 0;
     mScaleStepY = 0;
@@ -594,49 +595,43 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
     return ret;
 }
 
+int MultiDisplayComposer::setDisplayScalingLocked(uint32_t mode,
+         uint32_t stepx, uint32_t stepy) {
+    if (mSurfaceComposer == NULL) {
+        const sp<IServiceManager> sm = defaultServiceManager();
+        const String16 name("SurfaceFlinger");
+        mSurfaceComposer = sm->getService(name);
+        if (mSurfaceComposer == NULL) {
+            return -1;
+        }
+    }
+
+    uint32_t scale;
+    Parcel data, reply;
+    const String16 token("android.ui.ISurfaceComposer");
+
+    scale = mode | stepx << 16 | stepy << 24;
+    data.writeInterfaceToken(token);
+    data.writeInt32(scale);
+    mSurfaceComposer->transact(1014, data, &reply);
+    return reply.readInt32();
+}
+
 int MultiDisplayComposer::setHdmiScaleType(int type) {
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
 
-    sp<IBinder> token =
-        SurfaceComposerClient::getBuiltInDisplay(HWC_DISPLAY_EXTERNAL);
-
-    if (mSurfaceComposerClient == NULL) {
-        mSurfaceComposerClient = new SurfaceComposerClient();
-    }
-    if (mSurfaceComposerClient == NULL || token == NULL)
-        return -1;
-
     mScaleMode = type;
-    SurfaceComposerClient::openGlobalTransaction();
-    mSurfaceComposerClient->setDisplayScaling(token,
-        mScaleMode, mScaleStepX, mScaleStepY);
-    SurfaceComposerClient::closeGlobalTransaction();
-
-    return 0;
+    return setDisplayScalingLocked(mScaleMode, mScaleStepX, mScaleStepY);
 }
 
 int MultiDisplayComposer::setHdmiScaleStep(int hValue, int vValue) {
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
 
-    sp<IBinder> token =
-        SurfaceComposerClient::getBuiltInDisplay(HWC_DISPLAY_EXTERNAL);
-
-    if (mSurfaceComposerClient == NULL) {
-        mSurfaceComposerClient = new SurfaceComposerClient();
-    }
-    if (mSurfaceComposerClient == NULL || token == NULL)
-        return -1;
-
     mScaleStepX = (hValue > 5) ? 0: (5 - hValue);
     mScaleStepY = (vValue > 5) ? 0: (5 - vValue);
-    SurfaceComposerClient::openGlobalTransaction();
-    mSurfaceComposerClient->setDisplayScaling(token,
-        mScaleMode, mScaleStepX, mScaleStepY);
-    SurfaceComposerClient::closeGlobalTransaction();
-
-    return 0;
+    return setDisplayScalingLocked(mScaleMode, mScaleStepX, mScaleStepY);
 }
 
 int MultiDisplayComposer::getHdmiDeviceChange() {
