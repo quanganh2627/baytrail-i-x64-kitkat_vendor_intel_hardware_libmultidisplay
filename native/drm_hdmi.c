@@ -323,11 +323,18 @@ static int getMatchingHdmiTiming(drmModeConnectorPtr connector, int mode, MDSHDM
             in->height == connector->modes[index].vdisplay &&
             temp_flags == compare_flags) {
             int refreshRate = connector->modes[index].vrefresh;
-            if ((refreshRate << 1)  % videoFps == 0) {
-                totalMatchIndex = index;
-                // Prefer a higher refresh rate for smooth display
-                if (refreshRate == 60 || refreshRate == 50)
+            if (mode == DRM_HDMI_VIDEO_EXT) {
+                if ((refreshRate << 1)  % videoFps == 0) {
+                    totalMatchIndex = index;
+                    // Prefer a higher refresh rate for smooth display
+                    if (refreshRate == 60 || refreshRate == 50)
+                        break;
+                }
+            } else {
+                if (refreshRate == videoFps) {
+                    totalMatchIndex = index;
                     break;
+                }
             }
         }
     }
