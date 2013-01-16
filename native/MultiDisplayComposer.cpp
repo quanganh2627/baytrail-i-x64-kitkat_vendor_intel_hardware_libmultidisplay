@@ -46,8 +46,8 @@ MultiDisplayListener::MultiDisplayListener(int msg,
     mMsg = msg;
     int len = strlen(client) + 1;
     mName = new char[len];
-    strncpy(mName, client, len);
-    *(mName + len) = '\0';
+    strncpy(mName, client, len - 1);
+    *(mName + len - 1) = '\0';
     LOGD("%s: Register a new %s client, 0x%x", __func__, client, msg);
     mIEListener = listener;
 }
@@ -537,6 +537,7 @@ int MultiDisplayComposer::unregisterListener(
             MultiDisplayListener* tlistener = mListener.valueAt(i);
             mListener.removeItem(handle);
             delete tlistener;
+            tlistener = NULL;
             break;
         }
     }
