@@ -120,7 +120,7 @@ public:
      *       0: on success
      *     !=0: on failure
      */
-    int unregisterListener(sp<IExtendDisplayListener>);
+    int unregisterListener();
     /*
      * set HDMI Timing info
      * param:

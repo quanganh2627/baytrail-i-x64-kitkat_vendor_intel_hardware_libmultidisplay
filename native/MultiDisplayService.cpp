@@ -97,10 +97,9 @@ int MultiDisplayService::registerListener(
     return mMDC->registerListener(listener, handle, client, msg);
 }
 
-int MultiDisplayService::unregisterListener(
-                            sp<IExtendDisplayListener> listener, void *handle) {
+int MultiDisplayService::unregisterListener(void *handle) {
     MDS_CHECK_MDS();
-    return mMDC->unregisterListener(listener, handle);
+    return mMDC->unregisterListener(handle);
 }
 
 int MultiDisplayService::getHdmiModeInfo(int* pWidth, int* pHeight,

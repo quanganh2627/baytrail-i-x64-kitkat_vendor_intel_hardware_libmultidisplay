@@ -41,7 +41,7 @@ public:
     virtual int setHdmiPowerOff() = 0;
 
     virtual int registerListener(sp<IExtendDisplayListener>, void *, const char*, int) = 0;
-    virtual int unregisterListener(sp<IExtendDisplayListener>, void *) = 0;
+    virtual int unregisterListener(void *) = 0;
     virtual int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio) = 0;
     virtual int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio) = 0;
     virtual int setHdmiScaleType(int type) = 0;
@@ -71,7 +71,7 @@ public:
     virtual int setHdmiPowerOff();
 
     virtual int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);
-    virtual int unregisterListener(sp<IExtendDisplayListener>, void *);
+    virtual int unregisterListener(void *);
 
     virtual int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio);
     virtual int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio);

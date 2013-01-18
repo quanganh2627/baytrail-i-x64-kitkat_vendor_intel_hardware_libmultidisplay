@@ -99,9 +99,9 @@ int MultiDisplayClient::registerListener(
             static_cast<void *>(this), client, msg);
 }
 
-int MultiDisplayClient::unregisterListener(sp<IExtendDisplayListener> listener) {
+int MultiDisplayClient::unregisterListener() {
     MDC_CHECK_IMDC();
-    return mIMDComposer->unregisterListener(listener, static_cast<void *>(this));
+    return mIMDComposer->unregisterListener(static_cast<void *>(this));
 }
 
 

@@ -527,8 +527,7 @@ int MultiDisplayComposer::registerListener(
     return MDS_NO_ERROR;
 }
 
-int MultiDisplayComposer::unregisterListener(
-                sp<IExtendDisplayListener> listener, void *handle) {
+int MultiDisplayComposer::unregisterListener(void *handle) {
     unsigned int i = 0;
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);

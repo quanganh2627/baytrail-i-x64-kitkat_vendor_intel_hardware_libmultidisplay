@@ -50,7 +50,7 @@ public:
     int updateVideoInfo(MDSVideoInfo*);
 
     int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);
-    int unregisterListener(sp<IExtendDisplayListener>, void *);
+    int unregisterListener(void *);
 
     int getHdmiModeInfo(int* widht, int* height, int* refresh, int* interlace, int* ratio);
     int setHdmiModeInfo(int widht, int height, int refresh, int interlace, int ratio);

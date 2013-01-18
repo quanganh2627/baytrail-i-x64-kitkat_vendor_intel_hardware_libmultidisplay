@@ -118,10 +118,9 @@ int BpMultiDisplayComposer::registerListener(
     return reply.readInt32();
 }
 
-int BpMultiDisplayComposer::unregisterListener(sp<IExtendDisplayListener> listener, void *handle) {
+int BpMultiDisplayComposer::unregisterListener(void *handle) {
     Parcel data, reply;
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
-    data.writeStrongBinder(listener->asBinder());
     data.writeIntPtr(reinterpret_cast<intptr_t>(handle));
     remote()->transact(MDS_UNREGISTER_LISTENER, data, &reply);
     return reply.readInt32();
@@ -337,9 +336,7 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
     break;
     case MDS_UNREGISTER_LISTENER: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        sp<IBinder> listener = data.readStrongBinder();
         int ret = unregisterListener(
-                    interface_cast<IExtendDisplayListener>(listener),
                     reinterpret_cast<void *>(data.readIntPtr()));
         reply->writeInt32(ret);
         return NO_ERROR;

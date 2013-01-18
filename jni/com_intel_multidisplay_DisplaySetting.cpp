@@ -62,7 +62,7 @@ JNIMDSListener::~JNIMDSListener() {
     mObj = NULL;
 }
 
-static JNIMDSListener* mListener = NULL;
+static sp<JNIMDSListener> mListener = NULL;
 static MultiDisplayClient* mMDClient = NULL;
 static Mutex gMutex;
 static JavaVM* gJvm = NULL;
@@ -114,8 +114,7 @@ static void DeInitMDC() {
         if (mListener != NULL) {
             gJvm = NULL;
             mListener->setEnv(NULL, NULL);
-            mMDClient->unregisterListener(mListener);
-            delete mListener;
+            mMDClient->unregisterListener();
             mListener = NULL;
         }
         delete mMDClient;
