@@ -715,38 +715,30 @@ int MultiDisplayComposer::widi_rm_notifier_handler(void* cookie, int cmd, int da
 }
 
 int MultiDisplayComposer::enablePlayInBackground(bool on, int playerId) {
-#if 0
     Mutex::Autolock _l(mBackgroundPlayLock);
     mEnablePlayInBackground = on;
     mBackgroundPlayerId = playerId;
-#endif
+    int playInBgEnabled = (mEnablePlayInBackground == true ? 1 : 0);
+    broadcastMessage_l(MDS_SET_BACKGROUND_VIDEO_MODE, &playInBgEnabled, sizeof(playInBgEnabled));
     return MDS_NO_ERROR;
 }
 
 int MultiDisplayComposer::setNativeSurface(int* surface) {
-#if 0
     if (surface == NULL)
         return MDS_ERROR;
     Mutex::Autolock _l(mBackgroundPlayLock);
     mNativeSurface = surface;
-#endif
     return MDS_NO_ERROR;
 }
 
 int MultiDisplayComposer::isPlayInBackgroundEnabled() {
-#if 0
     Mutex::Autolock _l(mBackgroundPlayLock);
     int playInBgEnabled = (mEnablePlayInBackground == true ? 1 : 0);
     return playInBgEnabled;
-#else
-    return 0;
-#endif
 }
 
 int MultiDisplayComposer::getBackgroundPlayerId() {
-#if 0
     Mutex::Autolock _l(mBackgroundPlayLock);
-#endif
     return mBackgroundPlayerId;
 }
 

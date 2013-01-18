@@ -69,7 +69,8 @@ typedef struct _MDSHDMITiming {
 typedef enum _MDSMessageType {
     MDS_MODE_CHANGE = 0x1,
     MDS_ORIENTATION_CHANGE = 0x1 << 1,
-    MDS_SET_TIMING = 0x1 << 2
+    MDS_SET_TIMING = 0x1 << 2,
+    MDS_SET_BACKGROUND_VIDEO_MODE = 0x1 << 3
 } MDSMessageType;
 
 typedef enum _MDSMode {

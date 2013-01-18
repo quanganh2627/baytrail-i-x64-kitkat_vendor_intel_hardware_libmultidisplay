@@ -162,6 +162,8 @@ sp<ANativeWindow> MultiDisplayClient::createNewVideoSurface(int width, int heigh
             CHECK(mSurfaceControl->isValid());
 
             SurfaceComposerClient::openGlobalTransaction();
+            //set the layer to be max value to avoid render contention with foreground surface.
+            CHECK_EQ(mSurfaceControl->setLayer(INT_MAX), (status_t)OK);
             mSurfaceControl->setAlpha(255);
             SurfaceComposerClient::closeGlobalTransaction();
 
