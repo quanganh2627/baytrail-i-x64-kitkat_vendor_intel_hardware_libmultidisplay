@@ -50,35 +50,34 @@ public class DisplaySetting {
 
 
     private static onMdsMessageListener mListener = null;
-    private static boolean mInit = false;
 
-    private native boolean native_InitMDSClient();
-    private native boolean native_DeInitMDSClient();
-    private native boolean native_setModePolicy(int policy);
-    private native int     native_getMode();
-    private native boolean native_setHdmiPowerOff();
-    private native boolean native_notifyHotPlug();
-    private native int     native_getHdmiTiming(int width[],
+    private static native boolean native_InitMDSClient(DisplaySetting thiz);
+    private static native boolean native_DeInitMDSClient();
+    private static native boolean native_setModePolicy(int policy);
+    private static native int     native_getMode();
+    private static native boolean native_setHdmiPowerOff();
+    private static native boolean native_notifyHotPlug();
+    private static native int     native_getHdmiTiming(int width[],
                                                 int height[], int refresh[],
                                                 int interlace[], int ratio[]);
-    private native boolean native_setHdmiTiming(int width, int height,
+    private static native boolean native_setHdmiTiming(int width, int height,
                             int refresh, int interlace, int ratio);
-    private native int     native_getHdmiInfoCount();
-    private native boolean native_setHdmiScaleType(int Type);
-    private native boolean native_setHdmiScaleStep(int Step, int Orientation);
-    private native int     native_getHdmiDeviceChange();
-    private native int     native_getDisplayCapability();
-    private native int     native_setPlayInBackground(boolean value, int playerId);
-    private native int     native_setHdcpStatus(int value);
-    private native int     native_notifyScreenOff();
+    private static native int     native_getHdmiInfoCount();
+    private static native boolean native_setHdmiScaleType(int Type);
+    private static native boolean native_setHdmiScaleStep(int Step, int Orientation);
+    private static native int     native_getHdmiDeviceChange();
+    private static native int     native_getDisplayCapability();
+    private static native int     native_setPlayInBackground(boolean value, int playerId);
+    private static native int     native_setHdcpStatus(int value);
+    private static native int     native_notifyScreenOff();
 
     public DisplaySetting() {
-        if (mInit == false) {
-            if (LOG) Slog.i(TAG, "Create a new DisplaySetting");
-            native_InitMDSClient();
-            mInit = true;
-        }
+        if (LOG) Slog.i(TAG, "Create a new DisplaySetting");
+        native_InitMDSClient(this);
     }
+
+    @Override
+    protected void finalize() { native_DeInitMDSClient(); }
 
     public boolean setModePolicy(int policy) {
        return native_setModePolicy(policy);
