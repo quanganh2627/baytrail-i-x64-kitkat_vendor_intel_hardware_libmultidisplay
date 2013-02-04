@@ -49,5 +49,6 @@ int  drm_get_ioctl_offset();
 int  drm_hdmi_checkTiming(int mode, MDSHDMITiming* info);
 bool drm_check_hw_supportHdmi();
 int  drm_hdmi_saveMode(int mode, int index);
+int  drm_initHdmiMode();
 
 #endif // _DRM_HDMI_H

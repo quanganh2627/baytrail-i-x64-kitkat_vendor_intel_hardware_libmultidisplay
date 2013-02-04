@@ -133,6 +133,7 @@ private:
     int setModePolicy_l(int);
     int getHdmiPlug_l();
     void initDisplayCapability_l();
+    int isHwcSetUp_l();
 
     void broadcastMessage_l(int msg, void* value, int size);
     int  setHdmiTiming_l(void* value, int size);

@@ -275,13 +275,49 @@ static int checkHdmiTiming(int index) {
     return index;
 }
 
-static int getMatchingHdmiTiming(drmModeConnectorPtr connector, int mode, MDSHDMITiming* in) {
-    int index = 0;
-    int firstRefreshMatchIndex = -1;
-    int totalMatchIndex = -1;
-    uint32_t temp_flags = 0;
-    uint32_t videoFps = in->refresh;
+static int initHdmiTiming(drmModeConnectorPtr connector)
+{
+    int i = 0;
+    int index = -1;
+    int preferred = -1;
+    int max = 0;
+    for (i = 0; i < connector->count_modes; i++) {
+        //Get the preferred timing
+        if (connector->modes[i].type & DRM_MODE_TYPE_PREFERRED)
+            preferred = i;
+        //Get the max timing
+        if ((connector->modes[i].hdisplay > connector->modes[max].hdisplay) &&
+            (connector->modes[i].vdisplay > connector->modes[max].vdisplay)) {
+            max = i;
+        } else if (
+            (connector->modes[i].hdisplay == connector->modes[max].hdisplay) &&
+            (connector->modes[i].vdisplay == connector->modes[max].vdisplay) &&
+            (connector->modes[i].vrefresh > connector->modes[max].vrefresh)) {
+            max = i;
+        }
+        ALOGV("%dx%d@%dHz, %d, %d, %d",
+                connector->modes[i].hdisplay,
+                connector->modes[i].vdisplay,
+                connector->modes[i].vrefresh, i, preferred, max);
+    }
+    if (preferred != -1) {
+        //Select the max if the preferred < the max
+        if (connector->modes[preferred].hdisplay < connector->modes[max].hdisplay ||
+            connector->modes[preferred].vdisplay < connector->modes[max].vdisplay ||
+            connector->modes[preferred].vrefresh < connector->modes[max].vrefresh)
+            index = max;
+        else
+            index = preferred;
+    } else
+        index = max;
+    LOGD("Get the timing index, %d, %d, %d", preferred, max, index);
+    return index;
+}
 
+static int getMatchingHdmiTiming(drmModeConnectorPtr connector, MDSHDMITiming* in) {
+    int i = 0;
+    int index = -1;
+    uint32_t temp_flags = 0;
     if (in->interlace)
         temp_flags |= DRM_MODE_FLAG_INTERLACE;
     if (in->ratio == 1)
@@ -291,9 +327,9 @@ static int getMatchingHdmiTiming(drmModeConnectorPtr connector, int mode, MDSHDM
 
     LOGD("%s: temp_flags = 0x%x, in->ratio = %d\n", __func__, temp_flags, in->ratio);
 
-    for (index = 0; index < connector->count_modes; index++) {
+    for (i = 0; i < connector->count_modes; i++) {
         /* Extract relevant flags to compare */
-        uint32_t compare_flags = connector->modes[index].flags &
+        uint32_t compare_flags = connector->modes[i].flags &
           (DRM_MODE_FLAG_INTERLACE | DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3);
 
         /* Don't compare aspect ratio bits if input has no ratio information
@@ -304,50 +340,25 @@ static int getMatchingHdmiTiming(drmModeConnectorPtr connector, int mode, MDSHDM
             compare_flags &= ~(DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3);
 
         LOGD("Mode avail: %dx%d@%d flags = 0x%x, compare_flags = 0x%x, 0x%x",
-             connector->modes[index].hdisplay, connector->modes[index].vdisplay,
-             connector->modes[index].vrefresh, connector->modes[index].flags,
-             compare_flags, connector->modes[index].type);
-        if (videoFps == 0 || videoFps > 60) {
-            LOGW("Invalid refresh rate: %d from decoder!", videoFps);
-            // FIXME: Set a guessed fps. Need the decoder pass the correct one.
-            videoFps = 30;
-        }
+             connector->modes[i].hdisplay, connector->modes[i].vdisplay,
+             connector->modes[i].vrefresh, connector->modes[i].flags,
+             compare_flags, connector->modes[i].type);
 
-        if (mode == DRM_HDMI_VIDEO_EXT &&
-                firstRefreshMatchIndex == -1 &&
-                videoFps == connector->modes[index].vrefresh) {
-            firstRefreshMatchIndex = index;
-        }
-
-        if (in->width == connector->modes[index].hdisplay &&
-            in->height == connector->modes[index].vdisplay &&
+        if (in->width == connector->modes[i].hdisplay &&
+            in->height == connector->modes[i].vdisplay &&
+            in->refresh == connector->modes[i].vrefresh &&
             temp_flags == compare_flags) {
-            int refreshRate = connector->modes[index].vrefresh;
-            if (mode == DRM_HDMI_VIDEO_EXT) {
-                if ((refreshRate << 1)  % videoFps == 0) {
-                    totalMatchIndex = index;
-                    // Prefer a higher refresh rate for smooth display
-                    if (refreshRate == 60 || refreshRate == 50)
-                        break;
-                }
-            } else {
-                if (refreshRate == videoFps) {
-                    totalMatchIndex = index;
-                    break;
-                }
-            }
+            index = i;
+            break;
         }
     }
-    LOGD("%s: %d, %d, %d", __func__, index, firstRefreshMatchIndex, totalMatchIndex);
-    index = -1;
-    if (totalMatchIndex != -1)
-        index = totalMatchIndex;
-    else if (index == -1 && firstRefreshMatchIndex != -1)
-        index = firstRefreshMatchIndex;
-    if (index != -1) {
-        LOGD("%s, Find a matching timing, %dx%d@%dHzx0x%x, %d", __func__,
-                connector->modes[index].hdisplay, connector->modes[index].vdisplay,
-                connector->modes[index].vrefresh, connector->modes[index].flags, index);
+    if (index >= 0 && index < connector->count_modes) {
+        LOGD("%s, Find a matching timing, %d, %dx%d@%dHzx0x%x",
+                __func__, index,
+                connector->modes[index].hdisplay,
+                connector->modes[index].vdisplay,
+                connector->modes[index].vrefresh,
+                connector->modes[index].flags);
     }
     return index;
 }
@@ -435,7 +446,8 @@ static int get_hdmi_preferedTimingIndex(drmModeConnector *hdmi_connector)
         /*set to prefer mode */
         if (hdmi_connector->modes[i].type &
                         DRM_MODE_TYPE_PREFERRED) {
-            LOGD("%s: Get preferred timing index %d, type is 0x%x, ", __func__, i, hdmi_connector->modes[i].type);
+            LOGD("%s: Get preferred timing index %d, type is 0x%x, ",
+                    __func__, i, hdmi_connector->modes[i].type);
             break;
         }
     }
@@ -452,41 +464,7 @@ static void get_hdmi_get_TimingByIndex(drmModeConnectorPtr connector, int index,
     info->refresh = connector->modes[index].vrefresh;
 }
 
-int drm_hdmi_checkTiming(int mode, MDSHDMITiming* info)
-{
-    int index = 0;
-    if (info == NULL)
-        return MDS_ERROR;
-    LOGI("%s: HDMI timing is %dx%d@%dHzx%d, %d, %d", __func__,
-            info->width, info->height, info->refresh, info->interlace, g_drm.cloneModeIndex,
-            g_drm.modeIndex);
 
-    drmModeConnectorPtr connector = NULL;
-    if ((connector = getHdmiConnector()) == NULL)
-        return -1;
-    CHECK_CONNECTOR_STATUS_ERR_RETURN(-1);
-
-    if (mode == DRM_HDMI_VIDEO_EXT)
-        g_drm.modeIndex = getMatchingHdmiTiming(connector, DRM_HDMI_VIDEO_EXT, info);
-    else if (mode == DRM_HDMI_CLONE) {
-        if (info->width == 0 && g_drm.cloneModeIndex != -1)
-            g_drm.modeIndex = g_drm.cloneModeIndex;
-        else
-            g_drm.modeIndex = getMatchingHdmiTiming(connector, DRM_HDMI_CLONE, info);
-    }
-    if (g_drm.modeIndex == -1) {
-        if (g_drm.cloneModeIndex != -1)
-            g_drm.modeIndex = g_drm.cloneModeIndex;
-        else {
-            g_drm.modeIndex = get_hdmi_preferedTimingIndex(connector);
-            g_drm.cloneModeIndex = g_drm.modeIndex;
-        }
-    }
-    get_hdmi_get_TimingByIndex(connector, g_drm.modeIndex, info);
-    LOGD("%s, Switching to Timing, %dx%d@%dHzx%dx%d, %d", __func__,
-            info->width, info->height, info->refresh, info->ratio, info->interlace, g_drm.modeIndex);
-    return g_drm.modeIndex;
-}
 
 
 /* ---------------- GLOBAL FUNCTIONS --------------------------------- */
@@ -826,3 +804,62 @@ int drm_get_ioctl_offset()
 {
     return g_drm.ioctlOffset;
 }
+
+int drm_hdmi_checkTiming(int mode, MDSHDMITiming* info)
+{
+    int index = 0;
+    if (info == NULL)
+        return MDS_ERROR;
+    LOGI("%s: HDMI timing is %dx%d@%dHzx%d, %d, %d", __func__,
+            info->width, info->height, info->refresh,
+            info->interlace, g_drm.cloneModeIndex, g_drm.modeIndex);
+
+    CHECK_HW_SUPPORT_HDMI(MDS_ERROR);
+    drmModeConnectorPtr connector = NULL;
+    if ((connector = getHdmiConnector()) == NULL)
+        return -1;
+    CHECK_CONNECTOR_STATUS_ERR_RETURN(-1);
+
+    pthread_mutex_lock(&g_drm.mtx);
+    if (mode == DRM_HDMI_VIDEO_EXT) {
+        if (g_drm.cloneModeIndex == -1)
+            g_drm.cloneModeIndex = initHdmiTiming(connector);
+        g_drm.modeIndex = g_drm.cloneModeIndex;
+    } else if (mode == DRM_HDMI_CLONE) {
+        if (info->width == 0) {
+            if (g_drm.cloneModeIndex == -1)
+                g_drm.cloneModeIndex = initHdmiTiming(connector);
+            g_drm.modeIndex = g_drm.cloneModeIndex;
+        } else
+            g_drm.modeIndex = getMatchingHdmiTiming(connector, info);
+    }
+    if (g_drm.modeIndex == -1) {
+        if (g_drm.cloneModeIndex != -1)
+            g_drm.modeIndex = g_drm.cloneModeIndex;
+        else {
+            g_drm.modeIndex = get_hdmi_preferedTimingIndex(connector);
+            g_drm.cloneModeIndex = g_drm.modeIndex;
+        }
+    }
+    get_hdmi_get_TimingByIndex(connector, g_drm.modeIndex, info);
+    LOGD("%s, Switching to Timing, %dx%d@%dHzx%dx%d, %d",
+            __func__, info->width, info->height,
+            info->refresh, info->ratio, info->interlace, g_drm.modeIndex);
+    pthread_mutex_unlock(&g_drm.mtx);
+    return g_drm.modeIndex;
+}
+
+int drm_initHdmiMode()
+{
+    CHECK_HW_SUPPORT_HDMI(MDS_ERROR);
+    int index = -1;
+    drmModeConnectorPtr connector = NULL;
+    if ((connector = getHdmiConnector()) == NULL)
+        return -1;
+    CHECK_CONNECTOR_STATUS_ERR_RETURN(-1);
+    pthread_mutex_lock(&g_drm.mtx);
+    index = initHdmiTiming(connector);
+    pthread_mutex_unlock(&g_drm.mtx);
+    return index;
+}
+

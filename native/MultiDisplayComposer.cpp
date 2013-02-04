@@ -295,6 +295,8 @@ int MultiDisplayComposer::setHdmiMode_l() {
         timing.interlace = 0;
         timing.ratio = 0;
 
+        //TODO: Need check here to avoid send timing setting message to HWC
+        //if new timing == old timing
         int index = drm_hdmi_checkTiming(DRM_HDMI_VIDEO_EXT, &timing);
         int ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
         if (ret < MDS_NO_ERROR) {
@@ -306,7 +308,6 @@ int MultiDisplayComposer::setHdmiMode_l() {
             if (ret != index)
                 LOGW("%s: Using HDMI mode %d to instead of %d", __func__, ret, index);
         }
-
 #ifdef ENABLE_HDCP
         if ((mVideo.isprotected) || mHdcpStatus) {
             LOGI("Turning on HDCP...");
@@ -340,17 +341,23 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMode &= ~MDS_HDCP_ON;
 #endif
 
-        int index = drm_hdmi_checkTiming(DRM_HDMI_CLONE, &timing);
-        int ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
-        if (ret < MDS_NO_ERROR) {
-            LOGE("Fail to set HDMI clone mode");
-            broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
-            return MDS_ERROR;
-        } else {
-            drm_hdmi_saveMode(DRM_HDMI_CLONE, ret);
-            if (ret != index)
-                LOGW("%s: Using HDMI mode %d to instead of %d", __func__, ret, index);
-        }
+        //TODO: Need check here to avoid send timing setting message to HWC
+        //if new timing == old timing
+        int index = -1;
+        int ret = -1;
+        if (isHwcSetUp_l()) {
+            index = drm_hdmi_checkTiming(DRM_HDMI_CLONE, &timing);
+            ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
+            if (ret < MDS_NO_ERROR) {
+                LOGE("Fail to set HDMI clone mode");
+                broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
+                return MDS_ERROR;
+            }
+        } else
+            ret = drm_initHdmiMode();
+        drm_hdmi_saveMode(DRM_HDMI_CLONE, ret);
+        if (ret != index)
+            LOGW("%s: Using HDMI mode %d to instead of %d", __func__, ret, index);
 
         mMode &= ~MDS_HDMI_VIDEO_EXT;
         mMode |= MDS_HDMI_CLONE;
@@ -403,6 +410,22 @@ void MultiDisplayComposer::broadcastMessage_l(int msg, void* value, int size) {
                 ielistener->onMdsMessage(msg, value, size);
         }
     }
+}
+
+int MultiDisplayComposer::isHwcSetUp_l() {
+    bool hasHwc = false;
+    for (unsigned int index = 0; index < mListener.size(); index++) {
+        MultiDisplayListener* listener = mListener.valueAt(index);
+        if (listener == NULL)
+            continue;
+        char* client = listener->getName();
+        if (client && !strcmp(client, "HWComposer")) {
+            hasHwc = true;
+            break;
+        }
+    }
+    ALOGD("HWC is %s", (hasHwc ? "set up" :"not set up"));
+    return hasHwc;
 }
 
 int MultiDisplayComposer::setHdmiTiming_l(void* value, int size) {
@@ -579,6 +602,8 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
     timing.interlace = interlace;
     timing.ratio = ratio;
 
+    //TODO: Need check here to avoid send timing setting message to HWC
+    //if new timing == old timing
     int index = drm_hdmi_checkTiming(DRM_HDMI_CLONE, &timing);
     int ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
     if (ret < MDS_NO_ERROR) {
