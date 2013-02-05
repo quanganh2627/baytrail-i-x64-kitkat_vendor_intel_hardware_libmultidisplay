@@ -32,12 +32,17 @@ public class DisplaySetting {
     public static final int MIPI_OFF_ALLOWED = 3;
 
     // display mode
+    // Don't change the enum, pls align with MultiDisplayType.h
     // bit 0: MIPI on/off
     // bit 3: HDMI connect status
     // bit 4: HDMI on/off
+    // bit 5: HDMI clone mode
+    // bit 6: HDMI extend mode
     public static final int MIPI_MODE_BIT           = 0x1;
     public static final int HDMI_CONNECT_STATUS_BIT = 0x1 << 3;
     public static final int HDMI_MODE_BIT           = 0x1 << 4;
+    public static final int HDMI_CLONE_MODE         = 0x1 << 5;
+    public static final int HDMI_EXTEND_MODE        = 0x1 << 6;
 
     // MDS message type
     public static final int MDS_MODE_CHANGE        = 0x1;

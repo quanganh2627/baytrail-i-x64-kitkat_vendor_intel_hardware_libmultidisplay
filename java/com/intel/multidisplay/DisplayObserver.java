@@ -152,6 +152,15 @@ public class DisplayObserver extends UEventObserver {
             if (msg == mDs.MDS_MODE_CHANGE) {
                 logv("mode is changed to 0x" + Integer.toHexString(value));
                 mMdsMode = value;
+
+                boolean isExtMode = (mMdsMode & mDs.HDMI_EXTEND_MODE) != 0;
+                Intent intent = new Intent(Intent.ACTION_REQUEST_SCREEN_ORIENTATION_LANDSCAPE);
+                intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
+                intent.putExtra(Intent.EXTRA_SET_LANDSCAPE, isExtMode);
+
+                if (mContext != null)
+                    mContext.sendBroadcast(intent);
+                logv("Request landscape:" + isExtMode);
             }
             return true;
         };
