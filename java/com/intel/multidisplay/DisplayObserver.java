@@ -110,7 +110,6 @@ public class DisplayObserver extends UEventObserver {
         intentFilter.addAction(HDMI_Get_DisplayBoot);
         intentFilter.addAction(SET_PLAY_IN_BACKGROUND);
         intentFilter.addAction(HDMI_SET_HDCP);
-        intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
@@ -484,10 +483,6 @@ public class DisplayObserver extends UEventObserver {
                 int HdcpStatus = extras.getInt("Status", 0);
                 logv("HDMI_SET_HDCP_STATUS,EnableHdcp: " +	HdcpStatus);
                 mDs.setHdcpStatus(HdcpStatus);
-            }
-            else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
-                logv("Notify Screen Off");
-                mDs.notifyScreenOff();
             }
         }
     }

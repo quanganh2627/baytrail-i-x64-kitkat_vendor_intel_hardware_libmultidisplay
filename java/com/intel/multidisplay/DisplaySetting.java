@@ -74,7 +74,6 @@ public class DisplaySetting {
     private static native int     native_getDisplayCapability();
     private static native int     native_setPlayInBackground(boolean value, int playerId);
     private static native int     native_setHdcpStatus(int value);
-    private static native int     native_notifyScreenOff();
 
     public DisplaySetting() {
         if (LOG) Slog.i(TAG, "Create a new DisplaySetting");
@@ -154,10 +153,6 @@ public class DisplaySetting {
 
     public int setHdcpStatus(int value) {
         return native_setHdcpStatus(value);
-    }
-
-    public int notifyScreenOff() {
-        return native_notifyScreenOff();
     }
 }
 

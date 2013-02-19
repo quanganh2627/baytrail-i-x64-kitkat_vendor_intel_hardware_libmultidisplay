@@ -64,7 +64,6 @@ public:
     int isPlayInBackgroundEnabled();
     int getBackgroundPlayerId();
     int setHdcpStatus(int value);
-    int notifyScreenOff();
 };
 }; // namespace android
 #endif
