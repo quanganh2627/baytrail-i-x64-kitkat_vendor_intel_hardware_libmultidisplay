@@ -53,6 +53,7 @@ JNIMDSListener::JNIMDSListener(JNIEnv* env, jobject thiz, jobject serviceObj)
 {
     LOGI("%s: Creating MDS listener.", __func__);
     jclass clazz = env->FindClass(CLASS_PATH_NAME);
+    mOnMdsMessageMethodID = NULL;
     if (clazz == NULL) {
         LOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
     } else {
