@@ -130,18 +130,14 @@ int MultiDisplayComposer::getMode(bool wait) {
 }
 
 int MultiDisplayComposer::notifyWidi(bool on) {
-#if 0
     MDC_CHECK_INIT();
-    // It should hold mLock here instead. It is safe not holding any lock however.
-    //Mutex::Autolock _l(mMipiLock);
+    Mutex::Autolock _l(mMipiLock);
     mWidiVideoExt = on;
     if (mWidiVideoExt)
         mMode |= MDS_WIDI_ON;
     else
         mMode &= ~MDS_WIDI_ON;
 
-    drm_widi_notify(on, this, (void *)widi_rm_notifier_handler);
-#endif
     return MDS_NO_ERROR;
 }
 
