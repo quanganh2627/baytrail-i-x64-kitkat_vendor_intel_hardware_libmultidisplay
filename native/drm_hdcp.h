@@ -19,8 +19,14 @@
  #ifndef DRM_HDCP_H
  #define DRM_HDCP_H
 
+#ifdef ENABLE_HDCP
  void drm_hdcp_disable_hdcp(bool connected);
  bool drm_hdcp_enable_hdcp();
+ #else
+ void drm_hdcp_disable_hdcp(bool connected) {}
+ bool drm_hdcp_enable_hdcp() { return true; }
+ #endif
+
 
  #endif // DRM_HDCP_H
 

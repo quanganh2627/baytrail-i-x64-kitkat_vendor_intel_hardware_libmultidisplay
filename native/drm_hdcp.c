@@ -203,7 +203,7 @@ static bool drm_check_ied_session()
 static void drm_hdcp_check_link_status()
 {
     bool b = false;
-    if (drm_hdmi_connectStatus()) {
+    if (drm_hdmi_getConnectionStatus()) {
         b = drm_hdcp_isAuthenticated();
         if (!b) {
             LOGI("HDCP is not authenticated, restarting authentication process.");
@@ -282,7 +282,7 @@ static bool drm_hdcp_enable_and_check()
     for (i = 0; i < HDCP_ENABLE_NUM_OF_TRY; i++) {
         LOGV("Try to enable and check HDCP at iteration %d", i);
         if (drm_hdcp_enable() == false) {
-            if (drm_hdmi_connectStatus() == 0) {
+            if (drm_hdmi_getConnectionStatus() == 0) {
                 LOGW("HDMI is disconnected, abort HDCP enabling and checking.");
                 return true;
             }
