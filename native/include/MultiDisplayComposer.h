@@ -92,7 +92,6 @@ public:
     int isPlayInBackgroundEnabled();
     int getBackgroundPlayerId();
     int setHdcpStatus(int value);
-    int notifyScreenOff();
 
 private:
     enum {

@@ -54,7 +54,6 @@ public:
     virtual int isPlayInBackgroundEnabled() = 0;
     virtual int getBackgroundPlayerId() = 0;
     virtual int setHdcpStatus(int value) = 0;
-    virtual int notifyScreenOff() = 0;
 };
 
 class BpMultiDisplayComposer:public BpInterface<IMultiDisplayComposer> {
@@ -85,7 +84,6 @@ public:
     virtual int isPlayInBackgroundEnabled();
     virtual int getBackgroundPlayerId();
     virtual int setHdcpStatus(int value);
-    virtual int notifyScreenOff();
 };
 
 class BnMultiDisplayComposer:public BnInterface<IMultiDisplayComposer> {

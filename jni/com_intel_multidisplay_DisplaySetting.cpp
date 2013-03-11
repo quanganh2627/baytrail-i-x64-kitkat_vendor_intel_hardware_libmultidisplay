@@ -53,6 +53,7 @@ JNIMDSListener::JNIMDSListener(JNIEnv* env, jobject thiz, jobject serviceObj)
 {
     LOGI("%s: Creating MDS listener.", __func__);
     jclass clazz = env->FindClass(CLASS_PATH_NAME);
+    mOnMdsMessageMethodID = NULL;
     if (clazz == NULL) {
         LOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
     } else {
@@ -271,13 +272,6 @@ static jint MDS_setHdcpStatus(JNIEnv* env, jobject thiz, jint value)
     return gMDClient->setHdcpStatus(value);
 }
 
-static jint MDS_notifyScreenOff(JNIEnv* env, jobject obj)
-{
-    if (gMDClient == NULL) return 0;
-    AutoMutex _l(gMutex);
-    return gMDClient->notifyScreenOff();
-}
-
 static JNINativeMethod sMethods[] = {
     /* name, signature, funcPtr */
     {"native_InitMDSClient", "(Lcom/intel/multidisplay/DisplaySetting;)Z", (void*)MDS_InitMDSClient},
@@ -295,7 +289,6 @@ static JNINativeMethod sMethods[] = {
     {"native_getDisplayCapability", "()I", (void*)MDS_getDisplayCapability},
     {"native_setPlayInBackground", "(ZI)I", (void*)MDS_setPlayInBackground},
     {"native_setHdcpStatus", "(I)I", (void*)MDS_setHdcpStatus},
-    {"native_notifyScreenOff", "()I", (void*)MDS_notifyScreenOff},
 };
 
 

@@ -80,11 +80,6 @@ public class DisplayObserver extends UEventObserver {
 
     //Message need to handle
     private final int HDMI_STATE_CHANGE = 0;
-    //For HDMI privacy protection UC
-    //InCallScreen activity name
-    private static final String INCALLSCREEN_ACTIVITY = "com.android.phone.InCallScreen";
-    //A timer of 3 seconds for rechecking InCallScreen's status
-    private static final long INCALLSCREEN_CHECK_TIMER = 3000;
 
     private static final String HDMI_GET_INFO = "android.hdmi.GET_HDMI_INFO";
     private static final String HDMI_SET_INFO = "android.hdmi.SET_HDMI_INFO";
@@ -110,7 +105,6 @@ public class DisplayObserver extends UEventObserver {
         intentFilter.addAction(HDMI_Get_DisplayBoot);
         intentFilter.addAction(SET_PLAY_IN_BACKGROUND);
         intentFilter.addAction(HDMI_SET_HDCP);
-        intentFilter.addAction(Intent.ACTION_SCREEN_OFF);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
@@ -261,23 +255,6 @@ public class DisplayObserver extends UEventObserver {
             update("HOTPLUG", ROUTE_TO_HDMI);
     }
 
-    private final boolean isInCallScreenActive() {
-        boolean isActive = false;
-        ActivityManager activityManager =
-                (ActivityManager)mContext.getSystemService(Context.ACTIVITY_SERVICE);
-        List<RunningTaskInfo> tasks = activityManager.getRunningTasks(1);
-        if (tasks != null && tasks.size() > 0) {
-            String className = tasks.get(0).topActivity.getClassName();
-            if (className != null && className.equals(INCALLSCREEN_ACTIVITY)) {
-                logv("InCallScreen is active");
-                isActive = true;
-            } else {
-                logv("InCallScreen is not active");
-            }
-        }
-        return isActive;
-    }
-
     private final void setHdmiPolicy(int policy) {
         if (!checkDisplayCapability(mDs.HW_SUPPORT_HDMI))
             return;
@@ -285,12 +262,6 @@ public class DisplayObserver extends UEventObserver {
                 (policy == mDs.HDMI_ON_ALLOWED || policy == mDs.HDMI_ON_NOT_ALLOWED)) {
             mDs.setModePolicy(policy);
             mHdmiPolicy = policy;
-            if (policy == mDs.HDMI_ON_ALLOWED &&
-                    ((mMdsMode & mDs.HDMI_MODE_BIT) == mDs.HDMI_MODE_BIT)) {
-                update("HOTPLUG", ROUTE_TO_HDMI);
-            } else {
-                update("HOTPLUG", ROUTE_TO_SPEAKER);
-            }
         }
     }
 
@@ -323,18 +294,6 @@ public class DisplayObserver extends UEventObserver {
             case HDMI_POWER_OFF:
                 mDs.setHdmiPowerOff();
                 break;
-            case CHECK_INCALLSCREEN_ACTIVE:
-                if (isInCallScreenActive()) {
-                    mHandler.sendMessageDelayed(
-                            mHandler.obtainMessage(CHECK_INCALLSCREEN_ACTIVE),
-                            INCALLSCREEN_CHECK_TIMER);
-                } else {
-                    mInCallScreenFinished = true;
-                    logv("Call is terminated and Incallscreen disappeared");
-                    mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
-                    setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
-                }
-                break;
             }
         }
     };
@@ -359,16 +318,10 @@ public class DisplayObserver extends UEventObserver {
                     setHdmiPolicy(mDs.HDMI_ON_NOT_ALLOWED);
                 } else if (extras.equals(TelephonyManager.EXTRA_STATE_IDLE)) {
                     mHasIncomingCall = false;
-                    if (isInCallScreenActive()) {
-                        mHandler.sendMessageDelayed(
-                                mHandler.obtainMessage(CHECK_INCALLSCREEN_ACTIVE),
-                                INCALLSCREEN_CHECK_TIMER);
-                    } else {
-                        mInCallScreenFinished = true;
-                        logv("Call is terminated and Incallscreen disappeared");
-                        mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
-                        setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
-                    }
+                    mInCallScreenFinished = true;
+                    logv("Call is terminated and Incallscreen disappeared");
+                    mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
+                    setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
                 }
             } else if (action.equals(HDMI_GET_INFO)) {
                 // Handle HDMI_GET_INFO ACTION
@@ -484,10 +437,6 @@ public class DisplayObserver extends UEventObserver {
                 int HdcpStatus = extras.getInt("Status", 0);
                 logv("HDMI_SET_HDCP_STATUS,EnableHdcp: " +	HdcpStatus);
                 mDs.setHdcpStatus(HdcpStatus);
-            }
-            else if (action.equals(Intent.ACTION_SCREEN_OFF)) {
-                logv("Notify Screen Off");
-                mDs.notifyScreenOff();
             }
         }
     }
