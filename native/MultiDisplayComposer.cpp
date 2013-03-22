@@ -26,9 +26,7 @@
 
 extern "C" {
 #include "drm_hdmi.h"
-#ifdef ENABLE_HDCP
 #include "drm_hdcp.h"
-#endif
 }
 
 using namespace android;
@@ -66,52 +64,29 @@ MultiDisplayComposer::MultiDisplayComposer() {
     mMipiPolicy = MDS_MIPI_OFF_NOT_ALLOWED;
     mHdmiPolicy = MDS_HDMI_ON_ALLOWED;
     memset((void*)(&mVideo), 0, sizeof(MDSVideoInfo));
-    mVideo.isplaying = false;
-    mVideo.isprotected = false;
-    mVideo.isinterlace = false;
-    if (!drm_init()) {
-        LOGE("%s: drm_init fails", __func__);
-        return;
-    }
-    // default setting
-    setModePolicy_l(MDS_MIPI_OFF_NOT_ALLOWED);
-    setModePolicy_l(MDS_HDMI_ON_ALLOWED);
     mMipiOn = true;
     mWidiVideoExt = false;
     mMipiReq = NO_MIPI_REQ;
-    // start mipi listener
-    run("MIPIListener", PRIORITY_URGENT_DISPLAY);
     mEnablePlayInBackground = false;
     mBackgroundPlayerId = 0;
     mNativeSurface = NULL;
-    mDrmInit = true;
     mHdcpStatus = 0;
-
-    initDisplayCapability_l();
-    LOGI("%s: mMode: 0x%x", __func__, mMode);
-
     mSurfaceComposer = NULL;
     mScaleMode = 0;
     mScaleStepX = 0;
     mScaleStepY = 0;
+
+    // Default value
+    mDisplayCapability = MDS_HW_SUPPORT_WIDI;
+
+    initialize_l();
 }
 
 MultiDisplayComposer::~MultiDisplayComposer() {
-    unsigned int i = 0;
-    mDrmInit = false;
-    mMode = 0;
-    mHdmiPolicy = MDS_HDMI_ON_ALLOWED;
-    mMipiPolicy = MDS_MIPI_OFF_NOT_ALLOWED;
-    mMipiOn = false;
-    mWidiVideoExt = false;
-    mVideo.isprotected = false;
-    mMipiReq = NO_MIPI_REQ;
     drm_cleanup();
     if (!mListener.isEmpty()) {
         mListener.clear();
     }
-    memset((void*)(&mVideo), 0, sizeof(MDSVideoInfo));
-    LOGV("%s: mMode: 0x%x", __func__, mMode);
 }
 
 int MultiDisplayComposer::getMode(bool wait) {
@@ -130,18 +105,14 @@ int MultiDisplayComposer::getMode(bool wait) {
 }
 
 int MultiDisplayComposer::notifyWidi(bool on) {
-#if 0
     MDC_CHECK_INIT();
-    // It should hold mLock here instead. It is safe not holding any lock however.
-    //Mutex::Autolock _l(mMipiLock);
+    Mutex::Autolock _l(mMipiLock);
     mWidiVideoExt = on;
     if (mWidiVideoExt)
         mMode |= MDS_WIDI_ON;
     else
         mMode &= ~MDS_WIDI_ON;
 
-    drm_widi_notify(on, this, (void *)widi_rm_notifier_handler);
-#endif
     return MDS_NO_ERROR;
 }
 
@@ -190,10 +161,11 @@ int MultiDisplayComposer::updateVideoInfo(MDSVideoInfo* info) {
 
 
 int MultiDisplayComposer::setHdmiMode_l() {
-    MDSHDMITiming timing;
-
-    memset(&timing, 0, sizeof(MDSHDMITiming));
     LOGI("Entering %s, current mode = %#x", __func__, mMode);
+
+    MDSHDMITiming timing;
+    memset(&timing, 0, sizeof(MDSHDMITiming));
+
     // Common case, update video status
     if (mVideo.isplaying) {
         mMode |= MDS_VIDEO_PLAYING;
@@ -211,8 +183,8 @@ int MultiDisplayComposer::setHdmiMode_l() {
 #endif
     // Common case, turn on MIPI if necessary
     if (connectStatus == DRM_HDMI_DISCONNECTED ||
-            mHdmiPolicy == MDS_HDMI_ON_NOT_ALLOWED ||
-            mVideo.isplaying == false) {
+        mHdmiPolicy == MDS_HDMI_ON_NOT_ALLOWED ||
+        mVideo.isplaying == false) {
         mMipiPolicy = MDS_MIPI_OFF_NOT_ALLOWED;
         if (!checkMode(mMode, MDS_MIPI_ON)) {
             LOGI("Turn on MIPI.");
@@ -232,9 +204,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
 
         LOGI("Notify HDMI audio driver hot unplug event.");
         drm_hdmi_notify_audio_hotplug(false);
-#ifdef ENABLE_HDCP
         drm_hdcp_disable_hdcp(false);
-#endif
         mMode &= ~MDS_HDMI_CONNECTED;
         mMode &= ~MDS_HDMI_ON;
         mMode &= ~MDS_HDCP_ON;
@@ -258,20 +228,18 @@ int MultiDisplayComposer::setHdmiMode_l() {
             broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
             return MDS_NO_ERROR;
         }
-#ifdef ENABLE_HDCP
         if (checkMode(mMode, MDS_HDCP_ON)) {
             drm_hdcp_disable_hdcp(true);
         }
         mMode &= ~MDS_HDCP_ON;
-#endif
         mMode &= ~MDS_HDMI_ON;
         mMode &= ~MDS_HDMI_CLONE;
         mMode &= ~MDS_HDMI_VIDEO_EXT;
-        mMode &= ~MDS_OVERLAY_OFF;
         broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
         drm_hdmi_setHdmiVideoOff();
         return MDS_NO_ERROR;
     }
+
     // Turn off overlay temporarily during mode transition.
     // Make sure overlay is turned on when this function exits.
     // Transition mode starts with standalone local mipi mode (no cloned, no video extended).
@@ -294,21 +262,9 @@ int MultiDisplayComposer::setHdmiMode_l() {
         timing.refresh = mVideo.frameRate;
         timing.interlace = 0;
         timing.ratio = 0;
+        drm_hdmi_getTiming(DRM_HDMI_VIDEO_EXT, &timing);
+        setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
 
-        //TODO: Need check here to avoid send timing setting message to HWC
-        //if new timing == old timing
-        int index = drm_hdmi_checkTiming(DRM_HDMI_VIDEO_EXT, &timing);
-        int ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
-        if (ret < MDS_NO_ERROR) {
-            LOGE("Fail to set HDMI extended mode");
-            broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
-            return MDS_ERROR;
-        } else {
-            drm_hdmi_saveMode(DRM_HDMI_VIDEO_EXT, ret);
-            if (ret != index)
-                LOGW("%s: Using HDMI mode %d to instead of %d", __func__, ret, index);
-        }
-#ifdef ENABLE_HDCP
         if ((mVideo.isprotected) || mHdcpStatus) {
             LOGI("Turning on HDCP...");
             if (drm_hdcp_enable_hdcp() == false) {
@@ -318,7 +274,6 @@ int MultiDisplayComposer::setHdmiMode_l() {
             }
             mMode |= MDS_HDCP_ON;
         }
-#endif
         mMode |= MDS_HDMI_VIDEO_EXT;
         mMode &= ~MDS_HDMI_CLONE;
         mMipiPolicy = MDS_MIPI_OFF_ALLOWED;
@@ -334,30 +289,13 @@ int MultiDisplayComposer::setHdmiMode_l() {
         }
 
         broadcastMessage_l(MDS_MODE_CHANGE, &transitionalMode, sizeof(transitionalMode));
-#ifdef ENABLE_HDCP
         if (checkMode(mMode, MDS_HDCP_ON)) {
             drm_hdcp_disable_hdcp(true);
+            mMode &= ~MDS_HDCP_ON;
         }
-        mMode &= ~MDS_HDCP_ON;
-#endif
 
-        //TODO: Need check here to avoid send timing setting message to HWC
-        //if new timing == old timing
-        int index = -1;
-        int ret = -1;
-        if (isHwcSetUp_l()) {
-            index = drm_hdmi_checkTiming(DRM_HDMI_CLONE, &timing);
-            ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
-            if (ret < MDS_NO_ERROR) {
-                LOGE("Fail to set HDMI clone mode");
-                broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
-                return MDS_ERROR;
-            }
-        } else
-            ret = drm_initHdmiMode();
-        drm_hdmi_saveMode(DRM_HDMI_CLONE, ret);
-        if (ret != index)
-            LOGW("%s: Using HDMI mode %d to instead of %d", __func__, ret, index);
+        drm_hdmi_getTiming(DRM_HDMI_CLONE, &timing);
+        setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
 
         mMode &= ~MDS_HDMI_VIDEO_EXT;
         mMode |= MDS_HDMI_CLONE;
@@ -371,12 +309,9 @@ int MultiDisplayComposer::setHdmiMode_l() {
         LOGI("Turn on HDMI...");
         if (!drm_hdmi_setHdmiVideoOn()) {
             LOGI("Fail to turn on HDMI.");
-            mMode &= ~MDS_HDCP_ON;
-            mMode &= ~MDS_HDMI_CLONE;
-            mMode &= ~MDS_HDMI_VIDEO_EXT;
-            broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
-            return MDS_ERROR;
         }
+        mMode |= MDS_HDMI_ON;
+        broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
     }
 
     mMode |= MDS_HDMI_ON;
@@ -410,22 +345,6 @@ void MultiDisplayComposer::broadcastMessage_l(int msg, void* value, int size) {
                 ielistener->onMdsMessage(msg, value, size);
         }
     }
-}
-
-int MultiDisplayComposer::isHwcSetUp_l() {
-    bool hasHwc = false;
-    for (unsigned int index = 0; index < mListener.size(); index++) {
-        MultiDisplayListener* listener = mListener.valueAt(index);
-        if (listener == NULL)
-            continue;
-        char* client = listener->getName();
-        if (client && !strcmp(client, "HWComposer")) {
-            hasHwc = true;
-            break;
-        }
-    }
-    ALOGD("HWC is %s", (hasHwc ? "set up" :"not set up"));
-    return hasHwc;
 }
 
 int MultiDisplayComposer::setHdmiTiming_l(void* value, int size) {
@@ -567,7 +486,7 @@ int MultiDisplayComposer::unregisterListener(void *handle) {
 }
 
 int MultiDisplayComposer::getHdmiPlug_l() {
-    return drm_hdmi_connectStatus();
+    return drm_hdmi_getConnectionStatus();
 }
 
 int MultiDisplayComposer::getHdmiModeInfo(int* pWidth, int* pHeight,
@@ -596,28 +515,12 @@ int MultiDisplayComposer::setHdmiModeInfo(int width, int height,
         \n  ratio: %d, \
         \n  interlace: %d",
          __func__, mMode, width, height, refresh, ratio, interlace);
-    timing.width = width;
-    timing.height = height;
-    timing.refresh = refresh;
-    timing.interlace = interlace;
-    timing.ratio = ratio;
 
-    //TODO: Need check here to avoid send timing setting message to HWC
-    //if new timing == old timing
-    int index = drm_hdmi_checkTiming(DRM_HDMI_CLONE, &timing);
-    int ret = setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
-    if (ret < MDS_NO_ERROR) {
-        LOGE("%s: Failed to set HDMI clone mode", __func__);
-        broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
-        return MDS_ERROR;
-    } else {
-        drm_hdmi_saveMode(DRM_HDMI_CLONE, ret);
-        if (ret != index)
-            LOGW("%s: Using HDMI mode %d to instead of %d", __func__, ret, index);
-        ret = MDS_NO_ERROR;
-    }
+    drm_hdmi_setModeInfo(width, height, refresh, interlace, ratio);
+    drm_hdmi_getTiming(DRM_HDMI_CLONE, &timing);
+    setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
     broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
-    return ret;
+    return MDS_NO_ERROR;
 }
 
 int MultiDisplayComposer::setDisplayScalingLocked(uint32_t mode,
@@ -662,7 +565,7 @@ int MultiDisplayComposer::setHdmiScaleStep(int hValue, int vValue) {
 int MultiDisplayComposer::getHdmiDeviceChange() {
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
-    return drm_hdmi_getDeviceChange();
+    return drm_hdmi_isDeviceChanged(true);
 }
 
 int MultiDisplayComposer::getVideoInfo(int* dw, int* dh, int* fps, int* interlace) {
@@ -683,17 +586,23 @@ int MultiDisplayComposer::getVideoInfo(int* dw, int* dh, int* fps, int* interlac
     return MDS_NO_ERROR;
 }
 
-void MultiDisplayComposer::initDisplayCapability_l()
-{
-    // Default value
-    mDisplayCapability = MDS_HW_SUPPORT_WIDI;
-    if (drm_check_hw_supportHdmi())
+void MultiDisplayComposer::initialize_l() {
+    if (!drm_init()) {
+        LOGE("%s: drm_init fails.", __func__);
+        return;
+    }
+    mDrmInit = true;
+    if (drm_hdmi_isSupported()) {
         mDisplayCapability |= MDS_HW_SUPPORT_HDMI;
-    return;
+        setModePolicy_l(MDS_HDMI_ON_ALLOWED);
+    }
+    setModePolicy_l(MDS_MIPI_OFF_NOT_ALLOWED);
+
+    // start mipi listener
+    run("MIPIListener", PRIORITY_URGENT_DISPLAY);
 }
 
-int MultiDisplayComposer::getDisplayCapability()
-{
+int MultiDisplayComposer::getDisplayCapability() {
     return mDisplayCapability;
 }
 

@@ -33,22 +33,33 @@
 #define DRM_DVI_CONNECTED       (2)
 
 bool drm_init();
+void drm_cleanup();
+int  drm_get_dev_fd();
+int  drm_get_ioctl_offset();
+
+bool  drm_hdmi_isDeviceChanged(bool reset);
+bool drm_hdmi_isSupported();
 bool drm_hdmi_setHdmiVideoOn();
 bool drm_hdmi_setHdmiVideoOff();
 bool drm_hdmi_setHdmiPowerOff();
-int  drm_hdmi_connectStatus();
-void drm_cleanup();
-bool drm_mipi_setMode(int mode);
 bool drm_hdmi_onHdmiDisconnected(void);
-int  drm_hdmi_getModeInfo(int *pWidth, int* pHeight,
-                          int *pRefresh, int *pInterlace, int *pRatio);
-int  drm_hdmi_getDeviceChange();
-int  drm_get_dev_fd();
-int  drm_hdmi_notify_audio_hotplug(bool plugin);
-int  drm_get_ioctl_offset();
-int  drm_hdmi_checkTiming(int mode, MDSHDMITiming* info);
-bool drm_check_hw_supportHdmi();
-int  drm_hdmi_saveMode(int mode, int index);
-int  drm_initHdmiMode();
+bool drm_hdmi_notify_audio_hotplug(bool connected);
+// return 0 - disconnected, 1 - HDMI connected, 2 - DVI connected
+int  drm_hdmi_getConnectionStatus();
+// return number of unique (non-duplicated) modes
+int  drm_hdmi_getModeInfo(
+    int *pWidth,
+    int* pHeight,
+    int *pRefresh,
+    int *pInterlace,
+    int *pRatio);
+
+bool drm_hdmi_setModeInfo(int width, int height, int refresh, int interlace, int ratio);
+
+// get the best matched timing
+bool drm_hdmi_getTiming(int mode, MDSHDMITiming* info);
+
+// turn MIPI on or off
+bool drm_mipi_setMode(int mode);
 
 #endif // _DRM_HDMI_H

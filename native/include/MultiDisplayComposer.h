@@ -127,11 +127,11 @@ private:
     int setDisplayScalingLocked(uint32_t mode,
          uint32_t stepx, uint32_t stepy);
 
+    void initialize_l();
     int setHdmiMode_l();
     int setMipiMode_l(bool);
     int setModePolicy_l(int);
     int getHdmiPlug_l();
-    void initDisplayCapability_l();
     int isHwcSetUp_l();
 
     void broadcastMessage_l(int msg, void* value, int size);
