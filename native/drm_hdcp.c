@@ -203,12 +203,10 @@ static bool drm_check_ied_session()
 static void drm_hdcp_check_link_status()
 {
     bool b = false;
-    if (drm_hdmi_getConnectionStatus()) {
-        b = drm_hdcp_isAuthenticated();
-        if (!b) {
-            LOGI("HDCP is not authenticated, restarting authentication process.");
-            drm_hdcp_enable_hdcp_work();
-        }
+    b = drm_hdcp_isAuthenticated();
+    if (!b) {
+	    LOGI("HDCP is not authenticated, restarting authentication process.");
+	    drm_hdcp_enable_hdcp_work();
     }
 }
 
