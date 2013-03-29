@@ -57,7 +57,7 @@ static drmModeConnector* getConnector(int fd, uint32_t connector_type)
     drmModeConnector *connector = NULL;
     int i;
 
-    if (resources == NULL) {
+    if (resources == NULL || resources->connectors == NULL) {
         LOGE("%s: drmModeGetResources failed.", __func__);
         return NULL;
     }
