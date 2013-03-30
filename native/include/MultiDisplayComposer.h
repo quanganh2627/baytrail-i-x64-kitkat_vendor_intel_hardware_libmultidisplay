@@ -118,6 +118,7 @@ private:
     int mBackgroundPlayerId;
     mutable Mutex mBackgroundPlayLock;
     int mHdcpStatus;
+    int mConnectStatus;
 
     // HDMI Scaling mode and scaling calibriation
     sp<IBinder> mSurfaceComposer;

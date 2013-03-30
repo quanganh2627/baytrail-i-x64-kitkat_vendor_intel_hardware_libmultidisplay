@@ -189,14 +189,7 @@ public class DisplayObserver extends UEventObserver {
             logv("Same Audio output, Don't set");
             return;
         }
-        // If HDMI policy is HDMI_ON_NOT_ALLOWED,
-        // there is no need to send an intent to notify Audio MW.
-        if (mHdmiPolicy == mDs.HDMI_ON_NOT_ALLOWED && newState == ROUTE_TO_HDMI) {
-            logv("Turning on HDMI is not allowed, don't have to notify audio, " +
-                    mHasIncomingCall + "," +
-                    mInCallScreenFinished);
-            return;
-        }
+
         mHDMIName = newName;
         mPreAudioRoute = mAudioRoute;
         mAudioRoute = newState;
