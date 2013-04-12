@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010 The Android Open Source Project
+ * Copyright (c) 2012-2013, Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,6 +75,7 @@ MultiDisplayComposer::MultiDisplayComposer() {
     mScaleMode = 0;
     mScaleStepX = 0;
     mScaleStepY = 0;
+    mConnectStatus = 0;
 
     // Default value
     mDisplayCapability = MDS_HW_SUPPORT_WIDI;
@@ -178,6 +179,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
     if (connectStatus == DRM_DVI_CONNECTED) {
         LOGE("%s: DVI is connected but is not supported for now.", __func__);
         broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
+        mConnectStatus = connectStatus;
         return MDS_ERROR;
     }
 #endif
@@ -199,6 +201,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         if (!checkMode(mMode, MDS_HDMI_CONNECTED)) {
             LOGW("HDMI is already in disconnected state.");
             broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
+            mConnectStatus = connectStatus;
             return MDS_NO_ERROR;
         }
 
@@ -213,6 +216,7 @@ int MultiDisplayComposer::setHdmiMode_l() {
         mMode &= ~MDS_OVERLAY_OFF;
         broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
         drm_hdmi_onHdmiDisconnected();
+        mConnectStatus = connectStatus;
         return MDS_NO_ERROR;
     }
 
@@ -223,6 +227,13 @@ int MultiDisplayComposer::setHdmiMode_l() {
     // Check HDMI policy first
     if (mHdmiPolicy == MDS_HDMI_ON_NOT_ALLOWED) {
         LOGI("HDMI on is not allowed. Turning off HDMI...");
+        if (mConnectStatus != connectStatus &&
+               notify_audio_hotplug && mDrmInit) {
+            // Do not need to notify HDMI audio driver about hotplug during startup.
+            LOGI("Notify HDMI audio drvier hot plug event.");
+            drm_hdmi_notify_audio_hotplug(true);
+            mConnectStatus = connectStatus;
+        }
         if (!checkMode(mMode, MDS_HDMI_ON)) {
             LOGW("HDMI is already in off state.");
             broadcastMessage_l(MDS_MODE_CHANGE, &mMode, sizeof(mMode));
@@ -239,6 +250,8 @@ int MultiDisplayComposer::setHdmiMode_l() {
         drm_hdmi_setHdmiVideoOff();
         return MDS_NO_ERROR;
     }
+    if (mConnectStatus != connectStatus)
+        mConnectStatus = connectStatus;
 
     // Turn off overlay temporarily during mode transition.
     // Make sure overlay is turned on when this function exits.
