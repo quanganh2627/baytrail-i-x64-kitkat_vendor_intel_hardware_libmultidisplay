@@ -29,6 +29,7 @@ enum {
     MDS_NOTIFY_MIPI,
     MDS_NOTIFY_HOTPLUG,
     MDS_HDMI_POWER_OFF,
+    MDS_PREPARE_FOR_VIDEO,
     MDS_UPDATE_VIDEOINFO,
     MDS_GET_HDMIMODE_INFO_COUNT,
     MDS_GET_HDMIMODE_INFO,
@@ -69,7 +70,8 @@ typedef enum _MDSMessageType {
     MDS_MODE_CHANGE = 0x1,
     MDS_ORIENTATION_CHANGE = 0x1 << 1,
     MDS_SET_TIMING = 0x1 << 2,
-    MDS_SET_BACKGROUND_VIDEO_MODE = 0x1 << 3
+    MDS_SET_BACKGROUND_VIDEO_MODE = 0x1 << 3,
+    MDS_SET_VIDEO_STATUS = 0x1 << 4,
 } MDSMessageType;
 
 typedef enum _MDSMode {
@@ -91,12 +93,19 @@ enum {
     MDS_HDMI_ON_NOT_ALLOWED  = 0,
     MDS_HDMI_ON_ALLOWED      = 1,
     MDS_MIPI_OFF_NOT_ALLOWED = 2,
-    MDS_MIPI_OFF_ALLOWED     = 3
+    MDS_MIPI_OFF_ALLOWED     = 3,
 };
 
 enum {
     MDS_HW_SUPPORT_HDMI = 0x1,
     MDS_HW_SUPPORT_WIDI = (0x1 << 1),
+};
+
+enum {
+    MDS_VIDEO_PREPARING   = 1,
+    MDS_VIDEO_PREPARED    = 2,
+    MDS_VIDEO_UNPREPARING = 3,
+    MDS_VIDEO_UNPREPARED  = 4,
 };
 
 #define MDS_NO_ERROR (0)

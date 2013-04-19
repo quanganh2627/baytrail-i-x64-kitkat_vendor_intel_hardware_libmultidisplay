@@ -77,6 +77,11 @@ int MultiDisplayClient::isMdsSurface(int* nw) {
     return mIMDComposer->isMdsSurface(nw);
 }
 
+int MultiDisplayClient::prepareForVideo(int status) {
+    MDC_CHECK_IMDC();
+    return mIMDComposer->prepareForVideo(status);
+}
+
 int MultiDisplayClient::updateVideoInfo(MDSVideoInfo* info) {
     MDC_CHECK_IMDC();
     return mIMDComposer->updateVideoInfo(info);
