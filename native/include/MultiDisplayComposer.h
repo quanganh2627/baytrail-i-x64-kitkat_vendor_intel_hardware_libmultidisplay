@@ -74,6 +74,7 @@ public:
     int isMdsSurface(int* nw);
     int notifyHotPlug();
     int setHdmiPowerOff();
+    int prepareForVideo(int);
     int updateVideoInfo(MDSVideoInfo*);
 
     int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);

@@ -86,6 +86,19 @@ public:
      */
     int getMode(bool wait);
     /*
+     *  prepare video playback info
+     * param:
+     *      status:
+     *           MDS_VIDEO_PREPARING:  video is preparing
+     *           MDS_VIDEO_PREPARED:   video is prepared
+     *           MDS_VIDEO_UNPREPARING:video is unpreparing
+     *           MDS_VIDEO_UNPREPARED: video is unprepared
+     * return:
+     *       0: on success
+     *     !=0: on failure
+     */
+    int prepareForVideo(int status);
+    /*
      * update video playback info
      * param: struct MDSVideoInfo
      * return:

@@ -68,6 +68,14 @@ int BpMultiDisplayComposer::isMdsSurface(int* nw) {
     return reply.readInt32();
 }
 
+int BpMultiDisplayComposer::prepareForVideo(int status) {
+    Parcel data, reply;
+    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+    data.writeInt32(status);
+    remote()->transact(MDS_PREPARE_FOR_VIDEO, data, &reply);
+    return reply.readInt32();
+}
+
 int BpMultiDisplayComposer::updateVideoInfo(MDSVideoInfo* info) {
     Parcel data, reply;
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
@@ -281,6 +289,12 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
     case MDS_NOTIFY_WIDI: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
         reply->writeInt32(notifyWidi((data.readInt32() == 1 ? true : false)));
+        return NO_ERROR;
+    }
+    break;
+    case MDS_PREPARE_FOR_VIDEO: {
+        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+        reply->writeInt32(prepareForVideo(data.readInt32()));
         return NO_ERROR;
     }
     break;
