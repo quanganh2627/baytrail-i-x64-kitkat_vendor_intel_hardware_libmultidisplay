@@ -277,14 +277,15 @@ int MultiDisplayComposer::setHdmiMode_l() {
             return MDS_NO_ERROR;
         }
         broadcastMessage_l(MDS_MODE_CHANGE, &transitionalMode, sizeof(transitionalMode));
-
-        timing.width = mVideo.displayW;
-        timing.height = mVideo.displayH;
-        timing.refresh = mVideo.frameRate;
-        timing.interlace = 0;
-        timing.ratio = 0;
-        drm_hdmi_getTiming(DRM_HDMI_VIDEO_EXT, &timing);
-        setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
+        if (isHdmiTimingDynamicSettingEnable_l()) {
+            timing.width = mVideo.displayW;
+            timing.height = mVideo.displayH;
+            timing.refresh = mVideo.frameRate;
+            timing.interlace = 0;
+            timing.ratio = 0;
+            drm_hdmi_getTiming(DRM_HDMI_VIDEO_EXT, &timing);
+            setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
+        }
 
         if ((mVideo.isprotected) || mHdcpStatus) {
             LOGI("Turning on HDCP...");
@@ -562,7 +563,7 @@ int MultiDisplayComposer::setDisplayScalingLocked(uint32_t mode,
     scale = mode | stepx << 16 | stepy << 24;
     data.writeInterfaceToken(token);
     data.writeInt32(scale);
-    mSurfaceComposer->transact(1014, data, &reply);
+    mSurfaceComposer->transact(SCALING_SETTING, data, &reply);
     return reply.readInt32();
 }
 
@@ -703,4 +704,23 @@ int MultiDisplayComposer::setHdcpStatus(int value) {
     LOGV("%s: HDCP Status: %d", __func__, value);
     mHdcpStatus = value;
     return MDS_NO_ERROR;
+}
+
+bool MultiDisplayComposer::isHdmiTimingDynamicSettingEnable_l(){
+    if (mSurfaceComposer == NULL) {
+        const sp<IServiceManager> sm = defaultServiceManager();
+        const String16 name("SurfaceFlinger");
+        mSurfaceComposer = sm->getService(name);
+        if (mSurfaceComposer == NULL) {
+            return true;
+        }
+    }
+
+    Parcel data, reply;
+    const String16 token("android.ui.ISurfaceComposer");
+    data.writeInterfaceToken(token);
+    mSurfaceComposer->transact(PRESENTATION_MODE_CHECKING, data, &reply);
+    int ret = reply.readInt32();
+    ALOGI("%s: %s to enable HDMI Timing dynamic setting", __func__, (ret ? "Don't need" : "Need"));
+    return (ret ? false : true);
 }

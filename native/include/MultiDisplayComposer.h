@@ -100,6 +100,11 @@ private:
         MIPI_OFF_REQ = 0,  // Turn off mipi request
         MIPI_ON_REQ  = 1,  // Turn on mipi request
     };
+    // Refer same definitions in SurfaceFlinger
+    enum {
+        SCALING_SETTING = 1014,
+        PRESENTATION_MODE_CHECKING = 1015,
+    };
 
     bool mDrmInit;
     int mMode;
@@ -147,6 +152,7 @@ private:
     }
 
     static int widi_rm_notifier_handler(void* cookie, int cmd, int data);
+    bool isHdmiTimingDynamicSettingEnable_l();
 };
 
 
