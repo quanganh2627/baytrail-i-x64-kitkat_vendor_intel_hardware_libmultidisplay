@@ -1,11 +1,9 @@
 # Author: tianyang.zhu@intel.com
 
+ifeq ($(TARGET_BOARD_PLATFORM),baytrail)
+
 LOCAL_PATH:= $(call my-dir)
 
-include $(call all-subdir-makefiles)
-include $(CLEAR_VARS)
-
-ifneq ($(TARGET_BOARD_PLATFORM),baytrail)
 ifeq ($(TARGET_HAS_MULTIPLE_DISPLAY),true)
 
 include $(CLEAR_VARS)
@@ -35,22 +33,18 @@ LOCAL_SHARED_LIBRARIES := \
     libui libcutils libutils libbinder libgui libstagefright_foundation
 LOCAL_CFLAGS := -DLOG_TAG=\"MultiDisplay\"
 
-ifeq ($(ENABLE_IMG_GRAPHICS),true)
+ifeq ($(ENABLE_GEN_GRAPHICS),true)
     LOCAL_SRC_FILES += \
-        native/drm_hdmi.c
+        native/drm_hdmi.cpp
 
     LOCAL_C_INCLUDES = \
         $(TARGET_OUT_HEADERS)/libdrm \
-        $(TARGET_OUT_HEADERS)/pvr/pvr2d \
-        $(TARGET_OUT_HEADERS)/libttm \
-        $(TOP)/$(KERNEL_SRC_DIR)/drivers/staging/intel_media/common
+		$(TOP)/external/PRIVATE/drm
 
     LOCAL_SHARED_LIBRARIES += \
          libdrm
 
-    LOCAL_CFLAGS += -DENABLE_DRM
-    LOCAL_CFLAGS += -DDVI_SUPPORTED
-    LOCAL_SHARED_LIBRARIES += libdl
+    LOCAL_CFLAGS += -DDVI_SUPPORTED -DVPG_DRM
 endif
 
 ifeq ($(ENABLE_HDCP),true)
