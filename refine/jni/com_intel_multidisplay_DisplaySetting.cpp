@@ -20,13 +20,17 @@
 #include "JNIHelp.h"
 #include "jni.h"
 #include <android_runtime/AndroidRuntime.h>
+
 #include <utils/Log.h>
+#include <utils/Errors.h>
 #include <utils/threads.h>
+
 #include <binder/Parcel.h>
 #include <binder/ProcessState.h>
 #include <binder/IServiceManager.h>
+
 #include <display/MultiDisplayClient.h>
-#include <display/IExtendDisplayListener.h>
+#include <display/IMultiDisplayListener.h>
 
 namespace android {
 
@@ -36,12 +40,12 @@ static MultiDisplayClient* gMDClient = NULL;
 static Mutex gMutex;
 
 
-class JNIMDSListener : public BnExtendDisplayListener
+class JNIMDSListener : public BnMultiDisplayListener
 {
 public:
     JNIMDSListener(JNIEnv* env, jobject thiz, jobject serviceObj);
     ~JNIMDSListener();
-    int onMdsMessage(int msg, void* value, int size);
+    status_t onMdsMessage(MDS_MESSAGE msg, void* value, int size);
 
 private:
     JNIMDSListener(); // private constructor
@@ -78,24 +82,25 @@ JNIMDSListener::~JNIMDSListener() {
     }
 }
 
-int JNIMDSListener::onMdsMessage(int msg, void* value, int size)
+status_t JNIMDSListener::onMdsMessage(MDS_MESSAGE msg, void* value, int size)
 {
     LOGD("Entering %s", __func__);
 
     JNIEnv *env = AndroidRuntime::getJNIEnv();
     if (env == NULL) {
         LOGE("%s: Faild to get JNI Env.", __func__);
-        return MDS_ERROR;
+        return NO_INIT;
     }
 
     if (!mServiceObj || !mOnMdsMessageMethodID) {
         LOGE("%s: Invalid service object or method ID", __func__);
-        return MDS_ERROR;
+        return NO_INIT;
     }
 
-    if (msg == MDS_MODE_CHANGE && size == sizeof(int)) {
+    if (msg == MDS_MSG_MODE_CHANGE ||
+        msg == MDS_MSG_HOT_PLUG) {
         LOGD("%s: Get message from MDS, %d, 0x%x", __func__, msg, *((int*)value));
-        env->CallVoidMethod(mServiceObj, mOnMdsMessageMethodID, msg, *((int*)value));
+        env->CallVoidMethod(mServiceObj, mOnMdsMessageMethodID, (int)msg, *((int*)value));
     }
 
     if (env->ExceptionCheck()) {
@@ -104,7 +109,7 @@ int JNIMDSListener::onMdsMessage(int msg, void* value, int size)
     }
 
     LOGD("Leaving %s", __func__);
-    return MDS_NO_ERROR;
+    return NO_ERROR;
 }
 
 static jboolean MDS_InitMDSClient(JNIEnv* env, jobject thiz, jobject serviceObj)
@@ -135,7 +140,8 @@ static jboolean MDS_InitMDSClient(JNIEnv* env, jobject thiz, jobject serviceObj)
         return false;
     }
 
-    gMDClient->registerListener(gListener, "DisplaySetting", MDS_MODE_CHANGE);
+    gMDClient->registerListener(gListener, "DisplaySetting",
+            (MDS_MESSAGE)(MDS_MSG_MODE_CHANGE | MDS_MSG_HOT_PLUG));
     return true;
 }
 
@@ -159,6 +165,7 @@ static jint MDS_getMode(JNIEnv* env, jobject obj)
     return gMDClient->getDisplayMode(true);
 }
 
+/*
 static jboolean MDS_setModePolicy(JNIEnv* env, jobject obj, jint policy)
 {
     if (gMDClient == NULL) return false;
@@ -182,6 +189,7 @@ static jboolean MDS_setHdmiPowerOff(JNIEnv* env, jobject obj)
     int ret = gMDClient->setHdmiPowerOff();
     return (ret == 0 ? true : false);
 }
+*/
 
 static jint MDS_getHdmiTiming(
     JNIEnv* env,
@@ -199,7 +207,22 @@ static jint MDS_getHdmiTiming(
     int32_t* pRefresh = env->GetIntArrayElements(refresh, NULL);
     int32_t* pInterlace = env->GetIntArrayElements(interlace, NULL);
     int32_t* pRatio = env->GetIntArrayElements(ratio, NULL);
-    jint iCount = gMDClient->getHdmiModeInfo(pWidth, pHeight, pRefresh, pInterlace, pRatio);
+    // The total supported timing count
+    jint iCount = gMDClient->getDisplayTimingCount(MDS_DISPLAY_EXTERNAL);
+
+    if (iCount > 0) {
+        jint i;
+        MDSDisplayTiming list[iCount];
+        gMDClient->getDisplayTimingList(MDS_DISPLAY_EXTERNAL, &list[0]);
+        for (i = 0; i < iCount; i++) {
+            pRatio[i]     = list[i].ratio;
+            pWidth[i]     = list[i].width;
+            pHeight[i]    = list[i].height;
+            pRefresh[i]   = list[i].refresh;
+            pInterlace[i] = list[i].interlace;
+        }
+    }
+
     env->ReleaseIntArrayElements(width, pWidth, 0);
     env->ReleaseIntArrayElements(height, pHeight, 0);
     env->ReleaseIntArrayElements(refresh, pRefresh, 0);
@@ -219,50 +242,64 @@ static jboolean MDS_setHdmiTiming(
 {
     if (gMDClient == NULL) return false;
     AutoMutex _l(gMutex);
-    int ret = gMDClient->setHdmiModeInfo(width, height, refresh, interlace, ratio);
-    return (ret == MDS_NO_ERROR ? true : false);
+
+    MDSDisplayTiming timing;
+    timing.ratio = ratio;
+    timing.width = width;
+    timing.height = height;
+    timing.refresh = refresh;
+    timing.interlace = interlace;
+
+    status_t ret = gMDClient->setDisplayTiming(MDS_DISPLAY_EXTERNAL, &timing);
+    return (ret == NO_ERROR ? true : false);
 }
 
 static jint MDS_getHdmiInfoCount(JNIEnv* env, jobject obj)
 {
     if (gMDClient == NULL) return 0;
     AutoMutex _l(gMutex);
-    return gMDClient->getHdmiModeInfo(NULL,NULL, NULL, NULL, NULL);
+    return gMDClient->getDisplayTimingCount(MDS_DISPLAY_EXTERNAL);
 }
 
-static jboolean MDS_HdmiScaleType(JNIEnv* env, jobject obj,jint Type)
+static jboolean MDS_HdmiScaleType(JNIEnv* env, jobject obj, jint type)
 {
     if (gMDClient == NULL) return false;
     AutoMutex _l(gMutex);
-    return gMDClient->setHdmiScaleType(Type);
+
+    status_t ret = gMDClient->setScalingType(
+            MDS_DISPLAY_EXTERNAL, (MDS_SCALING_TYPE)type);
+    return (ret == NO_ERROR ? true : false);
 }
 
-static jboolean MDS_HdmiScaleStep(JNIEnv* env, jobject obj,jint hValue,jint vValue)
+static jboolean MDS_HdmiOverscan(JNIEnv* env, jobject obj,jint hValue,jint vValue)
 {
     if (gMDClient == NULL) return false;
     AutoMutex _l(gMutex);
-    return gMDClient->setHdmiScaleStep(hValue,vValue);
+    status_t ret = gMDClient->setOverscan(
+            MDS_DISPLAY_EXTERNAL, hValue, vValue);
+    return (ret == NO_ERROR ? true : false);
 }
 
 static jint MDS_getHdmiDeviceChange(JNIEnv* env, jobject obj)
 {
     if (gMDClient == NULL) return 0;
     AutoMutex _l(gMutex);
-    return gMDClient->getHdmiDeviceChange();
+    bool ret = gMDClient->getDisplayDeviceChange(MDS_DISPLAY_EXTERNAL);
+    return ret ? 1 : 0;
 }
 
 static jint MDS_getDisplayCapability(JNIEnv* env, jobject obj)
 {
     if (gMDClient == NULL) return 0;
     AutoMutex _l(gMutex);
-    return gMDClient->getDisplayCapability();
+    return gMDClient->getPlatformCapability();
 }
 
-static jint MDS_setPlayInBackground(JNIEnv* env, jobject thiz, jboolean value, jint playerId)
+static jint MDS_setPhoneState(JNIEnv* env, jobject obj, jint state)
 {
     if (gMDClient == NULL) return 0;
     AutoMutex _l(gMutex);
-    return gMDClient->setPlayInBackground(value, playerId);
+    return gMDClient->setPhoneState((MDS_PHONE_STATE)state);
 }
 
 static JNINativeMethod sMethods[] = {
@@ -270,17 +307,17 @@ static JNINativeMethod sMethods[] = {
     {"native_InitMDSClient", "(Lcom/intel/multidisplay/DisplaySetting;)Z", (void*)MDS_InitMDSClient},
     {"native_DeInitMDSClient", "()Z", (void*)MDS_DeInitMDSClient},
     {"native_getMode", "()I", (void*)MDS_getMode},
-    {"native_setModePolicy", "(I)Z", (void*)MDS_setModePolicy},
-    {"native_notifyHotPlug", "()Z", (void*)MDS_notifyHotPlug},
-    {"native_setHdmiPowerOff", "()Z", (void*)MDS_setHdmiPowerOff},
+    // {"native_setModePolicy", "(I)Z", (void*)MDS_setModePolicy},
+    // {"native_notifyHotPlug", "()Z", (void*)MDS_notifyHotPlug},
+    // {"native_setHdmiPowerOff", "()Z", (void*)MDS_setHdmiPowerOff},
     {"native_setHdmiTiming", "(IIIII)Z", (void*)MDS_setHdmiTiming},
     {"native_getHdmiTiming", "([I[I[I[I[I)I", (void*)MDS_getHdmiTiming},
     {"native_getHdmiInfoCount", "()I", (void*)MDS_getHdmiInfoCount},
     {"native_setHdmiScaleType", "(I)Z", (void*)MDS_HdmiScaleType},
-    {"native_setHdmiScaleStep", "(II)Z", (void*)MDS_HdmiScaleStep},
+    {"native_setHdmiOverscan", "(II)Z", (void*)MDS_HdmiOverscan},
     {"native_getHdmiDeviceChange", "()I", (void*)MDS_getHdmiDeviceChange},
     {"native_getDisplayCapability", "()I", (void*)MDS_getDisplayCapability},
-    {"native_setPlayInBackground", "(ZI)I", (void*)MDS_setPlayInBackground},
+    {"native_setPhoneState", "(I)I", (void*)MDS_setPhoneState},
 };
 
 

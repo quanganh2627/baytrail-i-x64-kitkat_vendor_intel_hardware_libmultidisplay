@@ -84,7 +84,7 @@ public:
      *     !=MDS_ERROR: on success
      *      =MDS_ERROR: on failure
      */
-    int getMode(bool wait);
+    int getDisplayMode(bool wait);
     /*
      *  prepare video playback info
      * param:
@@ -97,15 +97,15 @@ public:
      *       0: on success
      *     !=0: on failure
      */
-    int prepareForVideo(int status);
+    int setVideoState(int status);
     /*
      * update video playback info
-     * param: struct MDSVideoInfo
+     * param: struct MDSVideoSourceInfo
      * return:
      *       0: on success
      *     !=0: on failure
      */
-    int updateVideoInfo(MDSVideoInfo* info);
+    int setVideoSourceInfo(MDSVideoSourceInfo* info);
     /*
      * notify HDMI is plugged in/off
      * param:

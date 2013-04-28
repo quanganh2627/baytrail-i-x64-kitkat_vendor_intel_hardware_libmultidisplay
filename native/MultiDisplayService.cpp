@@ -75,7 +75,7 @@ int MultiDisplayService::prepareForVideo(int status) {
     return mMDC->prepareForVideo(status);
 }
 
-int MultiDisplayService::updateVideoInfo(MDSVideoInfo* info) {
+int MultiDisplayService::updateVideoInfo(MDSVideoSourceInfo* info) {
     MDS_CHECK_MDS();
     return mMDC->updateVideoInfo(info);
 }

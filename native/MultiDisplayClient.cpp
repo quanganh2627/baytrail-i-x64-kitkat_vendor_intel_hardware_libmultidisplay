@@ -57,7 +57,7 @@ int MultiDisplayClient::setModePolicy(int policy) {
     return mIMDComposer->setModePolicy(policy);
 }
 
-int MultiDisplayClient::getMode(bool wait) {
+int MultiDisplayClient::getDisplayMode(bool wait) {
     MDC_CHECK_IMDC();
     return mIMDComposer->getMode(wait);
 }
@@ -77,12 +77,12 @@ int MultiDisplayClient::isMdsSurface(int* nw) {
     return mIMDComposer->isMdsSurface(nw);
 }
 
-int MultiDisplayClient::prepareForVideo(int status) {
+int MultiDisplayClient::setVideoState(int status) {
     MDC_CHECK_IMDC();
     return mIMDComposer->prepareForVideo(status);
 }
 
-int MultiDisplayClient::updateVideoInfo(MDSVideoInfo* info) {
+int MultiDisplayClient::setVideoSourceInfo(MDSVideoSourceInfo* info) {
     MDC_CHECK_IMDC();
     return mIMDComposer->updateVideoInfo(info);
 }

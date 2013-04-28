@@ -63,7 +63,7 @@ MultiDisplayComposer::MultiDisplayComposer() {
     mMode = 0;
     mMipiPolicy = MDS_MIPI_OFF_NOT_ALLOWED;
     mHdmiPolicy = MDS_HDMI_ON_ALLOWED;
-    memset((void*)(&mVideo), 0, sizeof(MDSVideoInfo));
+    memset((void*)(&mVideo), 0, sizeof(MDSVideoSourceInfo));
     mMipiOn = true;
     mWidiVideoExt = false;
     mMipiReq = NO_MIPI_REQ;
@@ -97,7 +97,7 @@ int MultiDisplayComposer::getMode(bool wait) {
     else {
         if (mLock.tryLock() == -EBUSY) {
             //LOGW("%s: couldn't hold lock", __func__);
-            return MDS_ERROR;
+            return MDS_MODE_NONE;
         }
     }
     int mode = mMode;
@@ -147,7 +147,7 @@ int MultiDisplayComposer::prepareForVideo(int status) {
     return MDS_NO_ERROR;
 }
 
-int MultiDisplayComposer::updateVideoInfo(MDSVideoInfo* info) {
+int MultiDisplayComposer::updateVideoInfo(MDSVideoSourceInfo* info) {
     MDC_CHECK_INIT();
     if (info == NULL) {
         LOGE("%s: video info is null", __func__);
@@ -165,7 +165,7 @@ int MultiDisplayComposer::updateVideoInfo(MDSVideoInfo* info) {
         __func__, mMode, info->isplaying, info->isprotected,
         info->displayW, info->displayH, info->frameRate, info->isinterlace);
 
-    memcpy(&mVideo, info, sizeof(MDSVideoInfo));
+    memcpy(&mVideo, info, sizeof(MDSVideoSourceInfo));
 
     return setHdmiMode_l();
 }

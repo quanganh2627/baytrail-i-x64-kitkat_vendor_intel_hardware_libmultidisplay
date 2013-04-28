@@ -56,7 +56,7 @@ typedef struct _MDSVideoInfo {
     int  displayW;
     int  displayH;
     bool isinterlace;
-} MDSVideoInfo;
+} MDSVideoSourceInfo;
 
 typedef struct _MDSHDMITiming {
     unsigned int    refresh;
@@ -75,6 +75,7 @@ typedef enum _MDSMessageType {
 } MDSMessageType;
 
 typedef enum _MDSMode {
+    MDS_MODE_NONE      = 0,
     MDS_MIPI_ON        = 0x1,
 
     MDS_DVI_CONNECTED  = 0x1 << 1,
@@ -101,12 +102,12 @@ enum {
     MDS_HW_SUPPORT_WIDI = (0x1 << 1),
 };
 
-enum {
+typedef enum {
     MDS_VIDEO_PREPARING   = 1,
     MDS_VIDEO_PREPARED    = 2,
     MDS_VIDEO_UNPREPARING = 3,
     MDS_VIDEO_UNPREPARED  = 4,
-};
+} MDS_VIDEO_STATE;
 
 #define MDS_NO_ERROR (0)
 #define MDS_ERROR    (-1)
