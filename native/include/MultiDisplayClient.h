@@ -222,17 +222,6 @@ public:
      *    !=0: on success
      */
     int setPlayInBackground(bool on, int playerId);
-
-    /*
-     * Set Hdmi Hdcp enable/disable
-     * input param:
-     *    HDCP enable/disable status
-     * return:
-     *    MDS_ERROR: on error
-     *    !=0: on success
-     */
-    int setHdcpStatus(int value);
-
 };
 
 #endif
