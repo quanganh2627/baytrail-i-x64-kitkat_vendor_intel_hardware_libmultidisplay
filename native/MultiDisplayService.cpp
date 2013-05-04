@@ -70,6 +70,11 @@ int MultiDisplayService::isMdsSurface(int* nw) {
     return mMDC->isMdsSurface(nw);
 }
 
+int MultiDisplayService::prepareForVideo(int status) {
+    MDS_CHECK_MDS();
+    return mMDC->prepareForVideo(status);
+}
+
 int MultiDisplayService::updateVideoInfo(MDSVideoInfo* info) {
     MDS_CHECK_MDS();
     return mMDC->updateVideoInfo(info);

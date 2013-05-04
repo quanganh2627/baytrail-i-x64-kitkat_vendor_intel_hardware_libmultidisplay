@@ -74,6 +74,7 @@ public:
     int isMdsSurface(int* nw);
     int notifyHotPlug();
     int setHdmiPowerOff();
+    int prepareForVideo(int);
     int updateVideoInfo(MDSVideoInfo*);
 
     int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);
@@ -98,6 +99,11 @@ private:
         NO_MIPI_REQ  = -1, // No mipi op request (default)
         MIPI_OFF_REQ = 0,  // Turn off mipi request
         MIPI_ON_REQ  = 1,  // Turn on mipi request
+    };
+    // Refer same definitions in SurfaceFlinger
+    enum {
+        SCALING_SETTING = 1014,
+        PRESENTATION_MODE_CHECKING = 1015,
     };
 
     bool mDrmInit;
@@ -146,6 +152,7 @@ private:
     }
 
     static int widi_rm_notifier_handler(void* cookie, int cmd, int data);
+    bool isHdmiTimingDynamicSettingEnable_l();
 };
 
 
