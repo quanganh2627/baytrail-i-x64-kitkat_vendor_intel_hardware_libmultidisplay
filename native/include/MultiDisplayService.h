@@ -47,6 +47,7 @@ public:
     int setModePolicy(int);
     int notifyHotPlug();
     int setHdmiPowerOff();
+    int prepareForVideo(int);
     int updateVideoInfo(MDSVideoInfo*);
 
     int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);

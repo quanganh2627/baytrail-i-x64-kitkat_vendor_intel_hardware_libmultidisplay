@@ -137,6 +137,14 @@ int MultiDisplayComposer::setHdmiPowerOff() {
     return MDS_NO_ERROR;
 }
 
+int MultiDisplayComposer::prepareForVideo(int status) {
+    MDC_CHECK_INIT();
+    Mutex::Autolock _l(mLock);
+    LOGV("%s: Video preparing status %d", __func__, status);
+    broadcastMessage_l(MDS_SET_VIDEO_STATUS, &status, sizeof(status));
+    return MDS_NO_ERROR;
+}
+
 int MultiDisplayComposer::updateVideoInfo(MDSVideoInfo* info) {
     MDC_CHECK_INIT();
     if (info == NULL) {
