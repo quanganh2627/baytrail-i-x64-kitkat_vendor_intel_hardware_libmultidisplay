@@ -151,5 +151,9 @@ public class DisplaySetting {
     public int setPlayInBackground(boolean enablePlayInBackground, int playerId) {
         return native_setPlayInBackground(enablePlayInBackground, playerId);
     }
+
+    public int setHdcpStatus(int value) {
+        return native_setHdcpStatus(value);
+    }
 }
 

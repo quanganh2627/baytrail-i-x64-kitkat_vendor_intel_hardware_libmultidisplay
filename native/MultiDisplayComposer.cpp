@@ -70,6 +70,7 @@ MultiDisplayComposer::MultiDisplayComposer() {
     mEnablePlayInBackground = false;
     mBackgroundPlayerId = 0;
     mNativeSurface = NULL;
+    mHdcpStatus = 0;
     mSurfaceComposer = NULL;
     mScaleMode = 0;
     mScaleStepX = 0;
@@ -689,4 +690,12 @@ int MultiDisplayComposer::isPlayInBackgroundEnabled() {
 int MultiDisplayComposer::getBackgroundPlayerId() {
     Mutex::Autolock _l(mBackgroundPlayLock);
     return mBackgroundPlayerId;
+}
+
+int MultiDisplayComposer::setHdcpStatus(int value) {
+    MDC_CHECK_INIT();
+    Mutex::Autolock _l(mLock);
+    LOGV("%s: HDCP Status: %d", __func__, value);
+    mHdcpStatus = value;
+    return MDS_NO_ERROR;
 }
