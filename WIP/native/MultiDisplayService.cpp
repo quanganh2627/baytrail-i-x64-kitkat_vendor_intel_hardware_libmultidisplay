@@ -160,4 +160,10 @@ int MultiDisplayService::getBackgroundPlayerId() {
     MDS_CHECK_MDS();
     return mMDC->getBackgroundPlayerId();
 }
+
+int MultiDisplayService::setHdcpStatus(int value) {
+    MDS_CHECK_MDS();
+    return mMDC->setHdcpStatus(value);
+}
+
 }

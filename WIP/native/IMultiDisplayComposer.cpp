@@ -252,6 +252,15 @@ int BpMultiDisplayComposer::getBackgroundPlayerId() {
     return reply.readInt32();
 }
 
+int BpMultiDisplayComposer::setHdcpStatus(int Value) {
+    Parcel data, reply;
+    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+    data.writeInt32(Value);
+    remote()->transact(MDS_SET_HDMIHDCP, data, &reply);
+    return reply.readInt32();
+}
+
+
 IMPLEMENT_META_INTERFACE(MultiDisplayComposer,"com.intel.IMultiDisplayComposer");
 
 status_t BnMultiDisplayComposer::onTransact(uint32_t code,
@@ -465,6 +474,15 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
     case MDS_GET_BACKGROUNDPLAYER_ID: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
         int ret = getBackgroundPlayerId();
+        reply->writeInt32(ret);
+        return NO_ERROR;
+    }
+
+    case MDS_SET_HDMIHDCP: {
+        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+        int value;
+        value = data.readInt32();
+        int ret = setHdcpStatus(value);
         reply->writeInt32(ret);
         return NO_ERROR;
     }

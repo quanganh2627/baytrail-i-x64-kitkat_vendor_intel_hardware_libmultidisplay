@@ -400,3 +400,5 @@ bool drm_hdcp_enable_hdcp()
     // Return success as HDCP authentication failure may be recoverable.
     return ret;
 }
+
+

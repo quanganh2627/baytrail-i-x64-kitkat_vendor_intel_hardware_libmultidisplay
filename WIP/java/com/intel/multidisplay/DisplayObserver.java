@@ -45,7 +45,7 @@ import com.intel.multidisplay.DisplaySetting;
 /**
  * <p>DisplayObserver.
  */
-public class DisplayObserver extends UEventObserver {
+public class DisplayObserver {
     private static final String TAG = "MultiDisplay";
     private static final boolean LOG = true;
 
@@ -89,6 +89,7 @@ public class DisplayObserver extends UEventObserver {
     private static final String HDMI_Get_DisplayBoot = "android.hdmi.GET_HDMI_Boot";
     private static final String HDMI_Set_DisplayBoot = "HdmiObserver.SET_HDMI_Boot";
     private static final String SET_PLAY_IN_BACKGROUND = "android.mds.SET_PLAY_IN_BACKGROUND";
+    private static final String HDMI_SET_HDCP = "HdmiObserver.SET_HDMI_HDCP";
 
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
@@ -103,13 +104,14 @@ public class DisplayObserver extends UEventObserver {
         intentFilter.addAction(HDMI_SET_STEP_SCALE);
         intentFilter.addAction(HDMI_Get_DisplayBoot);
         intentFilter.addAction(SET_PLAY_IN_BACKGROUND);
+        intentFilter.addAction(HDMI_SET_HDCP);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DisplayObserver");
         mWakeLock.setReferenceCounted(false);
         mDs.setMdsMessageListener(mListener);
-        startObserving(HDMI_UEVENT_MATCH);
+        //startObserving(HDMI_UEVENT_MATCH);
         mDisplayCapability = mDs.getDisplayCapability();
         if (checkDisplayCapability(mDs.HW_SUPPORT_HDMI) &&
                 ((mDs.getMode() & mDs.HDMI_MODE_BIT) == mDs.HDMI_MODE_BIT)) {
@@ -153,12 +155,24 @@ public class DisplayObserver extends UEventObserver {
                 if (mContext != null)
                     mContext.sendBroadcast(intent);
                 logv("Request landscape:" + isExtMode);
+
+                boolean isHdmiConnected = (mMdsMode & mDs.HDMI_CONNECT_STATUS_BIT) != 0;
+                int delay = 0;
+                if (isHdmiConnected) {
+                    delay = 0;
+                    mHDMIPlugEvent = 1;
+                } else {
+                    delay = 200;
+                    mHDMIPlugEvent = 0;
+                }
+                mHandler.removeMessages(HDMI_HOTPLUG);
+                mHandler.sendMessageDelayed(mHandler.obtainMessage(HDMI_HOTPLUG, mHDMIPlugEvent, 0), delay);
             }
             return true;
         };
     };
 
-    @Override
+    /*@Override
     public synchronized void onUEvent(UEventObserver.UEvent event) {
         if (event.toString().contains("HOTPLUG")) {
             logv("HDMI UEVENT: " + event.toString());
@@ -175,7 +189,7 @@ public class DisplayObserver extends UEventObserver {
             Message msg = mHandler.obtainMessage(HDMI_HOTPLUG, mHDMIPlugEvent, 0);
             mHandler.sendMessageDelayed(msg, delay);
         }
-    }
+    }*/
 
     private synchronized void update(String newName, int newState) {
         // Retain only relevant bits
@@ -273,11 +287,11 @@ public class DisplayObserver extends UEventObserver {
 
                     preNotifyHotplug(msg.arg1);
 
-                    boolean ret = mDs.notifyHotPlug();
+                    /*boolean ret = mDs.notifyHotPlug();
                     if (!ret) {
                         logv("fail to deal with hdmi hotlpug");
                         return;
-                    }
+                    }*/
 
                     postNotifyHotplug(msg.arg1);
                 }
@@ -420,6 +434,14 @@ public class DisplayObserver extends UEventObserver {
                 logv("PlayInBackground " + enablePlayInBackground);
                 logv("NativePlayerId " + playerId);
                 mDs.setPlayInBackground(enablePlayInBackground, playerId);
+            }
+            else if (action.equals(HDMI_SET_HDCP)) {
+                Bundle extras = intent.getExtras();
+                if (extras == null)
+                    return;
+                int HdcpStatus = extras.getInt("Status", 0);
+                logv("HDMI_SET_HDCP_STATUS,EnableHdcp: " +	HdcpStatus);
+                mDs.setHdcpStatus(HdcpStatus);
             }
         }
     }

@@ -64,6 +64,7 @@ public:
     int setNativeSurface(int* surface);
     int isPlayInBackgroundEnabled();
     int getBackgroundPlayerId();
+    int setHdcpStatus(int value);
 };
 }; // namespace android
 #endif
