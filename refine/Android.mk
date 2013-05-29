@@ -41,7 +41,7 @@ ifeq ($(ENABLE_IMG_GRAPHICS),true)
         $(TARGET_OUT_HEADERS)/libdrm \
         $(TARGET_OUT_HEADERS)/pvr/pvr2d \
         $(TARGET_OUT_HEADERS)/libttm \
-        $(TOP)/$(KERNEL_SRC_DIR)/drivers/staging/intel_media/common
+        $(TOP)/linux/modules/intel_media/common
 
     LOCAL_SHARED_LIBRARIES += \
          libdrm
