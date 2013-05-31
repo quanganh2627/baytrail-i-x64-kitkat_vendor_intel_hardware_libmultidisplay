@@ -156,7 +156,7 @@ static jint MDS_getMode(JNIEnv* env, jobject obj)
 {
     if (gMDClient == NULL) return 0;
     AutoMutex _l(gMutex);
-    return gMDClient->getMode(true);
+    return gMDClient->getDisplayMode(true);
 }
 
 static jboolean MDS_setModePolicy(JNIEnv* env, jobject obj, jint policy)

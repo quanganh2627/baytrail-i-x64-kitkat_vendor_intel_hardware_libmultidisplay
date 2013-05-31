@@ -34,7 +34,7 @@ public:
     virtual int getMode(bool wait) = 0;
     virtual int setModePolicy(int) = 0;
     virtual int prepareForVideo(int) = 0;
-    virtual int updateVideoInfo(MDSVideoInfo*) = 0;
+    virtual int updateVideoInfo(MDSVideoSourceInfo*) = 0;
     virtual int notifyWidi(bool) = 0;
     virtual int notifyMipi(bool) = 0;
     virtual int isMdsSurface(int* nw) = 0;
@@ -64,7 +64,7 @@ public:
     virtual int getMode(bool wait);
     virtual int setModePolicy(int);
     virtual int prepareForVideo(int);
-    virtual int updateVideoInfo(MDSVideoInfo*);
+    virtual int updateVideoInfo(MDSVideoSourceInfo*);
     virtual int notifyWidi(bool);
     virtual int notifyMipi(bool);
     virtual int isMdsSurface(int* nw);

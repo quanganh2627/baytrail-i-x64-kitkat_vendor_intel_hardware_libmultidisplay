@@ -2,26 +2,16 @@
 
 LOCAL_PATH:= $(call my-dir)
 
-#Baytrail
-ifeq ($(TARGET_BOARD_PLATFORM),baytrail)
-include $(LOCAL_PATH)/WIP/Android.mk
-else
-
-#Merrifield
-ifeq ($(INTEL_HWC_MERRIFIELD),true)
-include $(LOCAL_PATH)/refine/Android.mk
-else
-
-#Clovertrail
 ifeq ($(TARGET_HAS_MULTIPLE_DISPLAY),true)
 
 include $(CLEAR_VARS)
 LOCAL_COPY_HEADERS_TO := display
 LOCAL_COPY_HEADERS := \
-    native/include/IExtendDisplayListener.h \
+    native/include/IMultiDisplayListener.h \
+    native/include/IMultiDisplayCallback.h \
     native/include/IMultiDisplayComposer.h \
-    native/include/MultiDisplayClient.h \
     native/include/MultiDisplayComposer.h \
+    native/include/MultiDisplayClient.h \
     native/include/MultiDisplayType.h \
     native/include/MultiDisplayService.h
 
@@ -31,9 +21,10 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES:= \
     native/MultiDisplayService.cpp \
     native/MultiDisplayClient.cpp \
-    native/IMultiDisplayComposer.cpp \
     native/MultiDisplayComposer.cpp \
-    native/IExtendDisplayListener.cpp
+    native/IMultiDisplayListener.cpp \
+    native/IMultiDisplayCallback.cpp \
+    native/IMultiDisplayComposer.cpp
 
 LOCAL_MODULE:= libmultidisplay
 LOCAL_MODULE_TAGS := optional
@@ -58,13 +49,6 @@ ifeq ($(ENABLE_IMG_GRAPHICS),true)
     LOCAL_CFLAGS += -DENABLE_DRM
     LOCAL_CFLAGS += -DDVI_SUPPORTED
     LOCAL_SHARED_LIBRARIES += libdl
-endif
-
-ifeq ($(ENABLE_HDCP),true)
-    LOCAL_SHARED_LIBRARIES += libsepdrm
-    LOCAL_SRC_FILES += native/drm_hdcp.c
-    LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/libspedrm
-    LOCAL_CFLAGS += -DENABLE_HDCP
 endif
 
 include $(BUILD_SHARED_LIBRARY)
@@ -145,6 +129,3 @@ LOCAL_SRC_FILES := $(LOCAL_MODULE)
 include $(BUILD_PREBUILT)
 
 include $(BUILD_DROIDDOC)
-
-endif
-endif

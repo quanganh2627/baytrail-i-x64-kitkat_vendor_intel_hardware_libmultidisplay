@@ -76,7 +76,7 @@ int BpMultiDisplayComposer::prepareForVideo(int status) {
     return reply.readInt32();
 }
 
-int BpMultiDisplayComposer::updateVideoInfo(MDSVideoInfo* info) {
+int BpMultiDisplayComposer::updateVideoInfo(MDSVideoSourceInfo* info) {
     Parcel data, reply;
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
     if (info == NULL) return MDS_ERROR;
@@ -291,7 +291,7 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
     break;
     case MDS_UPDATE_VIDEOINFO: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        MDSVideoInfo info;
+        MDSVideoSourceInfo info;
         info.isplaying = (data.readInt32() == 0 ? false : true);
         info.isprotected = (data.readInt32() == 0 ? false : true);
         info.frameRate = data.readInt32();
