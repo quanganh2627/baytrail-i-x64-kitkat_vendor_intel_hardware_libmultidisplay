@@ -102,12 +102,12 @@ IMPLEMENT_SERVICE_API_1(getDisplayMode,               bool,          MDS_DISPLAY
 IMPLEMENT_SERVICE_API_2(notifyHotPlug,           MDS_DISPLAY_ID,     bool,              status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_2(setDisplayState,         MDS_DISPLAY_ID,     MDS_DISPLAY_STATE, status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_2(setDisplayTiming,        MDS_DISPLAY_ID,     MDSDisplayTiming*, status_t, NO_INIT)
-IMPLEMENT_SERVICE_API_2(getDisplayTimingList,    MDS_DISPLAY_ID,     MDSDisplayTiming*, status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_2(getCurrentDisplayTiming, MDS_DISPLAY_ID,     MDSDisplayTiming*, status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_2(setDisplayTimingByIndex, MDS_DISPLAY_ID,     int,               status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_2(setScalingType,          MDS_DISPLAY_ID,     MDS_SCALING_TYPE,  status_t, NO_INIT)
 
-IMPLEMENT_SERVICE_API_3(setOverscan,      MDS_DISPLAY_ID,       int,   int,              status_t, NO_INIT)
+IMPLEMENT_SERVICE_API_3(setOverscan,             MDS_DISPLAY_ID, int,       int,                status_t, NO_INIT)
+IMPLEMENT_SERVICE_API_3(getDisplayTimingList,    MDS_DISPLAY_ID, const int, MDSDisplayTiming**, status_t, NO_INIT)
 
 IMPLEMENT_SERVICE_API_4(registerListener, sp<IMultiDisplayListener>, void*, const char*, MDS_MESSAGE, status_t, NO_INIT)
 

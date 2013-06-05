@@ -58,7 +58,7 @@ public:
 
     virtual int getDisplayTimingCount(MDS_DISPLAY_ID) = 0;
     virtual status_t setDisplayTiming(MDS_DISPLAY_ID, MDSDisplayTiming*) = 0;
-    virtual status_t getDisplayTimingList(MDS_DISPLAY_ID, MDSDisplayTiming*) = 0;
+    virtual status_t getDisplayTimingList(MDS_DISPLAY_ID, const int, MDSDisplayTiming**) = 0;
     virtual status_t getCurrentDisplayTiming(MDS_DISPLAY_ID, MDSDisplayTiming*) = 0;
     virtual status_t setDisplayTimingByIndex(MDS_DISPLAY_ID, int) = 0;
     virtual int getCurrentDisplayTimingIndex(MDS_DISPLAY_ID) = 0;

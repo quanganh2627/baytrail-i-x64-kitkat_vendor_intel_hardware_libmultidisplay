@@ -85,7 +85,7 @@ public:
 
     status_t setDisplayTiming(MDS_DISPLAY_ID, MDSDisplayTiming*);
     int getDisplayTimingCount(MDS_DISPLAY_ID);
-    status_t getDisplayTimingList(MDS_DISPLAY_ID, MDSDisplayTiming*);
+    status_t getDisplayTimingList(MDS_DISPLAY_ID, const int, MDSDisplayTiming**);
     status_t getCurrentDisplayTiming(MDS_DISPLAY_ID, MDSDisplayTiming*);
     status_t setDisplayTimingByIndex(MDS_DISPLAY_ID, int);
     int getCurrentDisplayTimingIndex(MDS_DISPLAY_ID);
@@ -104,6 +104,8 @@ private:
     MDS_VIDEO_STATE mVideoState;
     MDSVideoSourceInfo mVideoInfo;
     MDS_SCALING_TYPE mScaleType;
+    uint32_t mHorizontalStep;
+    uint32_t mVerticalStep;
 
     sp<IBinder> mSurfaceComposer;
 

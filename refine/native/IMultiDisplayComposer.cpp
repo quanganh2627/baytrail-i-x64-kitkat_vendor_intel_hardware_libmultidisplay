@@ -248,10 +248,28 @@ public:
         return count;
     }
 
-    //TODO
-    virtual status_t getDisplayTimingList(MDS_DISPLAY_ID dpyID, MDSDisplayTiming* timing) {
+    virtual status_t getDisplayTimingList(MDS_DISPLAY_ID dpyId,
+            int timingCount, MDSDisplayTiming** list) {
         Parcel data, reply;
-        return NO_ERROR;
+        data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+        if (list == NULL || timingCount <= 0 || timingCount > HDMI_TIMING_MAX) {
+            return BAD_VALUE;
+        }
+        data.writeInt32(dpyId);
+        data.writeInt32(timingCount);
+        status_t result = remote()->transact(
+                MDS_SERVER_GET_DISPLAY_TIMING_LIST, data, &reply);
+        if (result != NO_ERROR) {
+            return result;
+        }
+        for (int i = 0; i < timingCount; i++) {
+            if (list[i] == NULL)
+                return BAD_VALUE;
+
+            reply.read((void*)list[i], sizeof(MDSDisplayTiming));
+        }
+        result = reply.readInt32();
+        return result;
     }
 
     virtual status_t getCurrentDisplayTiming(
@@ -474,6 +492,30 @@ status_t BnMultiDisplayComposer::onTransact(
             return NO_ERROR;
         } break;
         case MDS_SERVER_GET_DISPLAY_TIMING_LIST: {
+            CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+            MDS_DISPLAY_ID dispId = (MDS_DISPLAY_ID)data.readInt32();
+            const int count = data.readInt32();
+            MDSDisplayTiming *list[count];
+            memset(list, 0, count * sizeof(MDSDisplayTiming *));
+            for (int i = 0; i < count; i++) {
+                list[i] = (MDSDisplayTiming *)malloc(sizeof(MDSDisplayTiming));
+                if (list[i] == NULL) {
+                    for (int j = 0; j < i; j++)
+                        if (list[j]) free(list[j]);
+                    return NO_ERROR;
+                }
+                memset(list[i], 0, sizeof(MDSDisplayTiming));
+            }
+
+            int ret = getDisplayTimingList(
+                    dispId, count, (MDSDisplayTiming **)list);
+
+            for (int i = 0; i < count; i++) {
+                reply->write((const void*)list[i], sizeof(MDSDisplayTiming));
+                free(list[i]);
+                list[i] = NULL;
+            }
+            reply->writeInt32(ret);
         } break;
         case MDS_SERVER_GET_CURRENT_DISPLAY_TIMING: {
             CHECK_INTERFACE(IMultiDisplayComposer, data, reply);

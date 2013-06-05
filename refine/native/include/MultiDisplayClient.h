@@ -142,10 +142,13 @@ public:
     /**
      * @brief Get the timing list of display, only for HDMI
      * @param dypID The display device id @see MDS_DISPLAY_ID
-     * @param //TODO the list pointer
+     * @param count the total timing count, must equal to the value from \
+     *        @see getDisplayTimingCount
+     * @param list  the timing list
      * return: @see status_t in <utils/Errors.h>
      */
-    status_t getDisplayTimingList(MDS_DISPLAY_ID dpyID, MDSDisplayTiming* timing);
+    status_t getDisplayTimingList(MDS_DISPLAY_ID dpyID,
+            const int count, MDSDisplayTiming** list);
 
     /**
      * @brief Get the timing which is used now, only for HDMI
