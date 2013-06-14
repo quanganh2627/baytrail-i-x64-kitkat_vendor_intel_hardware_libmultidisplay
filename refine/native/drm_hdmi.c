@@ -52,13 +52,13 @@ static drmContext gDrmCxt;
 
 static drmModeConnector* getConnector(int fd, uint32_t connector_type)
 {
-    LOGV("Entering %s, %d", __func__, connector_type);
+    ALOGV("Entering %s, %d", __func__, connector_type);
     drmModeRes *resources = drmModeGetResources(fd);
     drmModeConnector *connector = NULL;
     int i;
 
     if (resources == NULL || resources->connectors == NULL) {
-        LOGE("%s: drmModeGetResources failed.", __func__);
+        ALOGE("%s: drmModeGetResources failed.", __func__);
         return NULL;
     }
     for (i = 0; i < resources->count_connectors; i++) {
@@ -73,9 +73,9 @@ static drmModeConnector* getConnector(int fd, uint32_t connector_type)
     }
     drmModeFreeResources(resources);
     if (connector == NULL) {
-        LOGE("%s: Failed to get conector", __func__);
+        ALOGE("%s: Failed to get conector", __func__);
     }
-    LOGV("Leaving %s, %d", __func__, connector_type);
+    ALOGV("Leaving %s, %d", __func__, connector_type);
     return connector;
 }
 
@@ -84,7 +84,7 @@ static drmModeConnectorPtr getHdmiConnector()
     if (gDrmCxt.hdmiConnector == NULL)
         gDrmCxt.hdmiConnector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_DVID);
     if (gDrmCxt.hdmiConnector == NULL || gDrmCxt.hdmiConnector->modes == NULL) {
-        LOGE("%s: Failed to get HDMI connector", __func__);
+        ALOGE("%s: Failed to get HDMI connector", __func__);
         return NULL;
     }
     return gDrmCxt.hdmiConnector;
@@ -107,14 +107,14 @@ static void drm_select_preferredmode(drmModeConnectorPtr connector)
     drmModeModeInfoPtr mode;
     for (i = 0; i < connector->count_modes; i++) {
         mode = connector->modes + i;
-        LOGV("mode #%d: %dx%d@%dHz, flags = %#x", i,
+        ALOGV("mode #%d: %dx%d@%dHz, flags = %#x", i,
                 connector->modes[i].hdisplay,
                 connector->modes[i].vdisplay,
                 connector->modes[i].vrefresh,
                 connector->modes[i].flags);
 
         if (mode->type & DRM_MODE_TYPE_PREFERRED) {
-            LOGI("%s: device preferred mode found: %d", __func__, i);
+            ALOGI("%s: device preferred mode found: %d", __func__, i);
             index_preferred = i;
             break;
         }
@@ -164,7 +164,7 @@ static void drm_select_preferredmode(drmModeConnectorPtr connector)
     }
 
     index_preferred = gDrmCxt.preferredModeIndex;
-    LOGI("Preferred mode is: %dx%d@%dHz, index = %d",
+    ALOGI("Preferred mode is: %dx%d@%dHz, index = %d",
             connector->modes[index_preferred].hdisplay,
             connector->modes[index_preferred].vdisplay,
             connector->modes[index_preferred].vrefresh,
@@ -175,7 +175,7 @@ static void drm_select_preferredmode(drmModeConnectorPtr connector)
 static void drm_hdmi_setTiming(drmModeConnectorPtr connector, int index, MDSDisplayTiming* info)
 {
     if (index >= connector->count_modes) {
-        LOGE("%s: index is out of range.", __func__);
+        ALOGE("%s: index is out of range.", __func__);
         memset(info, 0, sizeof(MDSDisplayTiming));
         return;
     }
@@ -191,7 +191,7 @@ static void drm_hdmi_setTiming(drmModeConnectorPtr connector, int index, MDSDisp
     else if (mode->flags & DRM_MODE_FLAG_PAR4_3)
         info->ratio = 2;
 
-    LOGI("Timing set is: %dx%d@%dHz",info->width, info->height, info->refresh);
+    ALOGI("Timing set is: %dx%d@%dHz",info->width, info->height, info->refresh);
 }
 
 bool drm_init()
@@ -203,7 +203,7 @@ bool drm_init()
     gDrmCxt.hdmiConnector = NULL;
     gDrmCxt.drmFD = open(DRM_DEVICE_NAME, O_RDWR, 0);
     if (gDrmCxt.drmFD <= 0) {
-        LOGE("%s: Failed to open %s", __func__, DRM_DEVICE_NAME);
+        ALOGE("%s: Failed to open %s", __func__, DRM_DEVICE_NAME);
         return false;
     }
 
@@ -212,7 +212,7 @@ bool drm_init()
     int ret = drmCommandWriteRead(gDrmCxt.drmFD, DRM_PSB_EXTENSION,
             &video_getparam_arg, sizeof(video_getparam_arg));
     if (ret != 0) {
-        LOGE("Failed to get ioctl offset.");
+        ALOGE("Failed to get ioctl offset.");
         drm_cleanup();
         return false;
     }
@@ -271,7 +271,7 @@ bool drm_hdmi_setHdmiVideoOn()
     int ret = drmCommandWriteRead(gDrmCxt.drmFD,
                 DRM_PSB_HDMI_FB_CMD, &dp_ctrl, sizeof(dp_ctrl));
     if (ret != 0) {
-        LOGE("%s failed, error = %d.", __func__, ret);
+        ALOGE("%s failed, error = %d.", __func__, ret);
     }
     return ret == 0;
 }
@@ -287,7 +287,7 @@ bool drm_hdmi_setHdmiVideoOff()
     int ret = drmCommandWriteRead(gDrmCxt.drmFD,
             DRM_PSB_HDMI_FB_CMD, &dp_ctrl, sizeof(dp_ctrl));
     if (ret != 0) {
-        LOGE("%s failed, error = %d.", __func__, ret);
+        ALOGE("%s failed, error = %d.", __func__, ret);
     }
     return ret == 0;
 }
@@ -302,7 +302,7 @@ bool drm_hdmi_setHdmiPowerOff()
     int ret = drmCommandWriteRead(gDrmCxt.drmFD,
             DRM_PSB_HDMI_FB_CMD, &dp_ctrl, sizeof(dp_ctrl));
     if (ret != 0) {
-        LOGE("%s failed, error = %d.", __func__, ret);
+        ALOGE("%s failed, error = %d.", __func__, ret);
     }
     return ret == 0;
 }
@@ -360,7 +360,7 @@ int drm_hdmi_getConnectionStatus()
         if (edidBlob == NULL ||
             edidBlob->data == NULL ||
             edidBlob->length < EDID_BLOCK_SIZE) {
-            LOGE("%s: Invalid EDID Blob.", __func__);
+            ALOGE("%s: Invalid EDID Blob.", __func__);
             drmModeFreeProperty(props);
             ret = 0;
             break;
@@ -372,7 +372,7 @@ int drm_hdmi_getConnectionStatus()
         gDrmCxt.connected = true;
         gDrmCxt.newDevice = false;
         if (memcmp(gDrmCxt.productInfo, product_info, EDID_PRODUCT_INFO_LEN)) {
-            LOGI("%s: A new HDMI sink is connected.", __func__);
+            ALOGI("%s: A new HDMI sink is connected.", __func__);
             gDrmCxt.newDevice = true;
             gDrmCxt.modeValid = false;
             memcpy(gDrmCxt.productInfo, product_info, EDID_PRODUCT_INFO_LEN);
@@ -400,7 +400,7 @@ int drm_hdmi_getConnectionStatus()
         break;
     }
 
-    LOGI("%s: connect status is %d", __func__, ret);
+    ALOGI("%s: connect status is %d", __func__, ret);
     return ret;
 }
 
@@ -414,18 +414,18 @@ int drm_hdmi_getModeInfo(
     int *pRatio)
 {
     if (!gDrmCxt.hdmiSupported || !gDrmCxt.connected) {
-        LOGE("%s: HDMI is not supported or not connected.", __func__);
+        ALOGE("%s: HDMI is not supported or not connected.", __func__);
         return 0;
     }
 
     drmModeConnector *connector = getHdmiConnector();
     if (connector == NULL) {
-        LOGE("%s: Failed to get HDMI connector.", __func__);
+        ALOGE("%s: Failed to get HDMI connector.", __func__);
         return 0;
     }
 
     if (connector->count_modes < 0 || connector->count_modes > HDMI_TIMING_MAX) {
-        LOGW("%s: unexpected count of modes %d", __func__, connector->count_modes);
+        ALOGW("%s: unexpected count of modes %d", __func__, connector->count_modes);
         drmModeFreeConnector(connector);
         gDrmCxt.hdmiConnector = NULL;
         return 0;
@@ -457,7 +457,7 @@ int drm_hdmi_getModeInfo(
                 temp_vdisplay == connector->modes[j].vdisplay &&
                 temp_refresh == connector->modes[j].vrefresh &&
                 temp_flags == flags) {
-                  LOGD("Found duplicated mode: %dx%d@%d with flags = 0x%x",
+                  ALOGD("Found duplicated mode: %dx%d@%d with flags = 0x%x",
                        temp_hdisplay, temp_vdisplay, temp_refresh, temp_flags);
                   break;
             }
@@ -482,7 +482,7 @@ int drm_hdmi_getModeInfo(
                 else
                     pRatio[valid_mode_count] = 0;
 
-                LOGV("Adding mode[%d]: %dx%d@%d with flags = 0x%x\n", valid_mode_count,
+                ALOGV("Adding mode[%d]: %dx%d@%d with flags = 0x%x\n", valid_mode_count,
                      temp_hdisplay, temp_vdisplay, temp_refresh, temp_flags);
             }
             valid_mode_count++;
@@ -495,7 +495,7 @@ int drm_hdmi_getModeInfo(
 bool drm_hdmi_setModeInfo(int width, int height, int refresh, int interlace, int ratio)
 {
     if (!gDrmCxt.hdmiSupported || !gDrmCxt.connected) {
-        LOGE("%s: HDMI is not supported or not connected.", __func__);
+        ALOGE("%s: HDMI is not supported or not connected.", __func__);
         return false;
     }
 
@@ -506,7 +506,7 @@ bool drm_hdmi_setModeInfo(int width, int height, int refresh, int interlace, int
     gDrmCxt.modeSelected.ratio = ratio;
     gDrmCxt.modeValid = true;
 
-    LOGI("%s: User-selected mode is: %dx%d@%dHz, interlace = %d, ratio = %d",
+    ALOGI("%s: User-selected mode is: %dx%d@%dHz, interlace = %d, ratio = %d",
         __func__, width, height, refresh, interlace, ratio);
     return true;
 }
@@ -517,22 +517,22 @@ bool drm_hdmi_getTiming(int mode, MDSDisplayTiming* info)
         return false;
 
     if (!gDrmCxt.hdmiSupported || !gDrmCxt.connected) {
-        LOGE("%s: HDMI is not supported or not connected.", __func__);
+        ALOGE("%s: HDMI is not supported or not connected.", __func__);
         return false;
     }
 
-    LOGI("%s: Initial HDMI timing is %dx%d@%dHz", __func__,
+    ALOGI("%s: Initial HDMI timing is %dx%d@%dHz", __func__,
             info->width, info->height, info->refresh);
 
     if (gDrmCxt.modeValid) {
-        LOGI("%s: use user-selected mode.", __func__);
+        ALOGI("%s: use user-selected mode.", __func__);
         memcpy(info, &gDrmCxt.modeSelected, sizeof(MDSDisplayTiming));
         return true;
     }
 
     drmModeConnector *connector = getHdmiConnector();
     if (connector == NULL) {
-        LOGE("%s: get HDMI connector failed.", __func__);
+        ALOGE("%s: get HDMI connector failed.", __func__);
         return false;
     }
 
@@ -560,13 +560,13 @@ bool drm_hdmi_getTiming(int mode, MDSDisplayTiming* info)
             index_matched[num_matched++] = i;
         }
         if (num_matched >= HDMI_TIMING_MAX) {
-            LOGW("number of matched modes exceeds the limit.");
+            ALOGW("number of matched modes exceeds the limit.");
             break;
         }
     }
 
     if (num_matched == 0) {
-        LOGW("%s: Number of matched modes is 0.", __func__);
+        ALOGW("%s: Number of matched modes is 0.", __func__);
         // Use preferred mode
         drm_hdmi_setTiming(connector, gDrmCxt.preferredModeIndex, info);
         return true;
@@ -624,7 +624,7 @@ bool drm_mipi_setMode(int mode)
         if (!props) continue;
 
         if (!strcmp(props->name, "DPMS")) {
-            LOGV("%s: %s %u", __func__,
+            ALOGV("%s: %s %u", __func__,
                   (mode == DRM_MIPI_ON) ? "On" : "Off",
                   connector->connector_id);
             drmModeConnectorSetProperty(gDrmCxt.drmFD,

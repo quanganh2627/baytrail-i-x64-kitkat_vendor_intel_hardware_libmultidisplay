@@ -201,11 +201,11 @@ int BpMultiDisplayComposer::getVideoInfo(int* dw, int* dh, int* fps, int* interl
         LOGE("%s: parameter is null", __func__);
         return MDS_ERROR;
     }
-    data.writeIntPtr((intptr_t)dw);
-    data.writeIntPtr((intptr_t)dh);
-    data.writeIntPtr((intptr_t)fps);
-    data.writeIntPtr((intptr_t)interlace);
     remote()->transact(MDS_GET_VIDEO_INFO, data, &reply);
+    *dw = reply.readInt32();
+    *dh = reply.readInt32();
+    *fps = reply.readInt32();
+    *interlace = reply.readInt32();
     return reply.readInt32();
 }
 
@@ -423,13 +423,15 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
     break;
     case MDS_GET_VIDEO_INFO: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        int *width, *height, *fps, *interlace;
-        width = height = fps = interlace = NULL;
-        width = (int*)data.readIntPtr();
-        height = (int*)data.readIntPtr();
-        fps = (int*)data.readIntPtr();
-        interlace = (int*)data.readIntPtr();
-        int ret = getVideoInfo(width, height, fps, interlace);
+        int width = 0;
+        int height = 0;
+        int fps = 0;
+        int interlace = 0;
+        int ret = getVideoInfo(&width, &height, &fps, &interlace);
+        reply->writeInt32(width);
+        reply->writeInt32(height);
+        reply->writeInt32(fps);
+        reply->writeInt32(interlace);
         reply->writeInt32(ret);
         return NO_ERROR;
     }

@@ -303,30 +303,32 @@ public class DisplayObserver {
                     int Count = mDs.getHdmiInfoCount();
                     mEdidChange = mDs.getHdmiDeviceChange();
                     logv("HDMI timing number:" + Count);
+                    if (Count <= 0) {
+                        logv("fail to get HDMI info");
+                        return;
+                    }
+
                     Intent outIntent = new Intent(HDMI_SERVER_GET_INFO);
                     outIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
                     Bundle mBundle = new Bundle();
-                    if (-1 != Count) {
-                        int[] arrWidth = new int[Count];
-                        int[] arrHeight = new int[Count];
-                        int[] arrRefresh = new int[Count];
-                        int[] arrInterlace = new int[Count];
-                        int[] arrRatio = new int[Count];
-                        mDs.getHdmiTiming(arrWidth, arrHeight, arrRefresh, arrInterlace, arrRatio);
-                        mBundle.putSerializable("width", arrWidth);
-                        mBundle.putSerializable("height", arrHeight);
-                        mBundle.putSerializable("refresh", arrRefresh);
-                        mBundle.putSerializable("interlace", arrInterlace);
-                        mBundle.putSerializable("ratio", arrRatio);
-                        mBundle.putInt("count", Count);
-                        mBundle.putInt("EdidChange",mEdidChange);
-                        mBundle.putBoolean("mHasIncomingCall",mHasIncomingCall);
-                        mEdidChange = 0;
-                        outIntent.putExtras(mBundle);
-                        mContext.sendBroadcast(outIntent);
-                    } else {
-                        logv("fail to get HDMI info");
-                    }
+
+                    int[] arrWidth = new int[Count];
+                    int[] arrHeight = new int[Count];
+                    int[] arrRefresh = new int[Count];
+                    int[] arrInterlace = new int[Count];
+                    int[] arrRatio = new int[Count];
+                    mDs.getHdmiTiming(arrWidth, arrHeight, arrRefresh, arrInterlace, arrRatio);
+                    mBundle.putSerializable("width", arrWidth);
+                    mBundle.putSerializable("height", arrHeight);
+                    mBundle.putSerializable("refresh", arrRefresh);
+                    mBundle.putSerializable("interlace", arrInterlace);
+                    mBundle.putSerializable("ratio", arrRatio);
+                    mBundle.putInt("count", Count);
+                    mBundle.putInt("EdidChange",mEdidChange);
+                    mBundle.putBoolean("mHasIncomingCall",mHasIncomingCall);
+                    mEdidChange = 0;
+                    outIntent.putExtras(mBundle);
+                    mContext.sendBroadcast(outIntent);
                 }
             } else if (action.equals(HDMI_SET_INFO)) {
                 // Set Specified Timing Info: width, height ,refresh, interlace

@@ -62,6 +62,8 @@ MultiDisplayComposer::MultiDisplayComposer() :
     mCapability(MDS_DISPLAY_CAP_UNKNOWN),
     mVideoState(MDS_VIDEO_UNPREPARED),
     mScaleType(MDS_SCALING_NONE),
+    mHorizontalStep(0),
+    mVerticalStep(0),
     mSurfaceComposer(NULL),
     mMDSCallback(NULL)
 {
@@ -155,6 +157,11 @@ status_t MultiDisplayComposer::notifyHotPlug(
         drm_hdmi_notify_audio_hotplug(connected);
     }
 
+    drm_hdmi_getConnectionStatus();
+    if (!connected) {
+        drm_hdmi_onHdmiDisconnected();
+    }
+
     return NO_ERROR;
 }
 
@@ -244,12 +251,37 @@ status_t MultiDisplayComposer::setDisplayTiming(
 int MultiDisplayComposer::getDisplayTimingCount(MDS_DISPLAY_ID id) {
     Mutex::Autolock lock(mMutex);
 
-    return 0;
+    return drm_hdmi_getModeInfo(NULL, NULL, NULL, NULL, NULL);
 }
 
 status_t MultiDisplayComposer::getDisplayTimingList(
-        MDS_DISPLAY_ID dispId, MDSDisplayTiming* timing) {
+        MDS_DISPLAY_ID dispId, const int count, MDSDisplayTiming **list) {
     Mutex::Autolock lock(mMutex);
+
+    int width[count];
+    int height[count];
+    int refresh[count];
+    int interlace[count];
+    int ratio[count];
+    memset(width, 0, sizeof(width));
+    memset(height, 0, sizeof(height));
+    memset(refresh, 0, sizeof(refresh));
+    memset(interlace, 0, sizeof(interlace));
+    memset(ratio, 0, sizeof(ratio));
+
+    int ret = drm_hdmi_getModeInfo(width, height, refresh, interlace, ratio);
+    if (ret != count) {
+        ALOGE("%s: get timing list error!", __func__);
+        return UNKNOWN_ERROR;
+    }
+
+    for (int i = 0; i < count; i++) {
+        list[i]->refresh   = refresh[i];
+        list[i]->width     = width[i];
+        list[i]->height    = height[i];
+        list[i]->ratio     = ratio[i];
+        list[i]->interlace = interlace[i];
+    }
 
     return NO_ERROR;
 }
@@ -278,10 +310,17 @@ status_t MultiDisplayComposer::setScalingType(
         MDS_DISPLAY_ID dispId, MDS_SCALING_TYPE type) {
     Mutex::Autolock lock(mMutex);
     mScaleType = type;
+
+    //TODO: implement in callback.
+#if 0
     if (mMDSCallback == NULL)
         return NO_INIT;
-
     return mMDSCallback->setScalingType(dispId, type);
+#endif
+
+    status_t result = setDisplayScalingLocked((uint32_t)mScaleType,
+            mHorizontalStep, mVerticalStep);
+    return result;
 }
 
 status_t MultiDisplayComposer::setOverscan(
@@ -289,11 +328,18 @@ status_t MultiDisplayComposer::setOverscan(
     Mutex::Autolock lock(mMutex);
     status_t result;
 
+    //TODO: implement in callback.
+#if 0
     if (mMDSCallback == NULL) {
         result = setDisplayScalingLocked((uint32_t)mScaleType, hVal, vVal);
     } else {
         result = mMDSCallback->setOverscan(dispId, hVal, vVal);
     }
+#endif
+    mHorizontalStep = hVal;
+    mVerticalStep = vVal;
+
+    result = setDisplayScalingLocked((uint32_t)mScaleType, hVal, vVal);
     return result;
 }
 

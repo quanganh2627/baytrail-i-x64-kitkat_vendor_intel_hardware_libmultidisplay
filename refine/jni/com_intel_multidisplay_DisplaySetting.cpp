@@ -211,15 +211,31 @@ static jint MDS_getHdmiTiming(
     jint iCount = gMDClient->getDisplayTimingCount(MDS_DISPLAY_EXTERNAL);
 
     if (iCount > 0) {
-        jint i;
-        MDSDisplayTiming list[iCount];
-        gMDClient->getDisplayTimingList(MDS_DISPLAY_EXTERNAL, &list[0]);
+        jint i,j;
+        MDSDisplayTiming *list[iCount];
+        memset(list, 0, iCount * sizeof(MDSDisplayTiming*));
         for (i = 0; i < iCount; i++) {
-            pRatio[i]     = list[i].ratio;
-            pWidth[i]     = list[i].width;
-            pHeight[i]    = list[i].height;
-            pRefresh[i]   = list[i].refresh;
-            pInterlace[i] = list[i].interlace;
+            list[i] = (MDSDisplayTiming *)malloc(sizeof(MDSDisplayTiming));
+            if (list[i] == NULL) {
+                for (j = 0; j < i; j++)
+                    if (list[j]) free(list[j]);
+                return 0;
+            }
+            memset(list[i], 0, sizeof(MDSDisplayTiming));
+        }
+
+        gMDClient->getDisplayTimingList(
+                MDS_DISPLAY_EXTERNAL, iCount, list);
+        for (i = 0; i < iCount; i++) {
+            pRatio[i]     = list[i]->ratio;
+            pWidth[i]     = list[i]->width;
+            pHeight[i]    = list[i]->height;
+            pRefresh[i]   = list[i]->refresh;
+            pInterlace[i] = list[i]->interlace;
+        }
+
+        for (i = 0; i < iCount; i++) {
+            if (list[i]) free(list[i]);
         }
     }
 

@@ -591,7 +591,7 @@ int MultiDisplayComposer::getVideoInfo(int* dw, int* dh, int* fps, int* interlac
         return MDS_ERROR;
     }
     if (dw)
-        *dw = mVideo.displayH;
+        *dw = mVideo.displayW;
     if (dh)
         *dh = mVideo.displayH;
     if (fps)
