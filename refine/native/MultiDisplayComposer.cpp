@@ -105,12 +105,21 @@ void MultiDisplayComposer::init() {
     }
 
     memset((void*)(&mVideoInfo), 0, sizeof(MDSVideoSourceInfo));
-    int connectStatus = drm_hdmi_getConnectionStatus();
-    if (connectStatus == 1) {
-        mMode |= MDS_HDMI_CONNECTED;
-    }
+    updateHdmiConnectStatusLocked();
+}
 
-    // TODO: check dvi connection
+status_t MultiDisplayComposer::updateHdmiConnectStatusLocked() {
+    MDC_CHECK_INIT();
+
+    int connectStatus = drm_hdmi_getConnectionStatus();
+    if (connectStatus == DRM_HDMI_CONNECTED) {
+        mMode |= MDS_HDMI_CONNECTED;
+    } else {
+        // TODO: check dvi connection
+        mMode &= ~MDS_HDMI_CONNECTED;
+        drm_hdmi_onHdmiDisconnected();
+    }
+    return NO_ERROR;
 }
 
 status_t MultiDisplayComposer::registerCallback(sp<IMultiDisplayCallback> cbk) {
@@ -120,6 +129,10 @@ status_t MultiDisplayComposer::registerCallback(sp<IMultiDisplayCallback> cbk) {
     }
     ALOGV("%s ", __func__);
     mMDSCallback = cbk;
+
+    // Make sure the hdmi status is aligned
+    // between MDS and hwc.
+    updateHdmiConnectStatusLocked();
     return NO_ERROR;
 }
 
@@ -141,25 +154,18 @@ status_t MultiDisplayComposer::notifyHotPlug(
 
     // Notify hotplug and switch audio
     int mode = mMode;
-    if (connected) {
-        mMode |= MDS_HDMI_CONNECTED;
-        if (mVideoInfo.isplaying)
-            mMode |= MDS_HDMI_VIDEO_EXT;
-    } else {
-        mMode &= ~MDS_HDMI_CONNECTED;
+    if (connected && (mVideoState == MDS_VIDEO_PREPARED))
+        mMode |= MDS_HDMI_VIDEO_EXT;
+    else
         mMode &= ~MDS_HDMI_VIDEO_EXT;
-    }
+
+    updateHdmiConnectStatusLocked();
 
     if (mode != mMode) {
         int connection = connected ? 1 : 0;
         broadcastMessageLocked(MDS_MSG_HOT_PLUG, &connection, sizeof(connection));
         broadcastMessageLocked(MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode));
         drm_hdmi_notify_audio_hotplug(connected);
-    }
-
-    drm_hdmi_getConnectionStatus();
-    if (!connected) {
-        drm_hdmi_onHdmiDisconnected();
     }
 
     return NO_ERROR;
@@ -175,6 +181,16 @@ status_t MultiDisplayComposer::setVideoState(MDS_VIDEO_STATE state) {
     if (mMDSCallback != NULL) {
         result = mMDSCallback->setVideoState(state);
     }
+
+    int mode = mMode;
+    if (state == MDS_VIDEO_PREPARED && (mMode & MDS_HDMI_CONNECTED))
+        mMode |= MDS_HDMI_VIDEO_EXT;
+    else
+        mMode &= ~MDS_HDMI_VIDEO_EXT;
+
+    if (mode != mMode)
+        broadcastMessageLocked(MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode));
+
     return result;
 }
 
@@ -199,12 +215,6 @@ status_t MultiDisplayComposer::setVideoSourceInfo(MDSVideoSourceInfo* info) {
     // TODO: for widi case
     // broadcastMessageLocked(MDS_MSG_VIDEO_SOURCE_INFO, &mMode, sizeof(mMode));
 
-    if (info->isplaying && (mMode & MDS_HDMI_CONNECTED))
-        mMode |= MDS_HDMI_VIDEO_EXT;
-    else
-        mMode &= ~MDS_HDMI_VIDEO_EXT;
-
-    broadcastMessageLocked(MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode));
     return NO_ERROR;
 }
 

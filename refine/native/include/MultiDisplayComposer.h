@@ -115,6 +115,7 @@ private:
     void init();
     void broadcastMessageLocked(MDS_MESSAGE msg, void* value, int size);
     status_t setDisplayScalingLocked(uint32_t mode, uint32_t stepx, uint32_t stepy);
+    status_t updateHdmiConnectStatusLocked();
 
     inline bool checkMode(int value, int bit) {
         return (value & bit) == bit ? true : false;
