@@ -96,7 +96,7 @@ public class DisplayObserver {
         intentFilter.addAction(HDMI_GET_INFO);
         intentFilter.addAction(HDMI_SET_INFO);
         intentFilter.addAction(HDMI_SET_SCALE);
-        // intentFilter.addAction(HDMI_SET_STEP_SCALE);
+        intentFilter.addAction(HDMI_SET_STEP_SCALE);
         intentFilter.addAction(HDMI_Get_DisplayBoot);
 
         mContext.registerReceiver(mReceiver, intentFilter);
