@@ -43,7 +43,6 @@ public class DisplaySetting {
     public static final int WIDI_CONNECTED_BIT  = 1 << 3;
 
     /// MDS message type
-    public static final int MDS_MSG_MODE_CHANGE = 1 << 2;
     public static final int MDS_MSG_HOT_PLUG    = 1 << 3;
 
     /// MDS display capability

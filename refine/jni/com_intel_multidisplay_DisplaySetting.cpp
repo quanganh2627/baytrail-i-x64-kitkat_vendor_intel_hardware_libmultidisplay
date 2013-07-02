@@ -97,8 +97,7 @@ status_t JNIMDSListener::onMdsMessage(MDS_MESSAGE msg, void* value, int size)
         return NO_INIT;
     }
 
-    if (msg == MDS_MSG_MODE_CHANGE ||
-        msg == MDS_MSG_HOT_PLUG) {
+    if (msg == MDS_MSG_HOT_PLUG) {
         LOGD("%s: Get message from MDS, %d, 0x%x", __func__, msg, *((int*)value));
         env->CallVoidMethod(mServiceObj, mOnMdsMessageMethodID, (int)msg, *((int*)value));
     }
@@ -141,7 +140,7 @@ static jboolean MDS_InitMDSClient(JNIEnv* env, jobject thiz, jobject serviceObj)
     }
 
     gMDClient->registerListener(gListener, "DisplaySetting",
-            (MDS_MESSAGE)(MDS_MSG_MODE_CHANGE | MDS_MSG_HOT_PLUG));
+            MDS_MSG_HOT_PLUG);
     return true;
 }
 

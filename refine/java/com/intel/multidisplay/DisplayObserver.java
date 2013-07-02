@@ -72,7 +72,6 @@ public class DisplayObserver {
     private boolean mHasIncomingCall = false;
     private boolean mInCallScreenFinished = true;
     private DisplaySetting mDs;
-    private int mMdsMode = 0;
     private int mDisplayCapability = 0;
 
     //Message need to handle
@@ -137,19 +136,7 @@ public class DisplayObserver {
     DisplaySetting.onMdsMessageListener mListener =
                         new DisplaySetting.onMdsMessageListener() {
         public boolean onMdsMessage(int msg, int value) {
-            if (msg == mDs.MDS_MSG_MODE_CHANGE) {
-                logv("mode is changed to 0x" + Integer.toHexString(value));
-                mMdsMode = value;
-
-                /// set orientation to landscape
-                boolean isExtMode = (mMdsMode & mDs.EXTENDED_MODE_BIT) != 0;
-                Intent intent = new Intent(Intent.ACTION_REQUEST_SCREEN_ORIENTATION_LANDSCAPE);
-                intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
-                intent.putExtra(Intent.EXTRA_SET_LANDSCAPE, isExtMode);
-                if (mContext != null) mContext.sendBroadcast(intent);
-                logv("Request landscape:" + isExtMode);
-
-            } else if (msg == mDs.MDS_MSG_HOT_PLUG) {
+            if (msg == mDs.MDS_MSG_HOT_PLUG) {
                 /// audio switch
                 int connected = value;
                 preNotifyHotplug(connected);
