@@ -72,7 +72,7 @@ LOCAL_SHARED_LIBRARIES := \
 
 LOCAL_C_INCLUDES := \
      $(JNI_H_INCLUDE) \
-     $(TOP)/frameworks/base/include \
+     $(call include-path-for, frameworks-base) \
      $(TARGET_OUT_HEADERS)/display
 
 include $(BUILD_SHARED_LIBRARY)
