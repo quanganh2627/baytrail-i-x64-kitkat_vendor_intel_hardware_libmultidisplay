@@ -285,14 +285,17 @@ int MultiDisplayComposer::setHdmiMode_l() {
 
     // Common case, notify HWC to set HDMI timing if need
     if (mVideo.isplaying) {
-        LOGI("Video is in playing state. Mode = %#x", mMode);
-        timing.width = mVideo.displayW;
-        timing.height = mVideo.displayH;
-        timing.refresh = mVideo.frameRate;
-        timing.interlace = 0;
-        timing.ratio = 0;
-        drm_hdmi_getTiming(DRM_HDMI_VIDEO_EXT, &timing);
-        setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
+        // disable dynamic mode setting for presentation mode
+        if (isHdmiTimingDynamicSettingEnable_l()) {
+            LOGI("Video is in playing state. Mode = %#x", mMode);
+            timing.width = mVideo.displayW;
+            timing.height = mVideo.displayH;
+            timing.refresh = mVideo.frameRate;
+            timing.interlace = 0;
+            timing.ratio = 0;
+            drm_hdmi_getTiming(DRM_HDMI_VIDEO_EXT, &timing);
+            setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
+        }
     } else {
         LOGI("Video is not in playing state. Mode = %#x", mMode);
         drm_hdmi_getTiming(DRM_HDMI_CLONE, &timing);
@@ -693,4 +696,27 @@ int MultiDisplayComposer::isPlayInBackgroundEnabled() {
 int MultiDisplayComposer::getBackgroundPlayerId() {
     Mutex::Autolock _l(mBackgroundPlayLock);
     return mBackgroundPlayerId;
+}
+
+
+
+bool MultiDisplayComposer::isHdmiTimingDynamicSettingEnable_l(){
+    //Disable dynamic setting for video playback
+    if (mSurfaceComposer == NULL) {
+        const sp<IServiceManager> sm = defaultServiceManager();
+        const String16 name("SurfaceFlinger");
+        mSurfaceComposer = sm->getService(name);
+        if (mSurfaceComposer == NULL) {
+            return true;
+        }
+    }
+
+    Parcel data, reply;
+    const String16 token("android.ui.ISurfaceComposer");
+    data.writeInterfaceToken(token);
+    const int PRESENTATION_MODE_CHECKING = 1015;
+    mSurfaceComposer->transact(PRESENTATION_MODE_CHECKING, data, &reply);
+    int ret = reply.readInt32();
+    ALOGI("%s: %s to enable HDMI Timing dynamic setting", __func__, (ret ? "Don't need" : "Need"));
+    return (ret ? false : true);
 }

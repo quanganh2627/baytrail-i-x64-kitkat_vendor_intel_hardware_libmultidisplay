@@ -145,6 +145,7 @@ private:
     }
 
     static int widi_rm_notifier_handler(void* cookie, int cmd, int data);
+    bool isHdmiTimingDynamicSettingEnable_l();
 };
 
 
