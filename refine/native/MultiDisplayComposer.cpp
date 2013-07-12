@@ -168,6 +168,9 @@ status_t MultiDisplayComposer::notifyHotPlug(
         drm_hdmi_notify_audio_hotplug(connected);
     }
 
+    if (drm_hdmi_isDeviceChanged(false) && connected)
+        setDisplayScalingLocked(0, 0, 0);
+
     return NO_ERROR;
 }
 
@@ -346,10 +349,12 @@ status_t MultiDisplayComposer::setOverscan(
         result = mMDSCallback->setOverscan(dispId, hVal, vVal);
     }
 #endif
-    mHorizontalStep = hVal;
-    mVerticalStep = vVal;
+    mHorizontalStep = (hVal > 5) ? 0: (5 - hVal);
+    mVerticalStep = (vVal > 5) ? 0: (5 - vVal);
+    ALOGD("%s h_val:%d v_val:%d", __func__, hVal, vVal);
 
-    result = setDisplayScalingLocked((uint32_t)mScaleType, hVal, vVal);
+    result = setDisplayScalingLocked((uint32_t)mScaleType,
+            mHorizontalStep, mVerticalStep);
     return result;
 }
 
@@ -451,9 +456,6 @@ status_t MultiDisplayComposer::setDisplayScalingLocked(uint32_t mode,
             return -1;
         }
     }
-
-    uint32_t scaleStepX = (stepx > 5) ? 0: (5 - stepx);
-    uint32_t scaleStepY = (stepy > 5) ? 0: (5 - stepy);
 
     uint32_t scale;
     Parcel data, reply;
