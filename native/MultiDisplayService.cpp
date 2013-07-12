@@ -65,14 +65,14 @@ int MultiDisplayService::notifyMipi(bool on) {
     return mMDC->notifyMipi(on);
 }
 
-int MultiDisplayService::isMdsSurface(int* nw) {
-    MDS_CHECK_MDS();
-    return mMDC->isMdsSurface(nw);
-}
-
 int MultiDisplayService::prepareForVideo(int status) {
     MDS_CHECK_MDS();
     return mMDC->prepareForVideo(status);
+}
+
+int MultiDisplayService::getVideoState() {
+    MDS_CHECK_MDS();
+    return mMDC->getVideoState();
 }
 
 int MultiDisplayService::updateVideoInfo(MDSVideoSourceInfo* info) {
@@ -139,25 +139,5 @@ int MultiDisplayService::getVideoInfo(int* dw, int* dh, int* fps, int* interlace
 int MultiDisplayService::getDisplayCapability() {
     MDS_CHECK_MDS();
     return mMDC->getDisplayCapability();
-}
-
-int MultiDisplayService::enablePlayInBackground(bool on, int playerId) {
-    MDS_CHECK_MDS();
-    return mMDC->enablePlayInBackground(on, playerId);
-}
-
-int MultiDisplayService::setNativeSurface(int* surface) {
-    MDS_CHECK_MDS();
-    return mMDC->setNativeSurface(surface);
-}
-
-int MultiDisplayService::isPlayInBackgroundEnabled() {
-    MDS_CHECK_MDS();
-    return mMDC->isPlayInBackgroundEnabled();
-}
-
-int MultiDisplayService::getBackgroundPlayerId() {
-    MDS_CHECK_MDS();
-    return mMDC->getBackgroundPlayerId();
 }
 }

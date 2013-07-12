@@ -258,13 +258,6 @@ static jint MDS_getDisplayCapability(JNIEnv* env, jobject obj)
     return gMDClient->getDisplayCapability();
 }
 
-static jint MDS_setPlayInBackground(JNIEnv* env, jobject thiz, jboolean value, jint playerId)
-{
-    if (gMDClient == NULL) return 0;
-    AutoMutex _l(gMutex);
-    return gMDClient->setPlayInBackground(value, playerId);
-}
-
 static JNINativeMethod sMethods[] = {
     /* name, signature, funcPtr */
     {"native_InitMDSClient", "(Lcom/intel/multidisplay/DisplaySetting;)Z", (void*)MDS_InitMDSClient},
@@ -280,7 +273,6 @@ static JNINativeMethod sMethods[] = {
     {"native_setHdmiScaleStep", "(II)Z", (void*)MDS_HdmiScaleStep},
     {"native_getHdmiDeviceChange", "()I", (void*)MDS_getHdmiDeviceChange},
     {"native_getDisplayCapability", "()I", (void*)MDS_getDisplayCapability},
-    {"native_setPlayInBackground", "(ZI)I", (void*)MDS_setPlayInBackground},
 };
 
 

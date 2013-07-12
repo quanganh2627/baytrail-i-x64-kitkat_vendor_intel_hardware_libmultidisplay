@@ -51,7 +51,7 @@ public:
      *       0: on success
      *     !=0: on failure
      */
-    virtual status_t setVideoState(MDS_VIDEO_STATE state) = 0;
+    virtual status_t setVideoState(int SessionNum, int SessionId, MDS_VIDEO_STATE state) = 0;
 
     /*
      * set the resolution of the display, only for HDMI

@@ -34,10 +34,10 @@ public:
     virtual int getMode(bool wait) = 0;
     virtual int setModePolicy(int) = 0;
     virtual int prepareForVideo(int) = 0;
+    virtual int getVideoState() = 0;
     virtual int updateVideoInfo(MDSVideoSourceInfo*) = 0;
     virtual int notifyWidi(bool) = 0;
     virtual int notifyMipi(bool) = 0;
-    virtual int isMdsSurface(int* nw) = 0;
     virtual int notifyHotPlug() = 0;
     virtual int setHdmiPowerOff() = 0;
 
@@ -50,10 +50,6 @@ public:
     virtual int getHdmiDeviceChange() = 0;
     virtual int getVideoInfo(int* dw, int* dh, int* fps, int* interlace) = 0;
     virtual int getDisplayCapability() = 0;
-    virtual int enablePlayInBackground(bool on, int playerId) = 0;
-    virtual int setNativeSurface(int* surface) = 0;
-    virtual int isPlayInBackgroundEnabled() = 0;
-    virtual int getBackgroundPlayerId() = 0;
 };
 
 class BpMultiDisplayComposer:public BpInterface<IMultiDisplayComposer> {
@@ -63,10 +59,10 @@ public:
     virtual int getMode(bool wait);
     virtual int setModePolicy(int);
     virtual int prepareForVideo(int);
+    virtual int getVideoState();
     virtual int updateVideoInfo(MDSVideoSourceInfo*);
     virtual int notifyWidi(bool);
     virtual int notifyMipi(bool);
-    virtual int isMdsSurface(int* nw);
     virtual int notifyHotPlug();
     virtual int setHdmiPowerOff();
 
@@ -80,10 +76,6 @@ public:
     virtual int getHdmiDeviceChange();
     virtual int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
     virtual int getDisplayCapability();
-    virtual int enablePlayInBackground(bool on, int playerId);
-    virtual int setNativeSurface(int* surface);
-    virtual int isPlayInBackgroundEnabled();
-    virtual int getBackgroundPlayerId();
 };
 
 class BnMultiDisplayComposer:public BnInterface<IMultiDisplayComposer> {

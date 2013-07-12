@@ -75,6 +75,7 @@ public:
     int notifyHotPlug();
     int setHdmiPowerOff();
     int prepareForVideo(int);
+    int getVideoState();
     int updateVideoInfo(MDSVideoSourceInfo*);
 
     int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);
@@ -110,6 +111,7 @@ private:
     int  mMipiReq;
     bool mWidiVideoExt;
     MDSVideoSourceInfo mVideo;
+    int mVideoState;
     mutable Mutex mLock;
     Condition mMipiCon;
     mutable Mutex mMipiLock;

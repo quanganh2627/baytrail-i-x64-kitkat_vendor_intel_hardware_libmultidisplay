@@ -43,11 +43,11 @@ public:
     int getMode(bool wait);
     int notifyWidi(bool);
     int notifyMipi(bool);
-    int isMdsSurface(int* nw);
     int setModePolicy(int);
     int notifyHotPlug();
     int setHdmiPowerOff();
     int prepareForVideo(int);
+    int getVideoState();
     int updateVideoInfo(MDSVideoSourceInfo*);
 
     int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);
@@ -60,10 +60,6 @@ public:
     int getHdmiDeviceChange();
     int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
     int getDisplayCapability();
-    int enablePlayInBackground(bool on, int playerId);
-    int setNativeSurface(int* surface);
-    int isPlayInBackgroundEnabled();
-    int getBackgroundPlayerId();
 };
 }; // namespace android
 #endif

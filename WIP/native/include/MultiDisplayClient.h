@@ -86,6 +86,17 @@ public:
      */
     int getDisplayMode(bool wait);
     /*
+     * Allocate a unique id for video player
+     * return: a sessionId for video player
+     */
+    int allocateVideoSessionId();
+
+    /**
+     * Reset video playback
+     * return: see status_t in <utils/Errors.h>
+     */
+    status_t resetVideoPlayback();
+    /*
      *  prepare video playback info
      * param:
      *      status:
@@ -97,7 +108,20 @@ public:
      *       0: on success
      *     !=0: on failure
      */
-    int setVideoState(int status);
+    int setVideoState(int sessionId, int status);
+    /*
+     *  get video playback state
+     * param:
+     *      status:
+     *           MDS_VIDEO_PREPARING:  video is preparing
+     *           MDS_VIDEO_PREPARED:   video is prepared
+     *           MDS_VIDEO_UNPREPARING:video is unpreparing
+     *           MDS_VIDEO_UNPREPARED: video is unprepared
+     * return:
+     *       0: on success
+     *     !=0: on failure
+     */
+    MDS_VIDEO_STATE getVideoState(int sessionId);
     /*
      * update video playback info
      * param: struct MDSVideoSourceInfo
@@ -105,7 +129,7 @@ public:
      *       0: on success
      *     !=0: on failure
      */
-    int setVideoSourceInfo(MDSVideoSourceInfo* info);
+    int setVideoSourceInfo(int sessionId, MDSVideoSourceInfo* info);
     /*
      * notify HDMI is plugged in/off
      * param:

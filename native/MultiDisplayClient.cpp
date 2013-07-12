@@ -72,17 +72,34 @@ int MultiDisplayClient::notifyMipi(bool on) {
     return mIMDComposer->notifyMipi(on);
 }
 
-int MultiDisplayClient::isMdsSurface(int* nw) {
-    MDC_CHECK_IMDC();
-    return mIMDComposer->isMdsSurface(nw);
+MDS_VIDEO_STATE MultiDisplayClient::getVideoState(int sessionId) {
+    if (mIMDComposer == NULL)
+        return MDS_VIDEO_UNPREPARED;
+    int state = mIMDComposer->getVideoState();
+    if (state == MDS_ERROR)
+        return MDS_VIDEO_UNPREPARED;
+    return (MDS_VIDEO_STATE)state;
 }
 
-int MultiDisplayClient::setVideoState(int status) {
+int MultiDisplayClient::resetVideoPlayback() {
+    MDC_CHECK_IMDC();
+    mIMDComposer->prepareForVideo(MDS_VIDEO_UNPREPARED);
+    MDSVideoSourceInfo info;
+    memset(&info, 0, sizeof(MDSVideoSourceInfo));
+    return mIMDComposer->updateVideoInfo(&info);
+}
+
+int MultiDisplayClient::allocateVideoSessionId() {
+    MDC_CHECK_IMDC();
+    return 0;
+}
+
+int MultiDisplayClient::setVideoState(int sessionId, int status) {
     MDC_CHECK_IMDC();
     return mIMDComposer->prepareForVideo(status);
 }
 
-int MultiDisplayClient::setVideoSourceInfo(MDSVideoSourceInfo* info) {
+int MultiDisplayClient::setVideoSourceInfo(int sessionId, MDSVideoSourceInfo* info) {
     MDC_CHECK_IMDC();
     return mIMDComposer->updateVideoInfo(info);
 }
@@ -143,67 +160,4 @@ int MultiDisplayClient::getVideoInfo(int* displayW, int* displayH, int* fps, int
 int MultiDisplayClient::getDisplayCapability() {
     MDC_CHECK_IMDC();
     return mIMDComposer->getDisplayCapability();
-}
-
-sp<ANativeWindow> MultiDisplayClient::createNewVideoSurface(int width, int height, int pixelFormat, int playerId) {
-    LOGV("%s: %d, %d, %d, %d", __func__, width, height, pixelFormat, playerId);
-    // Check if mIMDComposer is NULL
-    // Not using macro MDC_CHECK_IMDC() here since return type for this function is sp<ANativeWindow>
-    if (mIMDComposer == NULL) {
-        LOGE("%s: MDSComposer is null", __func__);
-        return NULL;
-    }
-    bool bEnabled = false;
-    int backgroundPlayerId = 0;
-    bEnabled = (mIMDComposer->isPlayInBackgroundEnabled() == 1 ? true : false);
-    if (bEnabled) {
-        backgroundPlayerId = mIMDComposer->getBackgroundPlayerId();
-        if (playerId == backgroundPlayerId) {
-            mComposerClient = new SurfaceComposerClient;
-            CHECK_EQ(mComposerClient->initCheck(), (status_t)OK);
-
-            mSurfaceControl = mComposerClient->createSurface(String8("BackgroungPlaySurface"), width, height, pixelFormat, 0);
-            CHECK(mSurfaceControl != NULL);
-            CHECK(mSurfaceControl->isValid());
-
-            SurfaceComposerClient::openGlobalTransaction();
-            //set the layer to be max value to avoid render contention with foreground surface.
-            CHECK_EQ(mSurfaceControl->setLayer(INT_MAX), (status_t)OK);
-            mSurfaceControl->setAlpha(255);
-            SurfaceComposerClient::closeGlobalTransaction();
-
-            mANW =  mSurfaceControl->getSurface();
-            CHECK(mANW != NULL);
-
-            mIMDComposer->setNativeSurface((int*)mANW.get());
-        } else {
-            return NULL;
-        }
-    } else {
-        return NULL;
-    }
-
-    return mANW;
-}
-
-void MultiDisplayClient::destroyVideoSurface() {
-    LOGV("%s", __func__);
-    if (mANW != NULL) {
-        LOGV("%s: clear native window", __func__);
-        mANW.clear();
-    }
-    if (mSurfaceControl != NULL) {
-        LOGV("%s: clear surface controller", __func__);
-        mSurfaceControl.clear();
-    }
-    if (mComposerClient != NULL) {
-        LOGV("%s: clear surface composer client", __func__);
-        mComposerClient.clear();
-    }
-}
-
-int MultiDisplayClient::setPlayInBackground(bool on, int playerId) {
-    LOGV("%s: param %d, %d", __func__, on, playerId);
-    MDC_CHECK_IMDC();
-    return mIMDComposer->enablePlayInBackground(on, playerId);
 }

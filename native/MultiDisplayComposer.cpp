@@ -67,9 +67,6 @@ MultiDisplayComposer::MultiDisplayComposer() {
     mMipiOn = true;
     mWidiVideoExt = false;
     mMipiReq = NO_MIPI_REQ;
-    mEnablePlayInBackground = false;
-    mBackgroundPlayerId = 0;
-    mNativeSurface = NULL;
     mSurfaceComposer = NULL;
     mScaleMode = 0;
     mScaleStepX = 0;
@@ -124,11 +121,6 @@ int MultiDisplayComposer::notifyMipi(bool on) {
     return MDS_NO_ERROR;
 }
 
-int MultiDisplayComposer::isMdsSurface(int* nw) {
-    Mutex::Autolock _l(mBackgroundPlayLock);
-    return(nw == mNativeSurface ? 1 : 0 );
-}
-
 int MultiDisplayComposer::setHdmiPowerOff() {
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
@@ -139,9 +131,23 @@ int MultiDisplayComposer::setHdmiPowerOff() {
 int MultiDisplayComposer::prepareForVideo(int status) {
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
+    if (mVideoState == status)
+        return MDS_NO_ERROR;
     LOGV("%s: Video preparing status %d", __func__, status);
+    mVideoState = status;
     broadcastMessage_l(MDS_SET_VIDEO_STATUS, &status, sizeof(status));
+    if (status == (int)MDS_VIDEO_UNPREPARED) {
+        MDSVideoSourceInfo info;
+        memset(&mVideo, 0, sizeof(info));
+        return setHdmiMode_l();
+    }
     return MDS_NO_ERROR;
+}
+
+int MultiDisplayComposer::getVideoState() {
+    MDC_CHECK_INIT();
+    Mutex::Autolock _l(mLock);
+    return mVideoState;
 }
 
 int MultiDisplayComposer::updateVideoInfo(MDSVideoSourceInfo* info) {
@@ -643,62 +649,6 @@ bool MultiDisplayComposer::threadLoop() {
     }
     return MDS_NO_ERROR;
 }
-
-void MultiDisplayComposer::setWidiOrientationInfo(int orientation) {
-#if 0
-
-    Mutex::Autolock _l(mLock);
-    broadcastMessage_l(MDS_ORIENTATION_CHANGE, &orientation, sizeof(orientation));
-#endif
-}
-
-int MultiDisplayComposer::widi_rm_notifier_handler(void* cookie, int cmd, int data) {
-    int ret = 0;
-#if 0
-    MultiDisplayComposer* mdsComposerObj = (MultiDisplayComposer *)cookie;
-    switch(cmd) {
-        case CMD_ROTATION_MODE:
-            LOGV("MultiDisplayComposer::widi_rm_notifier_handler CMD_ROTATION_MODE");
-            mdsComposerObj->setWidiOrientationInfo(data);
-            ret = 1;
-            break;
-        default:
-            LOGE("MultiDisplayComposer::widi_rm_notifier_handler DEFAULT !!!");
-            break;
-    }
-#endif
-    return ret;
-}
-
-int MultiDisplayComposer::enablePlayInBackground(bool on, int playerId) {
-    Mutex::Autolock _l(mBackgroundPlayLock);
-    mEnablePlayInBackground = on;
-    mBackgroundPlayerId = playerId;
-    int playInBgEnabled = (mEnablePlayInBackground == true ? 1 : 0);
-    broadcastMessage_l(MDS_SET_BACKGROUND_VIDEO_MODE, &playInBgEnabled, sizeof(playInBgEnabled));
-    return MDS_NO_ERROR;
-}
-
-int MultiDisplayComposer::setNativeSurface(int* surface) {
-    if (surface == NULL)
-        return MDS_ERROR;
-    Mutex::Autolock _l(mBackgroundPlayLock);
-    mNativeSurface = surface;
-    return MDS_NO_ERROR;
-}
-
-int MultiDisplayComposer::isPlayInBackgroundEnabled() {
-    Mutex::Autolock _l(mBackgroundPlayLock);
-    int playInBgEnabled = (mEnablePlayInBackground == true ? 1 : 0);
-    return playInBgEnabled;
-}
-
-int MultiDisplayComposer::getBackgroundPlayerId() {
-    Mutex::Autolock _l(mBackgroundPlayLock);
-    return mBackgroundPlayerId;
-}
-
-
 
 bool MultiDisplayComposer::isHdmiTimingDynamicSettingEnable_l(){
     //Disable dynamic setting for video playback

@@ -55,9 +55,11 @@ public:
         return result;
     }
 
-    virtual status_t setVideoState(MDS_VIDEO_STATE state) {
+    virtual status_t setVideoState(int videoSessionNum, int videoSessionId, MDS_VIDEO_STATE state) {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayCallback::getInterfaceDescriptor());
+        data.writeInt32(videoSessionNum);
+        data.writeInt32(videoSessionId);
         data.writeInt32(state);
         status_t result = remote()->transact(
                 MDS_SET_VIDEO_PLAYBACK_STATE, data, &reply);
@@ -150,9 +152,11 @@ status_t BnMultiDisplayCallback::onTransact(
         } break;
         case MDS_SET_VIDEO_PLAYBACK_STATE: {
             CHECK_INTERFACE(IMultiDisplayCallback, data, reply);
+            int32_t vsessionNum = data.readInt32();
+            int32_t vsessionId = data.readInt32();
             int32_t state = data.readInt32();
-            ALOGV("%s: Set video playback state %d", __func__, state);
-            int32_t ret = setVideoState((MDS_VIDEO_STATE)state);
+            ALOGV("%s: %d, Set video playback[%d] state %d", __func__, vsessionNum, vseesionId, state);
+            int32_t ret = setVideoState(vsessionNum, vsessionId, (MDS_VIDEO_STATE)state);
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;

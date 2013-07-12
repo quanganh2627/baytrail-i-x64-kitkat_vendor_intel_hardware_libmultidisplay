@@ -28,6 +28,8 @@ namespace android {
 
 enum {
     MDS_SERVER_NOTIFY_HOT_PLUG = IBinder::FIRST_CALL_TRANSACTION,
+    MDS_SERVER_ALLOCATE_VIDEO_SESSIONID,
+    MDS_SERVER_RESET_VIDEO_PLAYBACK,
     MDS_SERVER_SET_VIDEO_STATE,
     MDS_SERVER_GET_VIDEO_STATE,
     MDS_SERVER_SET_VIDEO_SOURCE_INFO,
@@ -72,9 +74,33 @@ public:
         return result;
     }
 
-    virtual status_t setVideoState(MDS_VIDEO_STATE state) {
+    virtual status_t resetVideoPlayback() {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+        status_t result = remote()->transact(
+                MDS_SERVER_RESET_VIDEO_PLAYBACK, data, &reply);
+        if (result != NO_ERROR) {
+            return result;
+        }
+        result = reply.readInt32();
+        return result;
+    }
+
+    virtual int allocateVideoSessionId() {
+        Parcel data, reply;
+        data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+        status_t result = remote()->transact(
+                MDS_SERVER_ALLOCATE_VIDEO_SESSIONID, data, &reply);
+        if (result != NO_ERROR) {
+            return -1;
+        }
+        return reply.readInt32();
+    }
+
+    virtual status_t setVideoState(int sessionId, MDS_VIDEO_STATE state) {
+        Parcel data, reply;
+        data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+        data.writeInt32(sessionId);
         data.writeInt32(state);
         status_t result = remote()->transact(
                 MDS_SERVER_SET_VIDEO_STATE, data, &reply);
@@ -85,9 +111,10 @@ public:
         return result;
     }
 
-    virtual MDS_VIDEO_STATE getVideoState() {
+    virtual MDS_VIDEO_STATE getVideoState(int sessionId) {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+        data.writeInt32(sessionId);
         status_t result = remote()->transact(
                 MDS_SERVER_GET_VIDEO_STATE, data, &reply);
         if (result != NO_ERROR) {
@@ -97,12 +124,13 @@ public:
         return state;
     }
 
-    virtual status_t setVideoSourceInfo(MDSVideoSourceInfo* info) {
+    virtual status_t setVideoSourceInfo(int sessionId, MDSVideoSourceInfo* info) {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
         if (info == NULL) {
             return BAD_VALUE;
         }
+        data.writeInt32(sessionId);
         data.write((const void *)info, sizeof(MDSVideoSourceInfo));
         status_t result = remote()->transact(
                 MDS_SERVER_SET_VIDEO_SOURCE_INFO, data, &reply);
@@ -113,12 +141,13 @@ public:
         return result;
     }
 
-    virtual status_t getVideoSourceInfo(MDSVideoSourceInfo* info) {
+    virtual status_t getVideoSourceInfo(int sessionId, MDSVideoSourceInfo* info) {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
         if (info == NULL) {
             return BAD_VALUE;
         }
+        data.writeInt32(sessionId);
         status_t result = remote()->transact(
                 MDS_SERVER_GET_VIDEO_SOURCE_INFO, data, &reply);
         if (result != NO_ERROR) {
@@ -399,31 +428,47 @@ status_t BnMultiDisplayComposer::onTransact(
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;
+        case MDS_SERVER_ALLOCATE_VIDEO_SESSIONID: {
+            CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+            int32_t sessionId = allocateVideoSessionId();
+            reply->writeInt32(sessionId);
+            return NO_ERROR;
+            } break;
+        case MDS_SERVER_RESET_VIDEO_PLAYBACK: {
+            CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+            status_t ret = resetVideoPlayback();
+            reply->writeInt32(ret);
+            return NO_ERROR;
+            } break;
         case MDS_SERVER_SET_VIDEO_STATE: {
             CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+            int32_t sessionId = data.readInt32();
             MDS_VIDEO_STATE state = (MDS_VIDEO_STATE)data.readInt32();
-            status_t ret = setVideoState(state);
+            status_t ret = setVideoState(sessionId, state);
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;
         case MDS_SERVER_GET_VIDEO_STATE: {
             CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-            MDS_VIDEO_STATE ret = getVideoState();
+            int32_t sessionId = data.readInt32();
+            MDS_VIDEO_STATE ret = getVideoState(sessionId);
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;
         case MDS_SERVER_SET_VIDEO_SOURCE_INFO: {
             CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+            int32_t sessionId = data.readInt32();
             MDSVideoSourceInfo info;
             data.read((void *)&info, sizeof(MDSVideoSourceInfo));
-            status_t ret = setVideoSourceInfo(&info);
+            status_t ret = setVideoSourceInfo(sessionId, &info);
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;
         case MDS_SERVER_GET_VIDEO_SOURCE_INFO: {
             CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
             MDSVideoSourceInfo info;
-            status_t ret = getVideoSourceInfo(&info);
+            int32_t sessionId = data.readInt32();
+            status_t ret = getVideoSourceInfo(sessionId, &info);
             reply->write((const void *)&info, sizeof(MDSVideoSourceInfo));
             reply->writeInt32(ret);
             return NO_ERROR;

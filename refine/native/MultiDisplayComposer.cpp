@@ -16,7 +16,7 @@
  * Author: tianyang.zhu@intel.com
  */
 
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 
 #include <utils/Log.h>
 #include <binder/IServiceManager.h>
@@ -37,6 +37,15 @@ do { \
     } \
 } while(0)
 
+#define CHECK_VIDEO_SESSION_ID(SESSIONID, ERR) \
+do { \
+    if (SESSIONID < 0 || SESSIONID >= MDS_VIDEO_SESSION_MAX_VALUE) { \
+        ALOGE("Invalid session ID %d", SESSIONID); \
+        return ERR; \
+    } \
+} while(0)
+
+
 MultiDisplayListener::MultiDisplayListener(int msg,
         const char* client, sp<IMultiDisplayListener> listener) {
     mMsg = msg;
@@ -56,11 +65,18 @@ MultiDisplayListener::~MultiDisplayListener() {
     mListener = NULL;
 }
 
+void MultiDisplayVideoSession::dump(int index) {
+    if (mState < MDS_VIDEO_PREPARING ||
+            mState >= MDS_VIDEO_UNPREPARED)
+        return;
+    ALOGV("\t[%d] %d, %dx%d@%d", index, mState,
+            mInfo.displayW, mInfo.displayH, mInfo.frameRate);
+}
+
 MultiDisplayComposer::MultiDisplayComposer() :
     mDrmInit(false),
     mMode(MDS_MODE_NONE),
     mCapability(MDS_DISPLAY_CAP_UNKNOWN),
-    mVideoState(MDS_VIDEO_UNPREPARED),
     mScaleType(MDS_SCALING_NONE),
     mHorizontalStep(0),
     mVerticalStep(0),
@@ -96,6 +112,8 @@ void MultiDisplayComposer::init() {
 
     mDrmInit = true;
 
+    initVideoSessions_l();
+
     // TODO: read the capability from a system config file.
     mCapability = MDS_SUPPORT_PRIMARY_DISPLAY |
                   MDS_SUPPORT_VIRTUAL_DISPLAY;
@@ -104,7 +122,6 @@ void MultiDisplayComposer::init() {
         mCapability |= MDS_SUPPORT_EXTERNAL_DISPLAY;
     }
 
-    memset((void*)(&mVideoInfo), 0, sizeof(MDSVideoSourceInfo));
     updateHdmiConnectStatusLocked();
 }
 
@@ -154,10 +171,16 @@ status_t MultiDisplayComposer::notifyHotPlug(
 
     // Notify hotplug and switch audio
     int mode = mMode;
-    if (connected && (mVideoState == MDS_VIDEO_PREPARED))
-        mMode |= MDS_HDMI_VIDEO_EXT;
-    else
+    if (connected) {
+        mMode |= MDS_HDMI_CONNECTED;
         mMode &= ~MDS_HDMI_VIDEO_EXT;
+        if (enableVideoExtMode_l()) {
+            mMode |= MDS_HDMI_VIDEO_EXT;
+        }
+    } else {
+        mMode &= ~MDS_HDMI_CONNECTED;
+        mMode &= ~MDS_HDMI_VIDEO_EXT;
+    }
 
     updateHdmiConnectStatusLocked();
 
@@ -174,19 +197,24 @@ status_t MultiDisplayComposer::notifyHotPlug(
     return NO_ERROR;
 }
 
-status_t MultiDisplayComposer::setVideoState(MDS_VIDEO_STATE state) {
+status_t MultiDisplayComposer::setVideoState(int sessionId, MDS_VIDEO_STATE state) {
     Mutex::Autolock lock(mMutex);
-
-    mVideoState = state;
-    ALOGV("%s state:%d", __func__, state);
-
     status_t result = NO_ERROR;
-    if (mMDSCallback != NULL) {
-        result = mMDSCallback->setVideoState(state);
+    ALOGV("%s: set Video Session [%d] state:%d", __func__, sessionId, state);
+    // Check video session
+    CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
+    if (mVideos[sessionId].setState(state) != NO_ERROR)
+        return UNKNOWN_ERROR;
+    // Reset video session if player is closed
+    if (state == MDS_VIDEO_UNPREPARED) {
+        mVideos[sessionId].init();
     }
-
+    int vsessionsize = getVideoSessionSize_l();
+    if (mMDSCallback != NULL) {
+        result = mMDSCallback->setVideoState(vsessionsize, sessionId, state);
+    }
     int mode = mMode;
-    if (state == MDS_VIDEO_PREPARED && (mMode & MDS_HDMI_CONNECTED))
+    if (enableVideoExtMode_l())
         mMode |= MDS_HDMI_VIDEO_EXT;
     else
         mMode &= ~MDS_HDMI_VIDEO_EXT;
@@ -197,38 +225,40 @@ status_t MultiDisplayComposer::setVideoState(MDS_VIDEO_STATE state) {
     return result;
 }
 
-MDS_VIDEO_STATE MultiDisplayComposer::getVideoState() {
+MDS_VIDEO_STATE MultiDisplayComposer::getVideoState(int sessionId) {
     Mutex::Autolock lock(mMutex);
-    ALOGV("%s state:%d", __func__, mVideoState);
-    return mVideoState;
+    // Check video session
+    CHECK_VIDEO_SESSION_ID(sessionId, MDS_VIDEO_STATE_UNKNOWN);
+    ALOGV("%s:get Video Session [%d] state %d", __func__, sessionId, mVideos[sessionId].getState());
+    return mVideos[sessionId].getState();
 }
 
-status_t MultiDisplayComposer::setVideoSourceInfo(MDSVideoSourceInfo* info) {
+status_t MultiDisplayComposer::setVideoSourceInfo(int sessionId, MDSVideoSourceInfo* info) {
     MDC_CHECK_INIT();
-    if (info == NULL) {
-        ALOGE("%s: video info is null", __func__);
+    if (info == NULL)
         return BAD_VALUE;
-    }
     Mutex::Autolock lock(mMutex);
     ALOGV("%s:\nmode[0x%x]playing[%d]protected[%d]w[%d]h[%d]fps[%d]interlace[%d]",
         __func__, mMode, info->isplaying, info->isprotected,
         info->displayW, info->displayH, info->frameRate, info->isinterlace);
 
-    memcpy(&mVideoInfo, info, sizeof(MDSVideoSourceInfo));
-    // TODO: for widi case
-    // broadcastMessageLocked(MDS_MSG_VIDEO_SOURCE_INFO, &mMode, sizeof(mMode));
-
+    // Check video session
+    CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
+    if (mVideos[sessionId].setInfo(info) != NO_ERROR)
+        return UNKNOWN_ERROR;
+    dumpVideoSession_l();
     return NO_ERROR;
 }
 
-status_t MultiDisplayComposer::getVideoSourceInfo(MDSVideoSourceInfo *info) {
-    if (info == NULL) {
-        ALOGE("%s: null pointer", __func__);
+status_t MultiDisplayComposer::getVideoSourceInfo(int sessionId, MDSVideoSourceInfo *info) {
+    if (info == NULL)
         return BAD_VALUE;
-    }
     Mutex::Autolock lock(mMutex);
-    memcpy(info, &mVideoInfo, sizeof(MDSVideoSourceInfo));
-    return NO_ERROR;
+    // Check video session
+    CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
+    if (mVideos[sessionId].getState() != MDS_VIDEO_PREPARED)
+        return UNKNOWN_ERROR;
+    return mVideos[sessionId].getInfo(info);
 }
 
 status_t MultiDisplayComposer::setPhoneState(MDS_PHONE_STATE state) {
@@ -466,4 +496,72 @@ status_t MultiDisplayComposer::setDisplayScalingLocked(uint32_t mode,
     data.writeInt32(scale);
     mSurfaceComposer->transact(1014, data, &reply);
     return reply.readInt32();
+}
+
+int MultiDisplayComposer::getUnusedVideoSessionId_l() {
+    for (size_t i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++) {
+        if (mVideos[i].getState() == MDS_VIDEO_UNPREPARED)
+            return i;
+    }
+    return -1;
+}
+
+int MultiDisplayComposer::getVideoSessionSize_l() {
+    int size = 0;
+    for (size_t i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++) {
+        if (mVideos[i].getState() != MDS_VIDEO_UNPREPARED)
+            size++;
+    }
+    return size;
+}
+
+int MultiDisplayComposer::allocateVideoSessionId() {
+    Mutex::Autolock lock(mMutex);
+    int sessionId = getUnusedVideoSessionId_l();
+    if (sessionId >= MDS_VIDEO_SESSION_MAX_VALUE || sessionId < 0) {
+        ALOGE("Fail to allocate session ID");
+        return -1;
+    }
+    ALOGV("%s: Allocate a new Video Session ID %d", __func__, sessionId);
+    return sessionId;
+}
+
+void MultiDisplayComposer::initVideoSessions_l() {
+    for (size_t i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++) {
+        mVideos[i].init();
+    }
+}
+
+status_t MultiDisplayComposer::resetVideoPlayback() {
+    Mutex::Autolock lock(mMutex);
+    initVideoSessions_l();
+    //TODO:
+    // This API is called when mediaplayer service is crash,
+    // We need do some clean work, such as timing reset,
+    // But new MDS is lack of this interface,
+    // will add it when this API is ready
+    return NO_ERROR;
+}
+
+bool MultiDisplayComposer::enableVideoExtMode_l() {
+    // Enable video extended mode if
+    // 1: HDMI is connected
+    // 2: Only has one video playback instance
+    // 3: Video state is prepared
+    if (!(mMode & MDS_HDMI_CONNECTED))
+        return false;
+    int size = 0;
+    for (size_t i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++) {
+        if (mVideos[i].getState() == MDS_VIDEO_PREPARED) {
+            size++;
+        }
+    }
+    return (size == 1 ? true : false);
+}
+
+void MultiDisplayComposer::dumpVideoSession_l() {
+    ALOGV("All Video Session info:\n");
+    for (size_t i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++)
+        mVideos[i].dump(i);
+    return;
 }
