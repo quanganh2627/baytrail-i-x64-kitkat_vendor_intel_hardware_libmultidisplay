@@ -171,14 +171,9 @@ status_t MultiDisplayComposer::notifyHotPlug(
 
     // Notify hotplug and switch audio
     int mode = mMode;
-    if (connected) {
-        mMode |= MDS_HDMI_CONNECTED;
-        mMode &= ~MDS_HDMI_VIDEO_EXT;
-        if (enableVideoExtMode_l()) {
-            mMode |= MDS_HDMI_VIDEO_EXT;
-        }
+    if (connected && enableVideoExtMode_l()) {
+        mMode |= MDS_HDMI_VIDEO_EXT;
     } else {
-        mMode &= ~MDS_HDMI_CONNECTED;
         mMode &= ~MDS_HDMI_VIDEO_EXT;
     }
 
@@ -200,6 +195,7 @@ status_t MultiDisplayComposer::notifyHotPlug(
 status_t MultiDisplayComposer::setVideoState(int sessionId, MDS_VIDEO_STATE state) {
     Mutex::Autolock lock(mMutex);
     status_t result = NO_ERROR;
+
     ALOGV("%s: set Video Session [%d] state:%d", __func__, sessionId, state);
     // Check video session
     CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
@@ -209,15 +205,16 @@ status_t MultiDisplayComposer::setVideoState(int sessionId, MDS_VIDEO_STATE stat
     if (state == MDS_VIDEO_UNPREPARED) {
         mVideos[sessionId].init();
     }
-    int vsessionsize = getVideoSessionSize_l();
-    if (mMDSCallback != NULL) {
-        result = mMDSCallback->setVideoState(vsessionsize, sessionId, state);
-    }
+
     int mode = mMode;
     if (enableVideoExtMode_l())
         mMode |= MDS_HDMI_VIDEO_EXT;
     else
         mMode &= ~MDS_HDMI_VIDEO_EXT;
+
+    int vsessionsize = getVideoSessionSize_l();
+    if (mMDSCallback != NULL)
+        result = mMDSCallback->setVideoState(vsessionsize, sessionId, state);
 
     if (mode != mMode)
         broadcastMessageLocked(MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode));
@@ -285,8 +282,11 @@ status_t MultiDisplayComposer::setDisplayTiming(
         MDS_DISPLAY_ID dispId, MDSDisplayTiming* timing) {
     Mutex::Autolock lock(mMutex);
 
-    if (mMDSCallback == NULL)
+    if (mMDSCallback == NULL || timing == NULL)
         return NO_INIT;
+
+    if (!drm_hdmi_selectTiming(timing))
+        return UNKNOWN_ERROR;
 
     return mMDSCallback->setDisplayTiming(dispId, timing);
 }
@@ -352,39 +352,47 @@ int MultiDisplayComposer::getCurrentDisplayTimingIndex(
 status_t MultiDisplayComposer::setScalingType(
         MDS_DISPLAY_ID dispId, MDS_SCALING_TYPE type) {
     Mutex::Autolock lock(mMutex);
-    mScaleType = type;
+    status_t result = UNKNOWN_ERROR;
 
-    //TODO: implement in callback.
-#if 0
-    if (mMDSCallback == NULL)
-        return NO_INIT;
-    return mMDSCallback->setScalingType(dispId, type);
-#endif
+    ALOGV("%s type:%d", __func__, type);
 
-    status_t result = setDisplayScalingLocked((uint32_t)mScaleType,
+    // Check the callback implementation
+    if (mMDSCallback != NULL)
+        result = mMDSCallback->setScalingType(dispId, type);
+
+    // If not implemented in callback, call SurfaceFlinger directly!
+    if (result != NO_ERROR)
+        result = setDisplayScalingLocked((uint32_t)type,
             mHorizontalStep, mVerticalStep);
+
+    if (result == NO_ERROR)
+        mScaleType = type;
+
     return result;
 }
 
 status_t MultiDisplayComposer::setOverscan(
         MDS_DISPLAY_ID dispId, int hVal, int vVal) {
     Mutex::Autolock lock(mMutex);
-    status_t result;
+    status_t result = UNKNOWN_ERROR;
 
-    //TODO: implement in callback.
-#if 0
-    if (mMDSCallback == NULL) {
-        result = setDisplayScalingLocked((uint32_t)mScaleType, hVal, vVal);
-    } else {
+    hVal = (hVal > 5) ? 0: (5 - hVal);
+    vVal = (vVal > 5) ? 0: (5 - vVal);
+    ALOGV("%s h_val:%d v_val:%d", __func__, hVal, vVal);
+
+    // Check the callback implementation
+    if (mMDSCallback != NULL)
         result = mMDSCallback->setOverscan(dispId, hVal, vVal);
-    }
-#endif
-    mHorizontalStep = (hVal > 5) ? 0: (5 - hVal);
-    mVerticalStep = (vVal > 5) ? 0: (5 - vVal);
-    ALOGD("%s h_val:%d v_val:%d", __func__, hVal, vVal);
 
-    result = setDisplayScalingLocked((uint32_t)mScaleType,
-            mHorizontalStep, mVerticalStep);
+    // If not implemented in callback, call SurfaceFlinger directly!
+    if (result != NO_ERROR)
+        result = setDisplayScalingLocked((uint32_t)mScaleType,
+                hVal, vVal);
+
+    if (result == NO_ERROR) {
+        mHorizontalStep = hVal;
+        mVerticalStep = vVal;
+    }
     return result;
 }
 
@@ -528,10 +536,17 @@ void MultiDisplayComposer::initVideoSessions_l() {
 
 status_t MultiDisplayComposer::resetVideoPlayback() {
     Mutex::Autolock lock(mMutex);
+
     initVideoSessions_l();
+
     if (mMDSCallback != NULL) {
         mMDSCallback->setVideoState(0, -1, MDS_VIDEO_UNPREPARED);
     }
+
+    // exit extended mode
+    mMode &= ~MDS_HDMI_VIDEO_EXT;
+    broadcastMessageLocked(MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode));
+
     return NO_ERROR;
 }
 

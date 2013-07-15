@@ -53,6 +53,7 @@ class MultiDisplayVideoSession {
 private:
     MDS_VIDEO_STATE mState;
     MDSVideoSourceInfo mInfo;
+    bool infoValid;
 public:
 
     inline MDS_VIDEO_STATE getState() {
@@ -65,7 +66,7 @@ public:
         return NO_ERROR;
     }
     inline status_t getInfo(MDSVideoSourceInfo* info) {
-        if (info == NULL)
+        if (info == NULL || !infoValid)
             return UNKNOWN_ERROR;
         memcpy(info, &mInfo, sizeof(MDSVideoSourceInfo));
         return NO_ERROR;
@@ -74,11 +75,13 @@ public:
         if (info == NULL)
             return UNKNOWN_ERROR;
         memcpy(&mInfo, info, sizeof(MDSVideoSourceInfo));
+        infoValid = true;
         return NO_ERROR;
     }
     inline void init() {
         mState = MDS_VIDEO_UNPREPARED;
         memset(&mInfo, 0, sizeof(MDSVideoSourceInfo));
+        infoValid = false;
     }
     inline void dump(int index);
 };

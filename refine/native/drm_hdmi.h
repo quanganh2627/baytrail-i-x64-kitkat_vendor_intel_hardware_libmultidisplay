@@ -54,7 +54,7 @@ int  drm_hdmi_getModeInfo(
     int *pInterlace,
     int *pRatio);
 
-bool drm_hdmi_setModeInfo(int width, int height, int refresh, int interlace, int ratio);
+bool drm_hdmi_selectTiming(MDSDisplayTiming* info);
 
 // get the best matched timing
 bool drm_hdmi_getTiming(int mode, MDSDisplayTiming* info);

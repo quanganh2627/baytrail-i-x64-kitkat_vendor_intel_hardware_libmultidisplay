@@ -492,22 +492,24 @@ int drm_hdmi_getModeInfo(
     return valid_mode_count;
 }
 
-bool drm_hdmi_setModeInfo(int width, int height, int refresh, int interlace, int ratio)
+bool drm_hdmi_selectTiming(MDSDisplayTiming *timing)
 {
     if (!gDrmCxt.hdmiSupported || !gDrmCxt.connected) {
         ALOGE("%s: HDMI is not supported or not connected.", __func__);
         return false;
     }
 
-    gDrmCxt.modeSelected.width = width;
-    gDrmCxt.modeSelected.height = height;
-    gDrmCxt.modeSelected.refresh = refresh;
-    gDrmCxt.modeSelected.interlace = interlace;
-    gDrmCxt.modeSelected.ratio = ratio;
+    if (timing == NULL) {
+        ALOGE("null param.");
+        return false;
+    }
+
+    memcpy(&gDrmCxt.modeSelected, timing, sizeof(MDSDisplayTiming));
     gDrmCxt.modeValid = true;
 
     ALOGI("%s: User-selected mode is: %dx%d@%dHz, interlace = %d, ratio = %d",
-        __func__, width, height, refresh, interlace, ratio);
+        __func__, timing->width, timing->height, timing->refresh,
+        timing->interlace, timing->ratio);
     return true;
 }
 
