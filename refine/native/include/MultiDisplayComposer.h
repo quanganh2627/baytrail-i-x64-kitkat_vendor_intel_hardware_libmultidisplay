@@ -59,8 +59,7 @@ public:
         return mState;
     }
     inline status_t setState(MDS_VIDEO_STATE state) {
-        if (state < MDS_VIDEO_PREPARING || state > MDS_VIDEO_UNPREPARED ||
-                state == mState)
+        if (state < MDS_VIDEO_PREPARING || state > MDS_VIDEO_UNPREPARED)
             return UNKNOWN_ERROR;
         mState = state;
         return NO_ERROR;
@@ -72,7 +71,7 @@ public:
         return NO_ERROR;
     }
     inline status_t setInfo(MDSVideoSourceInfo* info) {
-        if (info == NULL || mState >= MDS_VIDEO_UNPREPARING)
+        if (info == NULL)
             return UNKNOWN_ERROR;
         memcpy(&mInfo, info, sizeof(MDSVideoSourceInfo));
         return NO_ERROR;
@@ -143,7 +142,6 @@ private:
     status_t setDisplayScalingLocked(uint32_t mode, uint32_t stepx, uint32_t stepy);
     status_t updateHdmiConnectStatusLocked();
     MultiDisplayVideoSession* getVideoSession_l(int sessionId);
-    int getUnusedVideoSessionId_l();
     int getVideoSessionSize_l();
     void initVideoSessions_l();
     bool enableVideoExtMode_l();

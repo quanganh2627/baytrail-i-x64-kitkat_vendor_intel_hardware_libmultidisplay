@@ -498,14 +498,6 @@ status_t MultiDisplayComposer::setDisplayScalingLocked(uint32_t mode,
     return reply.readInt32();
 }
 
-int MultiDisplayComposer::getUnusedVideoSessionId_l() {
-    for (size_t i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++) {
-        if (mVideos[i].getState() == MDS_VIDEO_UNPREPARED)
-            return i;
-    }
-    return -1;
-}
-
 int MultiDisplayComposer::getVideoSessionSize_l() {
     int size = 0;
     for (size_t i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++) {
@@ -517,13 +509,15 @@ int MultiDisplayComposer::getVideoSessionSize_l() {
 
 int MultiDisplayComposer::allocateVideoSessionId() {
     Mutex::Autolock lock(mMutex);
-    int sessionId = getUnusedVideoSessionId_l();
-    if (sessionId >= MDS_VIDEO_SESSION_MAX_VALUE || sessionId < 0) {
-        ALOGE("Fail to allocate session ID");
-        return -1;
+    for (size_t i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++) {
+        if (mVideos[i].getState() == MDS_VIDEO_UNPREPARED) {
+            ALOGV("%s: Allocate a new Video Session ID %d", __func__, i);
+            return i;
+        }
     }
-    ALOGV("%s: Allocate a new Video Session ID %d", __func__, sessionId);
-    return sessionId;
+
+    ALOGE("Fail to allocate session ID");
+    return -1;
 }
 
 void MultiDisplayComposer::initVideoSessions_l() {
@@ -535,11 +529,9 @@ void MultiDisplayComposer::initVideoSessions_l() {
 status_t MultiDisplayComposer::resetVideoPlayback() {
     Mutex::Autolock lock(mMutex);
     initVideoSessions_l();
-    //TODO:
-    // This API is called when mediaplayer service is crash,
-    // We need do some clean work, such as timing reset,
-    // But new MDS is lack of this interface,
-    // will add it when this API is ready
+    if (mMDSCallback != NULL) {
+        mMDSCallback->setVideoState(0, -1, MDS_VIDEO_UNPREPARED);
+    }
     return NO_ERROR;
 }
 
