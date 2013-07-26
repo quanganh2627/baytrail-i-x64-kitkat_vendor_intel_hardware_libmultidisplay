@@ -18,17 +18,6 @@
 
 #ifndef __MULTIDISPLAY_COMPOSER_H__
 #define __MULTIDISPLAY_COMPOSER_H__
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/inotify.h>
-#include <sys/limits.h>
-#include <sys/poll.h>
-#include <linux/input.h>
-#include <errno.h>
 #include <utils/threads.h>
 #include <utils/Vector.h>
 #include <display/IExtendDisplayListener.h>
@@ -71,10 +60,10 @@ public:
     int setModePolicy(int);
     int notifyWidi(bool);
     int notifyMipi(bool);
-    int isMdsSurface(int* nw);
     int notifyHotPlug();
     int setHdmiPowerOff();
     int prepareForVideo(int);
+    int getVideoState();
     int updateVideoInfo(MDSVideoSourceInfo*);
 
     int registerListener(sp<IExtendDisplayListener>, void *, const char *, int);
@@ -87,11 +76,6 @@ public:
     int getHdmiDeviceChange();
     int getVideoInfo(int* dw, int* dh, int* fps, int* interlace);
     int getDisplayCapability();
-    void setWidiOrientationInfo(int orientation);
-    int enablePlayInBackground(bool on, int playerId);
-    int setNativeSurface(int* surface);
-    int isPlayInBackgroundEnabled();
-    int getBackgroundPlayerId();
 
 private:
     enum {
@@ -108,16 +92,13 @@ private:
     bool mMipiOn;
     int  mMipiReq;
     bool mWidiVideoExt;
-    MDSVideoSourceInfo mVideo;
     mutable Mutex mLock;
     Condition mMipiCon;
     mutable Mutex mMipiLock;
     KeyedVector<void *, MultiDisplayListener* > mListener;
-    bool mEnablePlayInBackground;
-    int* mNativeSurface;
-    int mBackgroundPlayerId;
-    mutable Mutex mBackgroundPlayLock;
     int mConnectStatus;
+    MDSVideoSourceInfo mVideo;
+    int mVideoState;
 
     // HDMI Scaling mode and scaling calibriation
     sp<IBinder> mSurfaceComposer;
@@ -143,8 +124,7 @@ private:
             return true;
         return false;
     }
-
-    static int widi_rm_notifier_handler(void* cookie, int cmd, int data);
+    bool isHdmiTimingDynamicSettingEnable_l();
 };
 
 

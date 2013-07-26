@@ -48,32 +48,46 @@ public:
     status_t notifyHotPlug(MDS_DISPLAY_ID dpyID, bool connected);
 
     /**
+     * @brief Allocate a unique id for video player
+     * @return: a sessionId
+     */
+    int allocateVideoSessionId();
+
+    /**
+     * @brief Reset video playback
+     * @return @see status_t in <utils/Errors.h>
+     */
+    status_t resetVideoPlayback();
+
+    /**
      * @brief Set the state of video playback
      * @param state @see MDS_VIDEO_STATE in MultiDisplayType.h
      * @return @see status_t in <utils/Errors.h>
      */
-    status_t setVideoState(MDS_VIDEO_STATE state);
+    status_t setVideoState(int sessionId, MDS_VIDEO_STATE state);
 
     /**
      * @brief Get the state of video playback
-     * @param void
+     * @param sessionId, a unique id for every video player
      * @return @see MDS_VIDEO_STATE in MultiDisplayType.h
      */
-    MDS_VIDEO_STATE getVideoState();
+    MDS_VIDEO_STATE getVideoState(int sessionID);
 
     /**
      * @brief Update the video playback info
+     * @param sessionId, a unique id for every video player
      * @param info @see MDSVideoSourceInfo in the MultiDisplayType.h
      * @return @see status_t in <utils/Errors.h>
      */
-    status_t setVideoSourceInfo(MDSVideoSourceInfo* info);
+    status_t setVideoSourceInfo(int sessionId, MDSVideoSourceInfo* info);
 
     /**
      * @brief Get video source info
+     * @param sessionId, a unique id for every video player
      * @param info @see MDSVideoSourceInfo in the MultiDisplayType.h
      * @return @see status_t in <utils/Errors.h>
      */
-    status_t getVideoSourceInfo(MDSVideoSourceInfo* info);
+    status_t getVideoSourceInfo(int sessionId, MDSVideoSourceInfo* info);
 
     /**
      * @brief Update the state of phone call

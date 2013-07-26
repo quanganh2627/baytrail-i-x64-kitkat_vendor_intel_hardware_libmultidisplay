@@ -38,12 +38,13 @@ public:
     DECLARE_META_INTERFACE(MultiDisplayComposer);
 
     virtual status_t notifyHotPlug(MDS_DISPLAY_ID, bool connected) = 0;
+    virtual int allocateVideoSessionId() = 0;
+    virtual status_t setVideoState(int, MDS_VIDEO_STATE) = 0;
+    virtual status_t resetVideoPlayback() = 0;
+    virtual MDS_VIDEO_STATE getVideoState(int) = 0;
 
-    virtual status_t setVideoState(MDS_VIDEO_STATE) = 0;
-    virtual MDS_VIDEO_STATE getVideoState() = 0;
-
-    virtual status_t setVideoSourceInfo(MDSVideoSourceInfo*) = 0;
-    virtual status_t getVideoSourceInfo(MDSVideoSourceInfo*) = 0;
+    virtual status_t setVideoSourceInfo(int, MDSVideoSourceInfo*) = 0;
+    virtual status_t getVideoSourceInfo(int, MDSVideoSourceInfo*) = 0;
 
     virtual status_t setPhoneState(MDS_PHONE_STATE) = 0;
 

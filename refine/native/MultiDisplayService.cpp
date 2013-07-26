@@ -84,13 +84,12 @@ void MultiDisplayService::instantiate() {
 }
 
 /// Public method implementation
-IMPLEMENT_SERVICE_API_0(getVideoState,                MDS_VIDEO_STATE, MDS_VIDEO_STATE_UNKNOWN)
+IMPLEMENT_SERVICE_API_0(resetVideoPlayback,           status_t,        NO_INIT)
+IMPLEMENT_SERVICE_API_0(allocateVideoSessionId,       int,             -1)
 IMPLEMENT_SERVICE_API_0(getPlatformCapability,        MDS_DISPLAY_CAP, MDS_DISPLAY_CAP_UNKNOWN)
 IMPLEMENT_SERVICE_API_0(unregisterCallback,           status_t,        NO_INIT)
 
-IMPLEMENT_SERVICE_API_1(setVideoState,                MDS_VIDEO_STATE,           status_t, NO_INIT)
-IMPLEMENT_SERVICE_API_1(setVideoSourceInfo,           MDSVideoSourceInfo*,       status_t, NO_INIT)
-IMPLEMENT_SERVICE_API_1(getVideoSourceInfo,           MDSVideoSourceInfo*,       status_t, NO_INIT)
+IMPLEMENT_SERVICE_API_1(getVideoState,                int,           MDS_VIDEO_STATE, MDS_VIDEO_STATE_UNKNOWN)
 IMPLEMENT_SERVICE_API_1(setPhoneState,                MDS_PHONE_STATE,           status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_1(registerCallback,             sp<IMultiDisplayCallback>, status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_1(unregisterListener,           void*,                     status_t, NO_INIT)
@@ -99,6 +98,9 @@ IMPLEMENT_SERVICE_API_1(getDisplayDeviceChange,       MDS_DISPLAY_ID,           
 IMPLEMENT_SERVICE_API_1(getCurrentDisplayTimingIndex, MDS_DISPLAY_ID,            int,      -1)
 IMPLEMENT_SERVICE_API_1(getDisplayMode,               bool,          MDS_DISPLAY_MODE, MDS_MODE_NONE)
 
+IMPLEMENT_SERVICE_API_2(setVideoState,           int,                MDS_VIDEO_STATE,           status_t, NO_INIT)
+IMPLEMENT_SERVICE_API_2(setVideoSourceInfo,      int,                MDSVideoSourceInfo*,       status_t, NO_INIT)
+IMPLEMENT_SERVICE_API_2(getVideoSourceInfo,      int,                MDSVideoSourceInfo*,       status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_2(notifyHotPlug,           MDS_DISPLAY_ID,     bool,              status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_2(setDisplayState,         MDS_DISPLAY_ID,     MDS_DISPLAY_STATE, status_t, NO_INIT)
 IMPLEMENT_SERVICE_API_2(setDisplayTiming,        MDS_DISPLAY_ID,     MDSDisplayTiming*, status_t, NO_INIT)

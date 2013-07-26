@@ -88,7 +88,6 @@ public class DisplayObserver extends UEventObserver {
     private static final String HDMI_SET_STEP_SCALE= "android.hdmi.SET.HDMI_STEP_SCALE";
     private static final String HDMI_Get_DisplayBoot = "android.hdmi.GET_HDMI_Boot";
     private static final String HDMI_Set_DisplayBoot = "HdmiObserver.SET_HDMI_Boot";
-    private static final String SET_PLAY_IN_BACKGROUND = "android.mds.SET_PLAY_IN_BACKGROUND";
 
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
@@ -102,7 +101,6 @@ public class DisplayObserver extends UEventObserver {
         intentFilter.addAction(HDMI_SET_SCALE);
         intentFilter.addAction(HDMI_SET_STEP_SCALE);
         intentFilter.addAction(HDMI_Get_DisplayBoot);
-        intentFilter.addAction(SET_PLAY_IN_BACKGROUND);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
@@ -412,14 +410,6 @@ public class DisplayObserver extends UEventObserver {
                 }
                 outIntent.putExtras(mBundle);
                 mContext.sendBroadcast(outIntent);
-            }
-            else if (action.equals(SET_PLAY_IN_BACKGROUND)) {
-                logv("Received intent SET_PLAY_IN_BACKGROUND");
-                boolean enablePlayInBackground = intent.getBooleanExtra("PlayInBackground", false);
-                int playerId = intent.getIntExtra("NativePlayerId", 0);
-                logv("PlayInBackground " + enablePlayInBackground);
-                logv("NativePlayerId " + playerId);
-                mDs.setPlayInBackground(enablePlayInBackground, playerId);
             }
         }
     }

@@ -18,23 +18,12 @@
 
 #ifndef __MULTIDISPLAY_COMPOSER_H__
 #define __MULTIDISPLAY_COMPOSER_H__
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <dirent.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/inotify.h>
-#include <sys/limits.h>
-#include <sys/poll.h>
-#include <linux/input.h>
-#include <errno.h>
-//#include <utils/threads.h>
+
 #include <utils/Vector.h>
+#include <display/MultiDisplayType.h>
 #include <display/IMultiDisplayListener.h>
 #include <display/IMultiDisplayCallback.h>
-#include <display/MultiDisplayType.h>
-#include <display/MultiDisplayComposer.h>
+#include <display/IMultiDisplayComposer.h>
 
 using namespace android;
 
@@ -60,6 +49,41 @@ public:
     }
 };
 
+class MultiDisplayVideoSession {
+private:
+    MDS_VIDEO_STATE mState;
+    MDSVideoSourceInfo mInfo;
+public:
+
+    inline MDS_VIDEO_STATE getState() {
+        return mState;
+    }
+    inline status_t setState(MDS_VIDEO_STATE state) {
+        if (state < MDS_VIDEO_PREPARING || state > MDS_VIDEO_UNPREPARED ||
+                state == mState)
+            return UNKNOWN_ERROR;
+        mState = state;
+        return NO_ERROR;
+    }
+    inline status_t getInfo(MDSVideoSourceInfo* info) {
+        if (info == NULL)
+            return UNKNOWN_ERROR;
+        memcpy(info, &mInfo, sizeof(MDSVideoSourceInfo));
+        return NO_ERROR;
+    }
+    inline status_t setInfo(MDSVideoSourceInfo* info) {
+        if (info == NULL || mState >= MDS_VIDEO_UNPREPARING)
+            return UNKNOWN_ERROR;
+        memcpy(&mInfo, info, sizeof(MDSVideoSourceInfo));
+        return NO_ERROR;
+    }
+    inline void init() {
+        mState = MDS_VIDEO_UNPREPARED;
+        memset(&mInfo, 0, sizeof(MDSVideoSourceInfo));
+    }
+    inline void dump(int index);
+};
+
 class MultiDisplayComposer {
 public:
     MultiDisplayComposer();
@@ -67,11 +91,13 @@ public:
 
     status_t notifyHotPlug(MDS_DISPLAY_ID, bool);
 
-    status_t setVideoState(MDS_VIDEO_STATE);
-    MDS_VIDEO_STATE getVideoState();
+    int allocateVideoSessionId();
+    status_t setVideoState(int, MDS_VIDEO_STATE);
+    status_t resetVideoPlayback();
+    MDS_VIDEO_STATE getVideoState(int);
 
-    status_t setVideoSourceInfo(MDSVideoSourceInfo*);
-    status_t getVideoSourceInfo(MDSVideoSourceInfo*);
+    status_t setVideoSourceInfo(int, MDSVideoSourceInfo*);
+    status_t getVideoSourceInfo(int, MDSVideoSourceInfo*);
 
     status_t setPhoneState(MDS_PHONE_STATE);
 
@@ -100,9 +126,8 @@ private:
     bool mDrmInit;
     int mMode;
     int mCapability;
+    MultiDisplayVideoSession mVideos[MDS_VIDEO_SESSION_MAX_VALUE];
 
-    MDS_VIDEO_STATE mVideoState;
-    MDSVideoSourceInfo mVideoInfo;
     MDS_SCALING_TYPE mScaleType;
     uint32_t mHorizontalStep;
     uint32_t mVerticalStep;
@@ -111,17 +136,22 @@ private:
 
     sp<IMultiDisplayCallback> mMDSCallback;
     KeyedVector<void *, MultiDisplayListener* > mListeners;
+    mutable Mutex mMutex;
 
     void init();
     void broadcastMessageLocked(MDS_MESSAGE msg, void* value, int size);
     status_t setDisplayScalingLocked(uint32_t mode, uint32_t stepx, uint32_t stepy);
     status_t updateHdmiConnectStatusLocked();
+    MultiDisplayVideoSession* getVideoSession_l(int sessionId);
+    int getUnusedVideoSessionId_l();
+    int getVideoSessionSize_l();
+    void initVideoSessions_l();
+    bool enableVideoExtMode_l();
+    void dumpVideoSession_l();
 
     inline bool checkMode(int value, int bit) {
         return (value & bit) == bit ? true : false;
     }
-
-    mutable Mutex mMutex;
 };
 
 

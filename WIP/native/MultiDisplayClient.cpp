@@ -77,12 +77,31 @@ int MultiDisplayClient::isMdsSurface(int* nw) {
     return mIMDComposer->isMdsSurface(nw);
 }
 
-int MultiDisplayClient::setVideoState(int status) {
+MDS_VIDEO_STATE MultiDisplayClient::getVideoState(int sessionId) {
+    if (mIMDComposer == NULL)
+        return MDS_VIDEO_UNPREPARED;
+    int state = mIMDComposer->getVideoState();
+    if (state == MDS_ERROR)
+        return MDS_VIDEO_UNPREPARED;
+    return (MDS_VIDEO_STATE)state;
+}
+
+int MultiDisplayClient::setVideoState(int seesionId, int status) {
     MDC_CHECK_IMDC();
     return mIMDComposer->prepareForVideo(status);
 }
 
-int MultiDisplayClient::setVideoSourceInfo(MDSVideoSourceInfo* info) {
+int MultiDisplayClient::resetVideoPlayback() {
+    MDC_CHECK_IMDC();
+    return MDS_NO_ERROR;
+}
+
+int MultiDisplayClient::allocateVideoSessionId() {
+    MDC_CHECK_IMDC();
+    return 0;
+}
+
+int MultiDisplayClient::setVideoSourceInfo(int sessionId, MDSVideoSourceInfo* info) {
     MDC_CHECK_IMDC();
     return mIMDComposer->updateVideoInfo(info);
 }

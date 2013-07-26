@@ -59,20 +59,18 @@ int BpMultiDisplayComposer::notifyMipi(bool on) {
     return reply.readInt32();
 }
 
-int BpMultiDisplayComposer::isMdsSurface(int* nw) {
-    Parcel data, reply;
-    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
-    if (nw == NULL) return MDS_ERROR;
-    data.writeIntPtr((intptr_t)nw);
-    remote()->transact(MDS_VERIFY_BACKGROUND_SURFACE, data, &reply);
-    return reply.readInt32();
-}
-
 int BpMultiDisplayComposer::prepareForVideo(int status) {
     Parcel data, reply;
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
     data.writeInt32(status);
     remote()->transact(MDS_PREPARE_FOR_VIDEO, data, &reply);
+    return reply.readInt32();
+}
+
+int BpMultiDisplayComposer::getVideoState() {
+    Parcel data, reply;
+    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
+    remote()->transact(MDS_GET_VIDEO_STATE, data, &reply);
     return reply.readInt32();
 }
 
@@ -217,41 +215,6 @@ int BpMultiDisplayComposer::getDisplayCapability() {
 }
 
 
-int BpMultiDisplayComposer::enablePlayInBackground(bool on, int playerId) {
-    Parcel data, reply;
-    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
-    data.writeInt32( on == true ? 1: 0);
-    data.writeInt32(playerId);
-    remote()->transact(MDS_SET_PLAYINBACKGROUND, data, &reply);
-    return reply.readInt32();
-}
-
-int BpMultiDisplayComposer::setNativeSurface(int* surface) {
-    Parcel data, reply;
-    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
-    if (surface == NULL) {
-        LOGE("%s: parameter is null", __func__);
-        return -1;
-    }
-    data.writeIntPtr((intptr_t)surface);
-    remote()->transact(MDS_SET_SURFACE, data, &reply);
-    return reply.readInt32();
-}
-
-int BpMultiDisplayComposer::isPlayInBackgroundEnabled() {
-    Parcel data, reply;
-    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
-    remote()->transact(MDS_GET_PLAYINBACKGROUND, data, &reply);
-    return reply.readInt32();
-}
-
-int BpMultiDisplayComposer::getBackgroundPlayerId() {
-    Parcel data, reply;
-    data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
-    remote()->transact(MDS_GET_BACKGROUNDPLAYER_ID, data, &reply);
-    return reply.readInt32();
-}
-
 IMPLEMENT_META_INTERFACE(MultiDisplayComposer,"com.intel.IMultiDisplayComposer");
 
 status_t BnMultiDisplayComposer::onTransact(uint32_t code,
@@ -289,6 +252,12 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
         return NO_ERROR;
     }
     break;
+    case MDS_GET_VIDEO_STATE: {
+        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
+        reply->writeInt32(getVideoState());
+        return NO_ERROR;
+    }
+    break;
     case MDS_UPDATE_VIDEOINFO: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
         MDSVideoSourceInfo info;
@@ -308,13 +277,6 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
         return NO_ERROR;
     }
     break;
-    case MDS_VERIFY_BACKGROUND_SURFACE: {
-        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        int *nw = NULL;
-        nw = (int*)data.readIntPtr();
-        reply->writeInt32((isMdsSurface(nw) == 1 ? true : false));
-        return NO_ERROR;
-    }
     case MDS_HDMI_POWER_OFF: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
         reply->writeInt32(setHdmiPowerOff());
@@ -430,43 +392,6 @@ status_t BnMultiDisplayComposer::onTransact(uint32_t code,
     case MDS_GET_DISPLAY_CAPABILITY: {
         CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
         int ret = getDisplayCapability();
-        reply->writeInt32(ret);
-        return NO_ERROR;
-    }
-    break;
-
-    case MDS_SET_PLAYINBACKGROUND: {
-        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        bool on;
-        on = (data.readInt32() == 0 ? false : true);
-        int playerId = data.readInt32();
-        int ret = enablePlayInBackground(on, playerId);
-        reply->writeInt32(ret);
-        return NO_ERROR;
-    }
-    break;
-
-    case MDS_SET_SURFACE: {
-        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        int* ptr = NULL;
-        ptr = (int*)data.readIntPtr();
-        int ret = setNativeSurface(ptr);
-        reply->writeInt32(ret);
-        return NO_ERROR;
-    }
-    break;
-
-    case MDS_GET_PLAYINBACKGROUND: {
-        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        int ret = isPlayInBackgroundEnabled();
-        reply->writeInt32(ret);
-        return NO_ERROR;
-    }
-    break;
-
-    case MDS_GET_BACKGROUNDPLAYER_ID: {
-        CHECK_INTERFACE(IMultiDisplayComposer, data, reply);
-        int ret = getBackgroundPlayerId();
         reply->writeInt32(ret);
         return NO_ERROR;
     }

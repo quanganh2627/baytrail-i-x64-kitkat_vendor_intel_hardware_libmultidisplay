@@ -30,11 +30,7 @@ using namespace android;
 
 class MultiDisplayClient {
 private:
-    void initService();
     sp<IMultiDisplayComposer> mIMDComposer;
-    sp<SurfaceComposerClient> mComposerClient;
-    sp<SurfaceControl> mSurfaceControl;
-    sp<ANativeWindow> mANW;
 
 public:
     MultiDisplayClient();
@@ -63,16 +59,6 @@ public:
      */
     int notifyMipi(bool on);
     /*
-     * verify with the MDS that NativeWindow belongs to
-     * surface  allocated by mds
-     * param:
-     * return:
-     *     1: MDS surface
-     *     0: Not MDS surface
-     *     MDS_ERROR: on failure
-     */
-    int isMdsSurface(int* nw);
-    /*
      * get display mode
      * param:
      *      wait: "ture" means this interface will be blocked
@@ -86,7 +72,18 @@ public:
      */
     int getDisplayMode(bool wait);
     /*
-     *  prepare video playback info
+     * Allocate a unique id for video player
+     * return: a sessionId for video player
+     */
+    int allocateVideoSessionId();
+
+    /**
+     * Reset video playback
+     * return: see status_t in <utils/Errors.h>
+     */
+    status_t resetVideoPlayback();
+    /*
+     *  prepare video playback state
      * param:
      *      status:
      *           MDS_VIDEO_PREPARING:  video is preparing
@@ -97,7 +94,20 @@ public:
      *       0: on success
      *     !=0: on failure
      */
-    int setVideoState(int status);
+    int setVideoState(int sessionId, int status);
+    /*
+     *  get video playback state
+     * param:
+     *      status:
+     *           MDS_VIDEO_PREPARING:  video is preparing
+     *           MDS_VIDEO_PREPARED:   video is prepared
+     *           MDS_VIDEO_UNPREPARING:video is unpreparing
+     *           MDS_VIDEO_UNPREPARED: video is unprepared
+     * return:
+     *       0: on success
+     *     !=0: on failure
+     */
+    MDS_VIDEO_STATE getVideoState(int sessionId);
     /*
      * update video playback info
      * param: struct MDSVideoSourceInfo
@@ -105,7 +115,7 @@ public:
      *       0: on success
      *     !=0: on failure
      */
-    int setVideoSourceInfo(MDSVideoSourceInfo* info);
+    int setVideoSourceInfo(int sessionId, MDSVideoSourceInfo* info);
     /*
      * notify HDMI is plugged in/off
      * param:
@@ -114,6 +124,7 @@ public:
      *     !=0: on failure
      */
     int notifyHotPlug();
+
     int setHdmiPowerOff();
     /*
      * register mode change listener
@@ -189,39 +200,6 @@ public:
      * return: hardware display capability, refer MultiDisplayType.h
      */
     int getDisplayCapability();
-
-    /*
-     * create a native surface for client
-     * input param:
-     *              width: surface width
-     *              height: surface height
-     *              pixelFormat: surface pixel format
-     *              playerId: Id of native player requesting surface
-     * return:
-     *    NULL: on failure or if playerId is different from Background player app's native player
-     *    Native surface: on success
-     */
-    sp<ANativeWindow> createNewVideoSurface(int width, int height, int pixelFormat, int playerId);
-
-    /*
-     * destroy native surface created previously
-     * input param:
-     *    None
-     * return:
-     *    None
-     */
-    void destroyVideoSurface();
-
-    /*
-     * Set Background play session and playerId on MDS server
-     * input param:
-     *               on: background playback on/off
-     *               playerId: id of native player created by background player app
-     * return:
-     *    MDS_ERROR: on error
-     *    !=0: on success
-     */
-    int setPlayInBackground(bool on, int playerId);
 };
 
 #endif

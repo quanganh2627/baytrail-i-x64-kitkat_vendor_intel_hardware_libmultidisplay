@@ -19,12 +19,8 @@
 #ifndef __IMULTIDISPLAY_LISTENER_H__
 #define __IMULTIDISPLAY_LISTENER_H__
 
-#include <stdint.h>
-#include <sys/types.h>
-
 #include <utils/Errors.h>
 #include <utils/RefBase.h>
-
 #include <binder/IInterface.h>
 
 #include <display/MultiDisplayType.h>

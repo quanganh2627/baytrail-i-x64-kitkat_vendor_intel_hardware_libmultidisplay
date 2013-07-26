@@ -143,8 +143,20 @@ int MultiDisplayComposer::prepareForVideo(int status) {
     MDC_CHECK_INIT();
     Mutex::Autolock _l(mLock);
     LOGV("%s: Video preparing status %d", __func__, status);
+    mVideoState = status;
     broadcastMessage_l(MDS_SET_VIDEO_STATUS, &status, sizeof(status));
+    if (status == (int)MDS_VIDEO_UNPREPARED) {
+        MDSVideoSourceInfo info;
+        memset(&mVideo, 0, sizeof(info));
+        return setHdmiMode_l();
+    }
     return MDS_NO_ERROR;
+}
+
+int MultiDisplayComposer::getVideoState() {
+    MDC_CHECK_INIT();
+    Mutex::Autolock _l(mLock);
+    return mVideoState;
 }
 
 int MultiDisplayComposer::updateVideoInfo(MDSVideoSourceInfo* info) {

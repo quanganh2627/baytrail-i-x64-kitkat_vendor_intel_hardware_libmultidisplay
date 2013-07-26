@@ -20,15 +20,14 @@
 #define ANDROID_MULTIDISPLAYSERVICE_H
 
 #include <utils/RefBase.h>
-
 #include <binder/IInterface.h>
 #include <binder/Parcel.h>
 #include <binder/BinderService.h>
 
+#include <display/MultiDisplayType.h>
 #include <display/IMultiDisplayListener.h>
 #include <display/IMultiDisplayCallback.h>
 #include <display/IMultiDisplayComposer.h>
-#include <display/MultiDisplayType.h>
 #include <display/MultiDisplayComposer.h>
 
 namespace android {
@@ -47,11 +46,13 @@ public:
 
     status_t notifyHotPlug(MDS_DISPLAY_ID, bool);
 
-    status_t setVideoState(MDS_VIDEO_STATE);
-    MDS_VIDEO_STATE getVideoState();
+    int allocateVideoSessionId();
+    status_t setVideoState(int, MDS_VIDEO_STATE);
+    status_t resetVideoPlayback();
+    MDS_VIDEO_STATE getVideoState(int);
 
-    status_t setVideoSourceInfo(MDSVideoSourceInfo*);
-    status_t getVideoSourceInfo(MDSVideoSourceInfo*);
+    status_t setVideoSourceInfo(int, MDSVideoSourceInfo*);
+    status_t getVideoSourceInfo(int, MDSVideoSourceInfo*);
 
     status_t setPhoneState(MDS_PHONE_STATE);
 

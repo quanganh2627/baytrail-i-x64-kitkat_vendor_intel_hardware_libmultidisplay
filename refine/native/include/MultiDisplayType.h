@@ -112,4 +112,7 @@ typedef enum {
     MDS_WIDI_ON        = 1 << 3,  /**< Widi is working */
 } MDS_DISPLAY_MODE;
 
+
+#define MDS_VIDEO_SESSION_MAX_VALUE       (16)
+
 #endif
