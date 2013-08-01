@@ -106,7 +106,7 @@ public class DisplayObserver extends UEventObserver {
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DisplayObserver");
         mWakeLock.setReferenceCounted(false);
-        mDs.setMdsMessageListener(mListener);
+        //mDs.setMdsMessageListener(mListener);
         startObserving(HDMI_UEVENT_MATCH);
         mDisplayCapability = mDs.getDisplayCapability();
         if (checkDisplayCapability(mDs.HW_SUPPORT_HDMI) &&
@@ -136,7 +136,7 @@ public class DisplayObserver extends UEventObserver {
         return false;
     }
 
-    DisplaySetting.onMdsMessageListener mListener =
+    /*DisplaySetting.onMdsMessageListener mListener =
                         new DisplaySetting.onMdsMessageListener() {
         public boolean onMdsMessage(int msg, int value) {
             if (msg == mDs.MDS_MODE_CHANGE) {
@@ -154,7 +154,7 @@ public class DisplayObserver extends UEventObserver {
             }
             return true;
         };
-    };
+    };*/
 
     @Override
     public synchronized void onUEvent(UEventObserver.UEvent event) {
