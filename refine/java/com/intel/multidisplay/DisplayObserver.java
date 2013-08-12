@@ -34,13 +34,7 @@ import android.os.UEventObserver;
 import android.util.Slog;
 import android.media.AudioManager;
 import android.telephony.TelephonyManager;
-import android.provider.Settings;
-import android.content.ContentResolver;
-import android.database.ContentObserver;
 
-import java.io.FileReader;
-import java.io.FileNotFoundException;
-import java.util.List;
 import com.intel.multidisplay.DisplaySetting;
 /**
  * <p>DisplayObserver.
@@ -49,69 +43,75 @@ public class DisplayObserver {
     private static final String TAG = "MultiDisplay";
     private static final boolean LOG = true;
 
-    // private final String HDMI_UEVENT_MATCH = "DEVPATH=/devices/pci0000:00/0000:00:02.0/drm/card0";
+    // Please follow this style to define name and content of Intent
+    // if need to indicate display device, "DPY" is need
+    // MDS_DPY_XXX = "com.intel.mds.DPY_XXX";
+    private static final String MDS_HDMI_REQ_TIMING_LIST     = "com.intel.mds.hdmi.req.timing.list";
+    private static final String MDS_HDMI_SET_TIMING          = "com.intel.mds.hdmi.set.timing";
+    private static final String MDS_HDMI_TIMING_LIST_READY   = "com.intel.mds.hdmi.timing.list.ready";
+    private static final String MDS_HDMI_SET_SCALING         = "com.intel.mds.hdmi.set.scaling";
+    private static final String MDS_HDMI_SET_OVERSCAN        = "com.intel.mds.hdmi.set.overscan";
+    // only for HDMI setting app
+    private static final String MDS_HDMI_GET_SETTING_FIRST_START  = "com.intel.mds.hdmi.get.setting.first.start";
+    private static final String MDS_HDMI_SET_SETTING_FIRST_START  = "com.intel.mds.hdmi.set.setting.first.start";
 
-    // Assuming unplugged (i.e. 0) for initial state, assign initial state in init() below.
+    // for audio switch
+    private final int ROUTE_TO_UNKNOWN = -1;
     private final int ROUTE_TO_SPEAKER = 0;
     private final int ROUTE_TO_HDMI    = 1;
-    private final int HDMI_HOTPLUG     = 2;
     private int mAudioRoute =  ROUTE_TO_SPEAKER;
-    private int mPreAudioRoute = -1;
-    private String mHDMIName;
-    private int mEdidChange = 0;
-    private int mDisplayBoot = 1;
-    private int mHoriRatio = 5;
-    private int mVertRatio = 5;
+    private int mPreAudioRoute = ROUTE_TO_UNKNOWN;
+
+    // indicate HDMI sink device is change
+    private int mEdidChange  = 0;
+    // HDMI setting need to clear old states if it is first starting
+    private int mSettingFirstStart = 1;
+    // overscan compensation
+    private int mHoriRatio   = 5;
+    private int mVertRatio   = 5;
 
     // indicate HDMI connect state
-    private int mHDMIConnected = 0;
-    private int mHDMIPlugEvent = 0;
+    private boolean mHDMIConnected = false;
 
-    private Context mContext;
-    private WakeLock mWakeLock;  // held while there is a pending route change
+    // monitor the state of incoming or outgoing call
     private boolean mHasIncomingCall = false;
     private boolean mInCallScreenFinished = true;
-    private DisplaySetting mDs;
+
+    // the display capabilty of platform
     private int mDisplayCapability = 0;
 
     //Message need to handle
     private final int HDMI_STATE_CHANGE = 0;
-
-    private static final String HDMI_GET_INFO = "android.hdmi.GET_HDMI_INFO";
-    private static final String HDMI_SET_INFO = "android.hdmi.SET_HDMI_INFO";
-    private static final String HDMI_SERVER_GET_INFO = "HdmiObserver.GET_HDMI_INFO";
-    private static final String HDMI_SET_SCALE= "android.hdmi.SET.HDMI_SCALE";
-    private static final String HDMI_SET_STEP_SCALE= "android.hdmi.SET.HDMI_STEP_SCALE";
-    private static final String HDMI_Get_DisplayBoot = "android.hdmi.GET_HDMI_Boot";
-    private static final String HDMI_Set_DisplayBoot = "HdmiObserver.SET_HDMI_Boot";
-
+    private Context mContext;
+    private WakeLock mWakeLock;  // held while there is a pending route change
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
+
+    private DisplaySetting mDs;
 
     public DisplayObserver(Context context) {
         mContext = context;
         mDs = new DisplaySetting();
         IntentFilter intentFilter = new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
-        intentFilter.addAction(HDMI_GET_INFO);
-        intentFilter.addAction(HDMI_SET_INFO);
-        intentFilter.addAction(HDMI_SET_SCALE);
-        intentFilter.addAction(HDMI_SET_STEP_SCALE);
-        intentFilter.addAction(HDMI_Get_DisplayBoot);
+        intentFilter.addAction(MDS_HDMI_REQ_TIMING_LIST);
+        intentFilter.addAction(MDS_HDMI_SET_TIMING);
+        intentFilter.addAction(MDS_HDMI_SET_SCALING);
+        intentFilter.addAction(MDS_HDMI_SET_OVERSCAN);
+        intentFilter.addAction(MDS_HDMI_GET_SETTING_FIRST_START);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DisplayObserver");
         mWakeLock.setReferenceCounted(false);
         mDs.setMdsMessageListener(mListener);
-        // startObserving(HDMI_UEVENT_MATCH);
         mDisplayCapability = mDs.getDisplayCapability();
         logv("Get platform display capability:" + mDisplayCapability);
         if (checkDisplayCapability(mDs.HW_SUPPORT_HDMI) &&
             ((mDs.getMode() & mDs.HDMI_CONNECTED_BIT) == mDs.HDMI_CONNECTED_BIT)) {
-            mHDMIConnected = 1;
+            mHDMIConnected = true;
             update("HOTPLUG", ROUTE_TO_HDMI);
         } else {
-            mHDMIConnected = 0;
+            mHDMIConnected = false;
             update("HOTPLUG", ROUTE_TO_SPEAKER);
         }
     }
@@ -146,27 +146,6 @@ public class DisplayObserver {
         };
     };
 
-/*
-    @Override
-    public synchronized void onUEvent(UEventObserver.UEvent event) {
-        if (event.toString().contains("HOTPLUG")) {
-            logv("HDMI UEVENT: " + event.toString());
-            int delay = 0;
-            if (event.toString().contains("HOTPLUG_IN")) {
-                delay = 0;
-                mHDMIPlugEvent = 1;
-            } else if (event.toString().contains("HOTPLUG_OUT")) {
-                delay = 200;
-                mHDMIPlugEvent = 0;
-            } else
-                return;
-            mHandler.removeMessages(HDMI_HOTPLUG);
-            Message msg = mHandler.obtainMessage(HDMI_HOTPLUG, mHDMIPlugEvent, 0);
-            mHandler.sendMessageDelayed(msg, delay);
-        }
-    }
-*/
-
     private synchronized void update(String newName, int newState) {
         // Retain only relevant bits
         int delay = 0;
@@ -178,7 +157,6 @@ public class DisplayObserver {
             return;
         }
 
-        mHDMIName = newName;
         mPreAudioRoute = mAudioRoute;
         mAudioRoute = newState;
 
@@ -190,7 +168,7 @@ public class DisplayObserver {
         mHandler.sendMessageDelayed(mHandler.obtainMessage(HDMI_STATE_CHANGE,
                                     mAudioRoute,
                                     mPreAudioRoute,
-                                    mHDMIName),
+                                    newName),
                                     delay);
     }
 
@@ -212,11 +190,11 @@ public class DisplayObserver {
     }
 
     private final void preNotifyHotplug(int event) {
-            /* set HDMI connect status per plug event */
-            if (event == 0)
-                 mHDMIConnected = 0;
-            else
-                 mHDMIConnected = 1;
+        /* set HDMI connect status per plug event */
+        if (event == 0)
+            mHDMIConnected = false;
+        else
+            mHDMIConnected = true;
     }
 
     private final void postNotifyHotplug(int event) {
@@ -236,25 +214,6 @@ public class DisplayObserver {
             case HDMI_STATE_CHANGE:
                 sendIntents(msg.arg1, msg.arg2, (String)msg.obj);
                 mWakeLock.release();
-                break;
-            case HDMI_HOTPLUG:
-                synchronized(this) {
-                /* filter before msg which does not match with latest event */
-                /*
-                    if (mHDMIPlugEvent != msg.arg1)
-                        return;
-
-                    preNotifyHotplug(msg.arg1);
-
-                    boolean ret = mDs.notifyHotPlug();
-                    if (!ret) {
-                        logv("fail to deal with hdmi hotlpug");
-                        return;
-                    }
-
-                    postNotifyHotplug(msg.arg1);
-                */
-                }
                 break;
             }
         }
@@ -282,10 +241,9 @@ public class DisplayObserver {
                     logv("Call is terminated and Incallscreen disappeared");
                     mDs.setPhoneState(mDs.PHONE_STATE_OFF);
                 }
-            } else if (action.equals(HDMI_GET_INFO)) {
-                // Handle HDMI_GET_INFO ACTION
-                logv("HDMI is plugged " + (mHDMIConnected == 1 ? "in" : "out"));
-                if (mHDMIConnected != 0) {
+            } else if (action.equals(MDS_HDMI_REQ_TIMING_LIST)) {
+                logv("HDMI is plugged " + (mHDMIConnected? "in" : "out"));
+                if (mHDMIConnected) {
                     // Get Number of Timing Info
                     int Count = mDs.getHdmiInfoCount();
                     mEdidChange = mDs.getHdmiDeviceChange();
@@ -295,7 +253,7 @@ public class DisplayObserver {
                         return;
                     }
 
-                    Intent outIntent = new Intent(HDMI_SERVER_GET_INFO);
+                    Intent outIntent = new Intent(MDS_HDMI_TIMING_LIST_READY);
                     outIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
                     Bundle mBundle = new Bundle();
 
@@ -317,7 +275,7 @@ public class DisplayObserver {
                     outIntent.putExtras(mBundle);
                     mContext.sendBroadcast(outIntent);
                 }
-            } else if (action.equals(HDMI_SET_INFO)) {
+            } else if (action.equals(MDS_HDMI_SET_TIMING)) {
                 // Set Specified Timing Info: width, height ,refresh, interlace
                 Bundle extras = intent.getExtras();
                 if (extras == null)
@@ -344,7 +302,7 @@ public class DisplayObserver {
                 if (!mDs.setHdmiTiming(Width, Height, Refresh, Interlace, Ratio))
                     logv("Set HDMI Timing Info error");
             }
-            else if (action.equals(HDMI_SET_SCALE)) {
+            else if (action.equals(MDS_HDMI_SET_SCALING)) {
                 Bundle extras = intent.getExtras();
                 if (extras == null)
                      return;
@@ -354,7 +312,7 @@ public class DisplayObserver {
                 if (!mDs.setHdmiScaleType(ScaleType))
                     logv("Set HDMI Scale error");
             }
-            else if (action.equals(HDMI_SET_STEP_SCALE)) {
+            else if (action.equals(MDS_HDMI_SET_OVERSCAN)) {
                 Bundle extras = intent.getExtras();
                 if (extras == null)
                      return;
@@ -369,16 +327,15 @@ public class DisplayObserver {
                 if(!mDs.setHdmiOverscan(mHoriRatio, mVertRatio))
                     logv("Set HDMI Step Scale error");
             }
-            else if (action.equals(HDMI_Get_DisplayBoot)) {
-                Intent outIntent = new Intent(HDMI_Set_DisplayBoot);
+            else if (action.equals(MDS_HDMI_GET_SETTING_FIRST_START)) {
+                Intent outIntent = new Intent(MDS_HDMI_SET_SETTING_FIRST_START);
                 Bundle mBundle = new Bundle();
-                if (mDisplayBoot == 1) {
-                    mBundle.putInt("DisplayBoot",mDisplayBoot);
-                    logv("mDisplayBoot: " + mDisplayBoot);
-                    mDisplayBoot = 0;
+                logv("HDMI setting is 1st starting: %d " + mSettingFirstStart);
+                if (mSettingFirstStart == 1) {
+                    mBundle.putInt("SettingFirstStart", mSettingFirstStart);
+                    mSettingFirstStart = 0;
                 } else {
-                    mBundle.putInt("DisplayBoot",mDisplayBoot);
-                    logv("mDisplayBoot: " + mDisplayBoot);
+                    mBundle.putInt("SettingFirstStart",mSettingFirstStart);
                 }
                 outIntent.putExtras(mBundle);
                 mContext.sendBroadcast(outIntent);

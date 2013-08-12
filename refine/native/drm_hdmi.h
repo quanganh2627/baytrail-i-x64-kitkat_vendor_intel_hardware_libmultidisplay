@@ -21,10 +21,6 @@
 #include <display/MultiDisplayType.h>
 
 
-#define DRM_MIPI_OFF            (0)
-#define DRM_MIPI_ON             (1)
-
-#define DRM_HDMI_OFF            (0)
 #define DRM_HDMI_CLONE          (1)
 #define DRM_HDMI_VIDEO_EXT      (2)
 
@@ -34,14 +30,9 @@
 
 bool drm_init();
 void drm_cleanup();
-int  drm_get_dev_fd();
-int  drm_get_ioctl_offset();
 
 bool  drm_hdmi_isDeviceChanged(bool reset);
 bool drm_hdmi_isSupported();
-bool drm_hdmi_setHdmiVideoOn();
-bool drm_hdmi_setHdmiVideoOff();
-bool drm_hdmi_setHdmiPowerOff();
 bool drm_hdmi_onHdmiDisconnected(void);
 bool drm_hdmi_notify_audio_hotplug(bool connected);
 // return 0 - disconnected, 1 - HDMI connected, 2 - DVI connected
@@ -55,11 +46,5 @@ int  drm_hdmi_getModeInfo(
     int *pRatio);
 
 bool drm_hdmi_selectTiming(MDSDisplayTiming* info);
-
-// get the best matched timing
-bool drm_hdmi_getTiming(int mode, MDSDisplayTiming* info);
-
-// turn MIPI on or off
-bool drm_mipi_setMode(int mode);
 
 #endif // _DRM_HDMI_H
