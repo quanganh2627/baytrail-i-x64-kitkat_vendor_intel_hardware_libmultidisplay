@@ -88,7 +88,6 @@ public class DisplayObserver {
     private static final String HDMI_SET_STEP_SCALE= "android.hdmi.SET.HDMI_STEP_SCALE";
     private static final String HDMI_Get_DisplayBoot = "android.hdmi.GET_HDMI_Boot";
     private static final String HDMI_Set_DisplayBoot = "HdmiObserver.SET_HDMI_Boot";
-    private static final String SET_PLAY_IN_BACKGROUND = "android.mds.SET_PLAY_IN_BACKGROUND";
     private static final String HDMI_SET_HDCP = "HdmiObserver.SET_HDMI_HDCP";
 
     // Broadcast receiver for device connections intent broadcasts
@@ -103,14 +102,12 @@ public class DisplayObserver {
         intentFilter.addAction(HDMI_SET_SCALE);
         intentFilter.addAction(HDMI_SET_STEP_SCALE);
         intentFilter.addAction(HDMI_Get_DisplayBoot);
-        intentFilter.addAction(SET_PLAY_IN_BACKGROUND);
         intentFilter.addAction(HDMI_SET_HDCP);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DisplayObserver");
         mWakeLock.setReferenceCounted(false);
-        mDs.setMdsMessageListener(mListener);
         //startObserving(HDMI_UEVENT_MATCH);
         mDisplayCapability = mDs.getDisplayCapability();
         if (checkDisplayCapability(mDs.HW_SUPPORT_HDMI) &&
@@ -139,38 +136,6 @@ public class DisplayObserver {
             return true;
         return false;
     }
-
-    DisplaySetting.onMdsMessageListener mListener =
-                        new DisplaySetting.onMdsMessageListener() {
-        public boolean onMdsMessage(int msg, int value) {
-            if (msg == mDs.MDS_MODE_CHANGE) {
-                logv("mode is changed to 0x" + Integer.toHexString(value));
-                mMdsMode = value;
-
-                boolean isExtMode = (mMdsMode & mDs.HDMI_EXTEND_MODE) != 0;
-                Intent intent = new Intent(Intent.ACTION_REQUEST_SCREEN_ORIENTATION_LANDSCAPE);
-                intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
-                intent.putExtra(Intent.EXTRA_SET_LANDSCAPE, isExtMode);
-
-                if (mContext != null)
-                    mContext.sendBroadcast(intent);
-                logv("Request landscape:" + isExtMode);
-
-                boolean isHdmiConnected = (mMdsMode & mDs.HDMI_CONNECT_STATUS_BIT) != 0;
-                int delay = 0;
-                if (isHdmiConnected) {
-                    delay = 0;
-                    mHDMIPlugEvent = 1;
-                } else {
-                    delay = 200;
-                    mHDMIPlugEvent = 0;
-                }
-                mHandler.removeMessages(HDMI_HOTPLUG);
-                mHandler.sendMessageDelayed(mHandler.obtainMessage(HDMI_HOTPLUG, mHDMIPlugEvent, 0), delay);
-            }
-            return true;
-        };
-    };
 
     /*@Override
     public synchronized void onUEvent(UEventObserver.UEvent event) {
@@ -426,14 +391,6 @@ public class DisplayObserver {
                 }
                 outIntent.putExtras(mBundle);
                 mContext.sendBroadcast(outIntent);
-            }
-            else if (action.equals(SET_PLAY_IN_BACKGROUND)) {
-                logv("Received intent SET_PLAY_IN_BACKGROUND");
-                boolean enablePlayInBackground = intent.getBooleanExtra("PlayInBackground", false);
-                int playerId = intent.getIntExtra("NativePlayerId", 0);
-                logv("PlayInBackground " + enablePlayInBackground);
-                logv("NativePlayerId " + playerId);
-                mDs.setPlayInBackground(enablePlayInBackground, playerId);
             }
             else if (action.equals(HDMI_SET_HDCP)) {
                 Bundle extras = intent.getExtras();
