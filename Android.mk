@@ -144,7 +144,9 @@ LOCAL_SRC_FILES := $(LOCAL_MODULE)
 
 include $(BUILD_PREBUILT)
 
-include $(BUILD_DROIDDOC)
+# droiddoc line below is commented because it breaks the SDK build.
+# Tracking: https://otci.intel.com/jira/browse/ADEV-192
+#include $(BUILD_DROIDDOC)
 
 endif
 endif
