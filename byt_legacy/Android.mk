@@ -2,56 +2,27 @@
 
 LOCAL_PATH:= $(call my-dir)
 
-#$(warning $(TARGET_HAS_MULTIPLE_DISPLAY))
-#$(warning $(USE_MDS_LEGACY))
-#$(warning $(TARGET_BOARD_PLATFORM))
-
-ifeq ($(USE_MDS_LEGACY),true)
-ifeq ($(TARGET_BOARD_PLATFORM),baytrail)
-include $(LOCAL_PATH)/byt_legacy/Android.mk
-endif
-ifeq ($(TARGET_BOARD_PLATFORM),clovertrail)
-include $(LOCAL_PATH)/ctp_legacy/Android.mk
-endif
-
-else
-
 ifeq ($(TARGET_HAS_MULTIPLE_DISPLAY),true)
+
 include $(CLEAR_VARS)
 LOCAL_COPY_HEADERS_TO := display
 LOCAL_COPY_HEADERS := \
+    native/include/IExtendDisplayListener.h \
+    native/include/IMultiDisplayComposer.h \
+    native/include/MultiDisplayClient.h \
+    native/include/MultiDisplayComposer.h \
     native/include/MultiDisplayType.h \
-    native/include/IMultiDisplayListener.h \
-    native/include/IMultiDisplayCallback.h \
-    native/include/IMultiDisplayHdmiControl.h \
-    native/include/IMultiDisplayVideoControl.h \
-    native/include/IMultiDisplayEventMonitor.h \
-    native/include/IMultiDisplaySinkRegistrar.h \
-    native/include/IMultiDisplayCallbackRegistrar.h \
-    native/include/IMultiDisplayConnectionObserver.h \
-    native/include/IMultiDisplayInfoProvider.h \
-    native/include/IMultiDisplayDecoderConfig.h \
     native/include/MultiDisplayService.h
-
 
 include $(BUILD_COPY_HEADERS)
 
-#native/MultiDisplayComposer.cpp
-
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES:= \
+    native/MultiDisplayService.cpp \
+    native/MultiDisplayClient.cpp \
+    native/IMultiDisplayComposer.cpp \
     native/MultiDisplayComposer.cpp \
-    native/IMultiDisplayListener.cpp \
-    native/IMultiDisplayCallback.cpp \
-    native/IMultiDisplayInfoProvider.cpp \
-    native/IMultiDisplayConnectionObserver.cpp \
-    native/IMultiDisplayHdmiControl.cpp \
-    native/IMultiDisplayVideoControl.cpp \
-    native/IMultiDisplayEventMonitor.cpp \
-    native/IMultiDisplaySinkRegistrar.cpp \
-    native/IMultiDisplayCallbackRegistrar.cpp \
-    native/IMultiDisplayDecoderConfig.cpp \
-    native/MultiDisplayService.cpp
+    native/IExtendDisplayListener.cpp
 
 LOCAL_MODULE:= libmultidisplay
 LOCAL_MODULE_TAGS := optional
@@ -60,24 +31,26 @@ LOCAL_SHARED_LIBRARIES := \
     libui libcutils libutils libbinder
 LOCAL_CFLAGS := -DLOG_TAG=\"MultiDisplay\"
 
-ifeq ($(ENABLE_IMG_GRAPHICS),true)
+ifeq ($(ENABLE_GEN_GRAPHICS),true)
     LOCAL_SRC_FILES += \
         native/drm_hdmi.cpp
 
     LOCAL_C_INCLUDES = \
         $(TARGET_OUT_HEADERS)/libdrm \
-        $(TARGET_OUT_HEADERS)/pvr/pvr2d \
-        $(TARGET_OUT_HEADERS)/libttm \
-        $(TOP)/linux/modules/intel_media/common
+		$(TOP)/external/drm
 
     LOCAL_SHARED_LIBRARIES += \
          libdrm
 
-    LOCAL_CFLAGS += -DENABLE_DRM
-    LOCAL_CFLAGS += -DDVI_SUPPORTED
-    LOCAL_SHARED_LIBRARIES += libdl
+    LOCAL_CFLAGS += -DDVI_SUPPORTED -DVPG_DRM
 endif
-#LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)
+
+ifeq ($(ENABLE_HDCP),true)
+    LOCAL_SHARED_LIBRARIES += libsepdrm
+    LOCAL_SRC_FILES += native/drm_hdcp.cpp
+    LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/libspedrm
+    LOCAL_CFLAGS += -DENABLE_HDCP
+endif
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -155,5 +128,3 @@ LOCAL_SRC_FILES := $(LOCAL_MODULE)
 include $(BUILD_PREBUILT)
 
 include $(BUILD_DROIDDOC)
-
-endif
