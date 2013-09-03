@@ -199,6 +199,9 @@ status_t MultiDisplayComposer::setVideoState(int sessionId, MDS_VIDEO_STATE stat
     ALOGV("%s: set Video Session [%d] state:%d", __func__, sessionId, state);
     // Check video session
     CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
+    if (mVideos[sessionId].getState() == state)
+        return NO_ERROR;
+
     if (mVideos[sessionId].setState(state) != NO_ERROR)
         return UNKNOWN_ERROR;
     // Reset video session if player is closed
