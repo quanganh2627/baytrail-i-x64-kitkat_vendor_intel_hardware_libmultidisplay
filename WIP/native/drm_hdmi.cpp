@@ -101,9 +101,8 @@ static inline bool drm_is_preferred_flags(unsigned int flags)
 #ifndef VPG_DRM
     // prefer 16:9 over 4:3  and progressive over interlaced.
     if ((flags & DRM_MODE_FLAG_PAR16_9) && !(flags & DRM_MODE_FLAG_INTERLACE))
-        return true;
 #endif
-    return false;
+        return true;
 }
 static void drm_select_preferredmode(drmModeConnectorPtr connector)
 {
