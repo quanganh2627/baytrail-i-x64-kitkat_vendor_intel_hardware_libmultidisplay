@@ -108,6 +108,7 @@ public class DisplayObserver {
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "DisplayObserver");
         mWakeLock.setReferenceCounted(false);
+        mDs.setMdsMessageListener(mListener);
         //startObserving(HDMI_UEVENT_MATCH);
         mDisplayCapability = mDs.getDisplayCapability();
         if (checkDisplayCapability(mDs.HW_SUPPORT_HDMI) &&
@@ -137,6 +138,28 @@ public class DisplayObserver {
         return false;
     }
 
+    DisplaySetting.onMdsMessageListener mListener =
+                        new DisplaySetting.onMdsMessageListener() {
+        public boolean onMdsMessage(int msg, int value) {
+            if (msg == mDs.MDS_MODE_CHANGE) {
+                logv("mode is changed to 0x" + Integer.toHexString(value));
+                mMdsMode = value;
+
+                boolean isHdmiConnected = (mMdsMode & mDs.HDMI_CONNECT_STATUS_BIT) != 0;
+                int delay = 0;
+                if (isHdmiConnected) {
+                    delay = 0;
+                    mHDMIPlugEvent = 1;
+                } else {
+                    delay = 200;
+                    mHDMIPlugEvent = 0;
+                }
+                mHandler.removeMessages(HDMI_HOTPLUG);
+                mHandler.sendMessageDelayed(mHandler.obtainMessage(HDMI_HOTPLUG, mHDMIPlugEvent, 0), delay);
+            }
+            return true;
+        };
+    };
     /*@Override
     public synchronized void onUEvent(UEventObserver.UEvent event) {
         if (event.toString().contains("HOTPLUG")) {
