@@ -147,15 +147,6 @@ public class DisplayObserver {
                 logv("mode is changed to 0x" + Integer.toHexString(value));
                 mMdsMode = value;
 
-                boolean isExtMode = (mMdsMode & mDs.HDMI_EXTEND_MODE) != 0;
-                Intent intent = new Intent(Intent.ACTION_REQUEST_SCREEN_ORIENTATION_LANDSCAPE);
-                intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
-                intent.putExtra(Intent.EXTRA_SET_LANDSCAPE, isExtMode);
-
-                if (mContext != null)
-                    mContext.sendBroadcast(intent);
-                logv("Request landscape:" + isExtMode);
-
                 boolean isHdmiConnected = (mMdsMode & mDs.HDMI_CONNECT_STATUS_BIT) != 0;
                 int delay = 0;
                 if (isHdmiConnected) {
