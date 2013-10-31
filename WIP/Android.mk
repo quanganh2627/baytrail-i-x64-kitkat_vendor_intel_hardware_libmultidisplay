@@ -39,7 +39,7 @@ ifeq ($(ENABLE_GEN_GRAPHICS),true)
 
     LOCAL_C_INCLUDES = \
         $(TARGET_OUT_HEADERS)/libdrm \
-		$(TOP)/external/PRIVATE/drm
+		$(TOP)/external/drm
 
     LOCAL_SHARED_LIBRARIES += \
          libdrm
