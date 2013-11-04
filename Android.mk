@@ -77,6 +77,21 @@ ifeq ($(ENABLE_IMG_GRAPHICS),true)
     LOCAL_CFLAGS += -DDVI_SUPPORTED
     LOCAL_SHARED_LIBRARIES += libdl
 endif
+
+ifeq ($(ENABLE_GEN_GRAPHICS),true)
+    LOCAL_SRC_FILES += \
+        native/drm_hdmi.cpp
+
+    LOCAL_C_INCLUDES = \
+        $(TARGET_OUT_HEADERS)/libdrm \
+		$(TOP)/external/drm
+
+    LOCAL_SHARED_LIBRARIES += \
+         libdrm
+
+    LOCAL_CFLAGS += -DDVI_SUPPORTED -DVPG_DRM
+endif
+
 #LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)
 
 include $(BUILD_SHARED_LIBRARY)

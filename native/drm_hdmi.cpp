@@ -24,7 +24,9 @@
 #include <fcntl.h>
 #include <string.h>
 #include <utils/Vector.h>
+#ifndef VPG_DRM
 #include "linux/psb_drm.h"
+#endif
 #include "drm_hdmi.h"
 #include "xf86drm.h"
 #include "xf86drmMode.h"
@@ -86,7 +88,11 @@ static drmModeConnector* getConnector(int fd, uint32_t connector_type)
 static drmModeConnectorPtr getHdmiConnector()
 {
     if (gDrmCxt.hdmiConnector == NULL)
+#ifdef VPG_DRM
+        gDrmCxt.hdmiConnector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_HDMIA);
+#else
         gDrmCxt.hdmiConnector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_DVID);
+#endif
     if (gDrmCxt.hdmiConnector == NULL || gDrmCxt.hdmiConnector->modes == NULL) {
         ALOGW("Please check HDMI cable is connected or not");
         return NULL;
@@ -96,10 +102,14 @@ static drmModeConnectorPtr getHdmiConnector()
 
 static inline bool drm_is_preferred_flags(unsigned int flags)
 {
+#ifndef VPG_DRM
     // prefer 16:9 over 4:3  and progressive over interlaced.
     if ((flags & DRM_MODE_FLAG_PAR16_9) && !(flags & DRM_MODE_FLAG_INTERLACE))
         return true;
     return false;
+#else
+    return true;
+#endif
 }
 
 static void drm_select_preferredmode(drmModeConnectorPtr connector)
@@ -201,6 +211,7 @@ bool drm_init()
     gDrmCxt.selectedModeIndex = -1;
     gDrmCxt.hdmiConnector = NULL;
     memset(gDrmCxt.productInfo, 0,EDID_PRODUCT_INFO_LEN);
+#ifndef VPG_DRM
     gDrmCxt.drmFD = open(DRM_DEVICE_NAME, O_RDWR, 0);
     if (gDrmCxt.drmFD <= 0) {
         ALOGE("%s: Failed to open %s", __func__, DRM_DEVICE_NAME);
@@ -208,6 +219,14 @@ bool drm_init()
     }
 
     drmModeConnectorPtr connector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_DVID);
+#else
+    gDrmCxt.drmFD = drmOpen("i915", NULL);
+    if (gDrmCxt.drmFD <= 0) {
+        ALOGE("%s: Failed to open drm", __func__);
+        return false;
+    }
+    drmModeConnectorPtr connector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_HDMIA);
+#endif
     gDrmCxt.hdmiSupported = (connector != NULL);
     if (connector) {
         drmModeFreeConnector(connector);
@@ -240,6 +259,7 @@ bool drm_hdmi_onHdmiDisconnected(void)
 
 bool drm_hdmi_notify_audio_hotplug(bool plugin)
 {
+#ifndef VPG_DRM
     struct drm_psb_disp_ctrl dp_ctrl;
     memset(&dp_ctrl, 0, sizeof(dp_ctrl));
     dp_ctrl.cmd = DRM_PSB_HDMI_NOTIFY_HOTPLUG_TO_AUDIO;
@@ -247,6 +267,9 @@ bool drm_hdmi_notify_audio_hotplug(bool plugin)
     int ret = drmCommandWriteRead(gDrmCxt.drmFD,
             DRM_PSB_HDMI_FB_CMD, &dp_ctrl, sizeof(dp_ctrl));
     return ret == 0;
+#else
+    return true;
+#endif
 }
 
 // return 0 - not connected, 1 - HDMI connected, 2 - DVI connected
@@ -372,10 +395,12 @@ static int parseHdmiTimings() {
         if (tmpF & DRM_MODE_FLAG_INTERLACE)
             dst.interlace = 1;
         dst.ratio = 0;
+#ifndef VPG_DRM
         if (tmpF & DRM_MODE_FLAG_PAR16_9)
             dst.ratio = 1;
         else if (tmpF & DRM_MODE_FLAG_PAR4_3)
             dst.ratio = 2;
+#endif
         dst.flags = tmpF;
         // Save Hdmi timing
         addHdmiTimings(&dst);
