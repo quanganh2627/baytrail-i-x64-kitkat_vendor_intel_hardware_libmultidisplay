@@ -34,6 +34,7 @@ enum {
     MDS_SERVER_GET_VIDEO_SOURCE_INFO,
     MDS_SERVER_GET_DISPLAY_MODE,
     MDS_SERVER_GET_DECODER_OUTPUT_RESOLUTION,
+    MDS_SERVER_GET_VPP_STATE,
 };
 
 class BpMultiDisplayInfoProvider:public BpInterface<IMultiDisplayInfoProvider> {
@@ -114,6 +115,17 @@ public:
         result  = reply.readInt32();
         return result;
     }
+
+    virtual bool getVppState() {
+        Parcel data, reply;
+        data.writeInterfaceToken(IMultiDisplayInfoProvider::getInterfaceDescriptor());
+        status_t result = remote()->transact(
+                MDS_SERVER_GET_VPP_STATE, data, &reply);
+        if (result != NO_ERROR) {
+            return 0;
+        }
+        return (reply.readInt32() == 1 ? true : false);
+    }
 };
 
 IMPLEMENT_META_INTERFACE(MultiDisplayInfoProvider,"com.intel.MultiDisplayInfoProvider");
@@ -160,6 +172,12 @@ status_t BnMultiDisplayInfoProvider::onTransact(
             reply->writeInt32(width);
             reply->writeInt32(height);
             reply->writeInt32(ret);
+            return NO_ERROR;
+        } break;
+        case MDS_SERVER_GET_VPP_STATE: {
+            CHECK_INTERFACE(IMultiDisplayInfoProvider, data, reply);
+            bool ret = getVppState();
+            reply->writeInt32(ret ? 1 : 0);
             return NO_ERROR;
         } break;
     } // switch

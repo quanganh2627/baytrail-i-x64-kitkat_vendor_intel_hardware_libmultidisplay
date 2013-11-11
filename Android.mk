@@ -33,10 +33,13 @@ LOCAL_COPY_HEADERS := \
     native/include/IMultiDisplayDecoderConfig.h \
     native/include/MultiDisplayService.h
 
+ifeq ($(TARGET_HAS_VPP),true)
+LOCAL_COPY_HEADERS += \
+    native/include/IMultiDisplayVppConfig.h
+endif
+
 
 include $(BUILD_COPY_HEADERS)
-
-#native/MultiDisplayComposer.cpp
 
 include $(CLEAR_VARS)
 LOCAL_SRC_FILES:= \
@@ -52,6 +55,9 @@ LOCAL_SRC_FILES:= \
     native/IMultiDisplayCallbackRegistrar.cpp \
     native/IMultiDisplayDecoderConfig.cpp \
     native/MultiDisplayService.cpp
+ifeq ($(TARGET_HAS_VPP),true)
+LOCAL_SRC_FILES += native/IMultiDisplayVppConfig.cpp
+endif
 
 LOCAL_MODULE:= libmultidisplay
 LOCAL_MODULE_TAGS := optional
@@ -91,6 +97,12 @@ ifeq ($(ENABLE_GEN_GRAPHICS),true)
     LOCAL_CFLAGS += -DDVI_SUPPORTED -DVPG_DRM
 endif
 
+ifeq ($(TARGET_HAS_VPP),true)
+LOCAL_CFLAGS += -DTARGET_HAS_VPP
+LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/libmedia_utils_vpp
+LOCAL_SHARED_LIBRARIES += libvpp_setting
+endif
+
 #LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)
 
 include $(BUILD_SHARED_LIBRARY)
@@ -114,6 +126,10 @@ LOCAL_SHARED_LIBRARIES := \
 LOCAL_C_INCLUDES := \
      $(JNI_H_INCLUDE) \
      $(call include-path-for, frameworks-base)
+
+ifeq ($(TARGET_HAS_VPP),true)
+LOCAL_CFLAGS += -DTARGET_HAS_VPP
+endif
 
 include $(BUILD_SHARED_LIBRARY)
 

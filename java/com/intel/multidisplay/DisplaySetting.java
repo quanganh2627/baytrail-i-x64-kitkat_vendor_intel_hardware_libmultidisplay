@@ -66,6 +66,7 @@ public class DisplaySetting {
     private static native boolean native_setHdmiOverscan(int h, int v);
     private static native int     native_updatePhoneCallState(boolean state);
     private static native int     native_updateInputState(boolean state);
+    private static native int     native_setVppState(int dpyId, boolean state);
 
     public DisplaySetting() {
         if (LOG) Slog.i(TAG, "Create a new DisplaySetting");
@@ -125,6 +126,10 @@ public class DisplaySetting {
 
     public int updateInputState(boolean inputState) {
         return native_updateInputState(inputState);
+    }
+
+    public int setVppState(int dpyId, boolean state) {
+        return native_setVppState(dpyId, state);
     }
 }
 

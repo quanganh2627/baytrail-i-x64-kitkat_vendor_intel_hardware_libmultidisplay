@@ -154,6 +154,7 @@ private:
 public:
     MultiDisplayInfoProviderImpl(sp<MultiDisplayComposer> com);
     MDS_VIDEO_STATE getVideoState(int);
+    bool getVppState();
     int getVideoSessionNumber();
     MDS_DISPLAY_MODE getDisplayMode(bool);
     status_t getVideoSourceInfo(int, MDSVideoSourceInfo*);
@@ -172,6 +173,7 @@ MultiDisplayInfoProviderImpl::MultiDisplayInfoProviderImpl(sp<MultiDisplayCompos
 }
 
 IMPLEMENT_API_0(MultiDisplayInfoProviderImpl, pCom, getVideoSessionNumber, int, 0)
+IMPLEMENT_API_0(MultiDisplayInfoProviderImpl, pCom, getVppState, bool, false)
 IMPLEMENT_API_1(MultiDisplayInfoProviderImpl, pCom, getVideoState, int,  MDS_VIDEO_STATE, MDS_VIDEO_STATE_UNKNOWN)
 IMPLEMENT_API_1(MultiDisplayInfoProviderImpl, pCom, getDisplayMode, bool, MDS_DISPLAY_MODE,  MDS_MODE_NONE)
 IMPLEMENT_API_2(MultiDisplayInfoProviderImpl, pCom, getVideoSourceInfo, int,  MDSVideoSourceInfo*, status_t, NO_INIT)
@@ -248,6 +250,27 @@ MultiDisplayDecoderConfigImpl::MultiDisplayDecoderConfigImpl(sp<MultiDisplayComp
 
 IMPLEMENT_API_3(MultiDisplayDecoderConfigImpl, pCom, setDecoderOutputResolution, int, int32_t, int32_t, status_t, NO_INIT)
 
+class MultiDisplayVppConfigImpl : public BnMultiDisplayVppConfig {
+private:
+    sp<MultiDisplayComposer> pCom;
+    static sp<MultiDisplayVppConfigImpl> sVppInstance;
+public:
+    MultiDisplayVppConfigImpl(const sp<MultiDisplayComposer>& com);
+    status_t setVppState(MDS_DISPLAY_ID, bool);
+    static sp<MultiDisplayVppConfigImpl> getInstance() {
+        return sVppInstance;
+    }
+};
+
+// singleton
+sp<MultiDisplayVppConfigImpl> MultiDisplayVppConfigImpl::sVppInstance = NULL;
+
+MultiDisplayVppConfigImpl::MultiDisplayVppConfigImpl(const sp<MultiDisplayComposer>& com) {
+    pCom = com;
+    sVppInstance = this;
+}
+
+IMPLEMENT_API_2(MultiDisplayVppConfigImpl, pCom, setVppState, MDS_DISPLAY_ID, bool, status_t, NO_INIT)
 
 enum {
     MDS_SERVICE_GET_HDMI_CONTROL = IBinder::FIRST_CALL_TRANSACTION,
@@ -258,6 +281,7 @@ enum {
     MDS_SERVICE_GET_INFO_PROVIDER,
     MDS_SERVICE_GET_CONNECTION_OBSERVER,
     MDS_SERVICE_GET_DECODER_CONFIG,
+    MDS_SERVICE_GET_VPP_CONFIG,
 };
 
 class BpMDService : public BpInterface<IMDService> {
@@ -346,6 +370,15 @@ public:
             ALOGE("Trasaction is fail");
         return interface_cast<IMultiDisplayDecoderConfig>(reply.readStrongBinder());
     }
+    virtual sp<IMultiDisplayVppConfig> getVppConfig() {
+        Parcel data, reply;
+        data.writeInterfaceToken(IMDService::getInterfaceDescriptor());
+        status_t result = remote()->transact(
+                MDS_SERVICE_GET_VPP_CONFIG, data, &reply);
+        if (result != NO_ERROR)
+            ALOGE("Trasaction is fail");
+        return interface_cast<IMultiDisplayVppConfig>(reply.readStrongBinder());
+    }
 };
 
 IMPLEMENT_META_INTERFACE(MDService,"com.intel.MDService");
@@ -410,6 +443,12 @@ status_t BnMDService::onTransact(
             reply->writeStrongBinder(b);
             return NO_ERROR;
         }
+        case MDS_SERVICE_GET_VPP_CONFIG: {
+            CHECK_INTERFACE(IMDService, data, reply);
+            sp<IBinder> b = this->getVppConfig()->asBinder();
+            reply->writeStrongBinder(b);
+            return NO_ERROR;
+        }
     } // switch
     return BBinder::onTransact(code, data, reply, flags);
 }
@@ -426,6 +465,7 @@ MultiDisplayService::MultiDisplayService() {
     new MultiDisplayInfoProviderImpl(com);
     new MultiDisplayConnectionObserverImpl(com);
     new MultiDisplayDecoderConfigImpl(com);
+    new MultiDisplayVppConfigImpl(com);
 }
 
 MultiDisplayService::~MultiDisplayService() {
@@ -468,6 +508,10 @@ sp<IMultiDisplayConnectionObserver> MultiDisplayService::getConnectionObserver()
 
 sp<IMultiDisplayDecoderConfig> MultiDisplayService::getDecoderConfig() {
 	return MultiDisplayDecoderConfigImpl::getInstance();
+}
+
+sp<IMultiDisplayVppConfig> MultiDisplayService::getVppConfig() {
+	return MultiDisplayVppConfigImpl::getInstance();
 }
 
 }; //namespace intel
