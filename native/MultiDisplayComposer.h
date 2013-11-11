@@ -29,26 +29,20 @@
 
 namespace android {
 namespace intel {
-#if 0
-/** @brief The display ID */
-typedef enum {
-    MDS_DISPLAY_PRIMARY   = HWC_DISPLAY_PRIMARY,
-    MDS_DISPLAY_EXTERNAL  = HWC_DISPLAY_EXTERNAL,
-    MDS_DISPLAY_VIRTUAL   = HWC_NUM_DISPLAY_TYPES,
-} MDS_DISPLAY_ID;
-#endif
 
 static const int overscan_max = 5;
 
 class MultiDisplayListener {
 private:
-    int   mMsg;
-    String16* mName;
+    int      mMsg;
+    int32_t  mId;
+    String8* mName;
     sp<IMultiDisplayListener> mListener;
 public:
-    MultiDisplayListener(int msg, const char* client, sp<IMultiDisplayListener>);
+    MultiDisplayListener(int msg, int32_t id,
+            const char* client, sp<IMultiDisplayListener>);
     ~MultiDisplayListener();
-    inline const char16_t* getName() {
+    inline const char* getName() {
         if (mName != NULL)
             return mName->string();
         return NULL;
@@ -62,16 +56,23 @@ public:
     inline bool checkMsg(int msg) {
         return (msg & mMsg) ? true : false;
     }
+    inline int32_t getId() {
+        return mId;
+    }
+    void dump();
 };
 
 class MultiDisplayVideoSession {
 private:
-    MDS_VIDEO_STATE mState;
-    MDSVideoSourceInfo mInfo;
-    bool infoValid;
+    MDS_VIDEO_STATE     mState;
+    MDSVideoSourceInfo  mInfo;
+    bool                mInfoValid;
     // Decoder output
-    int32_t mDecoderConfigWidth;
-    int32_t mDecoderConfigHeight;
+    int32_t             mDecoderConfigWidth;
+    int32_t             mDecoderConfigHeight;
+    // TODO: Only 1 decoder config is valid now
+    // May need support multiple decoder configs
+    bool                mDecoderConfigValid;
 public:
 
     inline MDS_VIDEO_STATE getState() {
@@ -84,19 +85,20 @@ public:
         return NO_ERROR;
     }
     inline status_t getInfo(MDSVideoSourceInfo* info) {
-        if (info == NULL || !infoValid)
+        if (info == NULL || !mInfoValid)
             return UNKNOWN_ERROR;
         memcpy(info, &mInfo, sizeof(MDSVideoSourceInfo));
         return NO_ERROR;
     }
     inline status_t setInfo(const MDSVideoSourceInfo& info) {
         memcpy(&mInfo, &info, sizeof(MDSVideoSourceInfo));
-        infoValid = true;
+        mInfoValid = true;
         return NO_ERROR;
     }
     inline status_t setDecoderOutputResolution(int32_t width, int32_t height) {
         if (mState < MDS_VIDEO_PREPARING || mState > MDS_VIDEO_UNPREPARED)
             return UNKNOWN_ERROR;
+        mDecoderConfigValid  = true;
         mDecoderConfigWidth  = width;
         mDecoderConfigHeight = height;
         return NO_ERROR;
@@ -104,7 +106,7 @@ public:
     inline status_t getDecoderOutputResolution(int32_t* width, int32_t* height) {
         if (mState < MDS_VIDEO_PREPARING || mState > MDS_VIDEO_UNPREPARED)
             return UNKNOWN_ERROR;
-        if (width == NULL || height == NULL)
+        if (width == NULL || height == NULL || !mDecoderConfigValid)
             return UNKNOWN_ERROR;
         *width  = mDecoderConfigWidth;
         *height = mDecoderConfigHeight;
@@ -113,9 +115,10 @@ public:
     inline void init() {
         mState = MDS_VIDEO_UNPREPARED;
         memset(&mInfo, 0, sizeof(MDSVideoSourceInfo));
-        infoValid = false;
+        mInfoValid = false;
+        mDecoderConfigValid  = false;
     }
-    inline void dump(int index);
+    void dump(int index);
 };
 
 class MultiDisplayComposer : public RefBase {
@@ -137,8 +140,8 @@ public:
     bool getVppState();
 
     // Sink Registrar
-    status_t registerListener(const sp<IMultiDisplayListener>&, const char*, int);
-    status_t unregisterListener(const sp<IMultiDisplayListener>&);
+    int32_t  registerListener(const sp<IMultiDisplayListener>&, const char*, int);
+    status_t unregisterListener(int32_t listenerId);
 
     // Callback registrar
     status_t registerCallback(const sp<IMultiDisplayCallback>&);
@@ -172,32 +175,32 @@ public:
 #endif
 
 private:
-    bool mDrmInit;
-    int mMode;
-    //int mCapability;
-    MultiDisplayVideoSession mVideos[MDS_VIDEO_SESSION_MAX_VALUE];
-
-    MDS_SCALING_TYPE mScaleType;
+    // Assume it is impossible that there are up to 64 cocurrent running video driver
+    static const int MDS_LISTENER_MAX_VALUE = (MDS_VIDEO_SESSION_MAX_VALUE * 4);
+    bool     mDrmInit;
+    int      mMode;
+    mutable  Mutex mMutex;
     uint32_t mHorizontalStep;
     uint32_t mVerticalStep;
 #ifdef TARGET_HAS_VPP
-    //Vpp cofigure, only for WIDI now
+    // Vpp cofigure, only for WIDI now, and will be removed
     // Maintain current connected display device Id
     // if HDMI is connected, this id = MDS_DISPLAY_EXTERNAL
     // if WIFI is connected, this id = MDS_DISPLAY_VIRTUAL
     // else id = MDS_DISPLAY_PRIMARY
     MDS_DISPLAY_ID mDisplayId;
 #endif
+    MDS_SCALING_TYPE mScaleType;
+    int32_t mListenerId;
 
     sp<IBinder> mSurfaceComposer;
-
     sp<IMultiDisplayCallback> mMDSCallback;
-    KeyedVector<void *, MultiDisplayListener* > mListeners;
-    mutable Mutex mMutex;
+
+    KeyedVector<int32_t, MultiDisplayListener* > mListeners;
+    MultiDisplayVideoSession mVideos[MDS_VIDEO_SESSION_MAX_VALUE];
 
     void init();
-    status_t notifyHotplugLocked(MDS_DISPLAY_ID, bool);
-    void broadcastMessageLocked(int msg, void* value, int size);
+    void broadcastMessageLocked(int msg, void* value, int size, bool ignoreVideoDriver);
     status_t setDisplayScalingLocked(uint32_t mode, uint32_t stepx, uint32_t stepy);
     status_t updateHdmiConnectStatusLocked();
     MultiDisplayVideoSession* getVideoSession_l(int sessionId);
@@ -205,6 +208,8 @@ private:
     void initVideoSessions_l();
     bool hasVideoPlaying_l();
     void dumpVideoSession_l();
+    int  getValidDecoderConfigVideoSession_l();
+    status_t notifyHotplugLocked(MDS_DISPLAY_ID, bool);
 #ifdef TARGET_HAS_VPP
     status_t setVppState_l(MDS_DISPLAY_ID, bool);
 #endif

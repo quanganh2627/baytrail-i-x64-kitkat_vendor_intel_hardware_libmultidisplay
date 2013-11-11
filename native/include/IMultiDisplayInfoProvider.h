@@ -35,11 +35,11 @@ namespace intel {
  * '0' means the bit is invalid
  */
 typedef enum {
-    MDS_MODE_NONE               = 0,       /**< No bit is set */
-    MDS_DVI_CONNECTED           = 1,       /**< DVI is connected */
-    MDS_HDMI_CONNECTED          = 1 << 1,  /**< HDMI is connected */
-    MDS_WIDI_ON                 = 1 << 2,  /**< Extended WIDI video mode*/
-    MDS_VIDEO_ON                = 1 << 3,  /**< Video is playing */
+    MDS_MODE_NONE       = 0,       /**< No bit is set */
+    MDS_DVI_CONNECTED   = 1,       /**< DVI is connected */
+    MDS_HDMI_CONNECTED  = 1 << 1,  /**< HDMI is connected */
+    MDS_WIDI_ON         = 1 << 2,  /**< WIDI is connected*/
+    MDS_VIDEO_ON        = 1 << 3,  /**< Video is playing */
 } MDS_DISPLAY_MODE;
 
 class IMultiDisplayInfoProvider : public IInterface {
@@ -72,15 +72,17 @@ public:
      *             until getting an accurate mode,
      *             "false" means it will return immediatly,
      *             but couldn't ensure the mode is right.
-     * @return: @see MDS_DISPLAY_MODE in MultiDisplayType.h
+     * @return: @see MDS_DISPLAY_MODE
      */
     virtual MDS_DISPLAY_MODE getDisplayMode(bool wait) = 0;
 
     /**
      * @brief Get the decoder configure
      * @param
-     *         int32_t* width:  the width  of decoder output
-     *         int32_t* height: the height of decoder output
+     *         int videoSessionId: Video Session id,
+     *                             for support multiple decoder configure.
+     *         int32_t* width:      the width  of decoder output
+     *         int32_t* height:     the height of decoder output
      * @return @see status_t in <utils/Errors.h>
      */
      virtual status_t getDecoderOutputResolution(int videoSessionId, int32_t* width, int32_t* height) = 0;

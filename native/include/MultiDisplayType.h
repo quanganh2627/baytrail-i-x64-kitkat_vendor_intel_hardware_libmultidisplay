@@ -54,7 +54,12 @@ typedef struct {
     uint32_t    flags;      /**< expended flag */
 } MDSHdmiTiming;
 
-/** @brief The state of video playback */
+/** @brief The state of video playback
+ * 2 state machines for clear content and proteced content
+ * Clear content:     UNPREPARED->PREPARED->UNPREPARED->UNPREPARED
+ * Protected content: UNPREPARED->PREPARING->PREPARED->
+ *                      UNPREPAARING->UNPREPARED->UNPREPARED
+ */
 typedef enum {
     MDS_VIDEO_STATE_UNKNOWN = 0,
     MDS_VIDEO_PREPARING     = 1,

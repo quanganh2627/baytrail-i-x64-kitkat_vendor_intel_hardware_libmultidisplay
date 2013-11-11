@@ -50,20 +50,31 @@ do { \
 } while(0)
 
 
-MultiDisplayListener::MultiDisplayListener(int msg,
+MultiDisplayListener::MultiDisplayListener(int msg, int32_t id,
         const char* client, sp<IMultiDisplayListener> listener) {
-    mMsg = msg;
-    mName = new String16(client);
-    LOGV("Register a new listener %s, 0x%x", client, msg);
+    mMsg  = msg;
+    mId   = id;
+    mName = new String8(client);
     mListener = listener;
 }
 
 MultiDisplayListener::~MultiDisplayListener() {
     mMsg = 0;
+    mId = -1;
     delete mName;
     mName = NULL;
     mListener = NULL;
 }
+
+void MultiDisplayListener::dump() {
+    if (mName == NULL) {
+        ALOGE("Error listener");
+        return;
+    }
+    ALOGV("Listener info: %d, %d, %s, %p",
+            mMsg, mId, mName->string(), mListener.get());
+}
+
 
 void MultiDisplayVideoSession::dump(int index) {
     if (mState < MDS_VIDEO_PREPARING ||
@@ -75,6 +86,10 @@ void MultiDisplayVideoSession::dump(int index) {
 
 MultiDisplayComposer::MultiDisplayComposer() :
     mDrmInit(false),
+#ifdef TARGET_HAS_VPP
+    mDisplayId(MDS_DISPLAY_PRIMARY),
+#endif
+    mListenerId(0),
     mMode(MDS_MODE_NONE),
     mScaleType(MDS_SCALING_NONE),
     mHorizontalStep(0),
@@ -127,7 +142,7 @@ status_t MultiDisplayComposer::updateHdmiConnectStatusLocked() {
     if (connectStatus == DRM_HDMI_CONNECTED) {
         mMode |= MDS_HDMI_CONNECTED;
     } else {
-        // TODO: check dvi connection
+        // TODO: check DVI connection
         mMode &= ~MDS_HDMI_CONNECTED;
         drm_hdmi_onHdmiDisconnected();
     }
@@ -166,7 +181,7 @@ status_t MultiDisplayComposer::updateWidiConnectionStatus(bool connected) {
 
 status_t MultiDisplayComposer::notifyHotplugLocked(
         MDS_DISPLAY_ID dispId, bool connected) {
-    ALOGV("Display ID %d connect:%d", dispId, connected);
+    ALOGV("Display ID:%d, connected state:%d", dispId, connected);
     // Notify widi video extended mode
     int mode = mMode;
     // update vpp policy
@@ -176,11 +191,11 @@ status_t MultiDisplayComposer::notifyHotplugLocked(
             mMode |= MDS_WIDI_ON;
         else
             mMode &= ~MDS_WIDI_ON;
-        broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode));
+        broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode), false);
         return NO_ERROR;
     }
     // Notify hdmi hotplug and switch audio
-    if (connected && hasVideoPlaying_l()) {
+    if (hasVideoPlaying_l()) {
         mMode |= MDS_VIDEO_ON;
     } else {
         mMode &= ~MDS_VIDEO_ON;
@@ -190,7 +205,7 @@ status_t MultiDisplayComposer::notifyHotplugLocked(
 
     if (mode != mMode) {
         int connection = connected ? 1 : 0;
-        broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode));
+        broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode), false);
         drm_hdmi_notify_audio_hotplug(connected);
     }
 
@@ -203,6 +218,12 @@ status_t MultiDisplayComposer::notifyHotplugLocked(
 status_t MultiDisplayComposer::updateVideoState(int sessionId, MDS_VIDEO_STATE state) {
     Mutex::Autolock lock(mMutex);
     status_t result = NO_ERROR;
+    //FIXME: Video user space driver works at different process,
+    // When MDS receive a UNPREPARING or UNPREPARED state,
+    // video driver may has been unloaded,
+    // if MDS still broadcast unprepared message to video driver,
+    // it may cause a Binder erorr.
+    bool ignoreVideoDriver = false;
 
     ALOGV("set Video Session [%d] state:%d", sessionId, state);
     // Check video session
@@ -213,8 +234,9 @@ status_t MultiDisplayComposer::updateVideoState(int sessionId, MDS_VIDEO_STATE s
     if (mVideos[sessionId].setState(state) != NO_ERROR)
         return UNKNOWN_ERROR;
     // Reset video session if player is closed
-    if (state == MDS_VIDEO_UNPREPARED) {
+    if (state >= MDS_VIDEO_UNPREPARING) {
         mVideos[sessionId].init();
+        ignoreVideoDriver = true;
     }
 
     int mode = mMode;
@@ -225,9 +247,10 @@ status_t MultiDisplayComposer::updateVideoState(int sessionId, MDS_VIDEO_STATE s
 
     if (mMDSCallback != NULL)
         result = mMDSCallback->updateVideoState(sessionId, state);
-
-    if (mode != mMode)
-        broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode));
+    if (mode != mMode) {
+        broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE,
+                &mMode, sizeof(mMode), ignoreVideoDriver);
+    }
 
     return result;
 }
@@ -385,42 +408,65 @@ MDS_DISPLAY_MODE MultiDisplayComposer::getDisplayMode(bool wait) {
     return mode;
 }
 
-status_t MultiDisplayComposer::registerListener(
+int32_t MultiDisplayComposer::registerListener(
         const sp<IMultiDisplayListener>& listener,
         const char* name, int msg) {
-    ALOGV("Begin to register a listener");
     if (name == NULL || msg == 0 ||
             listener.get() == NULL) {
         ALOGE("Fail to register a new listener");
-        return BAD_VALUE;
+        return -1;
     }
     Mutex::Autolock _l(mMutex);
-
+    if (mListeners.size() >= MDS_LISTENER_MAX_VALUE ||
+            mListenerId >= MDS_LISTENER_MAX_VALUE) {
+        ALOGE("Up to the maximum of listener %d", MDS_LISTENER_MAX_VALUE);
+        return -1;
+    }
+    int32_t newId = mListenerId;
     for (size_t i = 0; i < mListeners.size(); i++) {
-        if (mListeners.keyAt(i) == listener.get()) {
-            ALOGE("the listener %p is already registered!", listener.get());
-            return UNKNOWN_ERROR;
+        if (mListeners.keyAt(i) == newId) {
+            ALOGE("The listener %p is already registered!", listener.get());
+            return -1;
         }
     }
-
-    MultiDisplayListener* tlistener =
-        new MultiDisplayListener(msg, name, listener);
-    mListeners.add(listener.get(), tlistener);
-    ALOGV("Listener size %d", mListeners.size());
-    return NO_ERROR;
+    MultiDisplayListener* plistener =
+        new MultiDisplayListener(msg, newId, name, listener);
+    plistener->dump();
+    mListeners.add(newId, plistener);
+    mListenerId++;
+    // Find a valid Id
+    if (mListenerId >= MDS_LISTENER_MAX_VALUE) {
+        mListenerId = 0;
+        for (; mListenerId < MDS_LISTENER_MAX_VALUE; mListenerId++) {
+            bool used = false;
+            for (size_t i = 0; i < mListeners.size(); i++) {
+                if (mListeners.keyAt(i) == mListenerId) {
+                    used = true;
+                    break;
+                }
+            }
+            if (!used) break;
+        }
+        ALOGV("The next invalid listener Id: %d", mListenerId);
+    }
+    return newId;
 }
 
-status_t MultiDisplayComposer::unregisterListener(const sp<IMultiDisplayListener>& listener) {
+status_t MultiDisplayComposer::unregisterListener(int32_t listenerId) {
     Mutex::Autolock _l(mMutex);
-    if (listener.get() == NULL)
+    if (listenerId < 0) {
+        ALOGE("Error listener ID");
         return BAD_VALUE;
+    }
     for (size_t i = 0; i < mListeners.size(); i++) {
-        if (mListeners.keyAt(i) == listener.get()) {
-            MultiDisplayListener* tlistener = mListeners.valueAt(i);
-            mListeners.removeItem(listener.get());
-            if (tlistener) {
-                delete tlistener;
-                tlistener = NULL;
+        if (mListeners.keyAt(i) == listenerId) {
+            MultiDisplayListener* listener = mListeners.valueAt(i);
+            ALOGV("Find a matched listener to unregister:\n");
+            listener->dump();
+            mListeners.removeItem(listenerId);
+            if (listener != NULL) {
+                delete listener;
+                listener = NULL;
             }
             break;
         }
@@ -429,7 +475,7 @@ status_t MultiDisplayComposer::unregisterListener(const sp<IMultiDisplayListener
 }
 
 void MultiDisplayComposer::broadcastMessageLocked(
-        int msg, void* value, int size) {
+        int msg, void* value, int size, bool ignoreVideoDriver) {
     if (mListeners.size() == 0)
         return;
 
@@ -437,10 +483,12 @@ void MultiDisplayComposer::broadcastMessageLocked(
         MultiDisplayListener* listener = mListeners.valueAt(index);
         if (listener == NULL)
             continue;
-
-        if (listener->getName() != NULL)
-            ALOGV("Broadcast message 0x%x to %s, 0x%x",
-                    msg, listener->getName(), *((int*)value));
+        listener->dump();
+        if (ignoreVideoDriver &&
+                !strcmp("VideoDriver", listener->getName())) {
+            ALOGV("Ignoring an invalid video driver message");
+            continue;
+        }
         if (listener->checkMsg(msg)) {
             sp<IMultiDisplayListener> ielistener = listener->getListener();
             if (ielistener != NULL)
@@ -502,6 +550,8 @@ void MultiDisplayComposer::initVideoSessions_l() {
 
 status_t MultiDisplayComposer::resetVideoPlayback() {
     Mutex::Autolock lock(mMutex);
+    if (getVideoSessionSize_l() <= 0)
+        return NO_ERROR;
 
     initVideoSessions_l();
 
@@ -511,7 +561,7 @@ status_t MultiDisplayComposer::resetVideoPlayback() {
 
     // exit extended mode
     mMode &= ~MDS_VIDEO_ON;
-    broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode));
+    broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode), false);
 
     return NO_ERROR;
 }
@@ -533,24 +583,45 @@ void MultiDisplayComposer::dumpVideoSession_l() {
     return;
 }
 
+int MultiDisplayComposer::getValidDecoderConfigVideoSession_l() {
+    int index = -1;
+    int32_t width  = 0;
+    int32_t height = 0;
+    for (int i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++) {
+        if (mVideos[i].getDecoderOutputResolution(&width, &height) == NO_ERROR) {
+            index = i;
+            break;
+        }
+    }
+    return index;
+}
+
+//TODO: The input "sessionId" is ignored now
 status_t MultiDisplayComposer::getDecoderOutputResolution(
         int sessionId, int32_t* width, int32_t* height) {
     Mutex::Autolock lock(mMutex);
     status_t result = NO_ERROR;
-
+    int index = getValidDecoderConfigVideoSession_l();
+    if (index < 0)
+        return UNKNOWN_ERROR;
     // Check video session
-    CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
-    ALOGV("get video session %d decoder output resolution", sessionId);
-    return mVideos[sessionId].getDecoderOutputResolution(width, height);
+    CHECK_VIDEO_SESSION_ID(index, UNKNOWN_ERROR);
+    result = mVideos[index].getDecoderOutputResolution(width, height);
+    ALOGV("Video Session[%d]:output resolution %dx%d", index, *width, *height);
+    return result;
 }
 
 status_t MultiDisplayComposer::setDecoderOutputResolution(
         int sessionId, int32_t width, int32_t height) {
     Mutex::Autolock lock(mMutex);
-    status_t result = NO_ERROR;
 
     // Check video session
     CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
+    int index = getValidDecoderConfigVideoSession_l();
+    if (index >= 0) {
+        ALOGW("Already has a valid decoder output resolution");
+        return UNKNOWN_ERROR;
+    }
     ALOGV("set video session %d decoder output resolution %dx%d",
             sessionId, width, height);
     return mVideos[sessionId].setDecoderOutputResolution(width, height);
