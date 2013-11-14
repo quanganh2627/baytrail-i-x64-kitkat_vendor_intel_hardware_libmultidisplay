@@ -67,8 +67,7 @@ ifeq ($(ENABLE_IMG_GRAPHICS),true)
     LOCAL_C_INCLUDES = \
         $(TARGET_OUT_HEADERS)/libdrm \
         $(TARGET_OUT_HEADERS)/pvr/pvr2d \
-        $(TARGET_OUT_HEADERS)/libttm \
-        $(TOP)/linux/modules/intel_media/common
+        $(TARGET_OUT_HEADERS)/libttm
 
     LOCAL_SHARED_LIBRARIES += \
          libdrm
@@ -84,7 +83,7 @@ ifeq ($(ENABLE_GEN_GRAPHICS),true)
 
     LOCAL_C_INCLUDES = \
         $(TARGET_OUT_HEADERS)/libdrm \
-		$(TOP)/external/drm
+        $(TARGET_OUT_HEADERS)/external/drm
 
     LOCAL_SHARED_LIBRARIES += \
          libdrm
