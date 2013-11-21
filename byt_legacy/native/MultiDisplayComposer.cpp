@@ -139,7 +139,7 @@ int MultiDisplayComposer::prepareForVideo(int status) {
     if (status == (int)MDS_VIDEO_UNPREPARED) {
         MDSVideoSourceInfo info;
         memset(&mVideo, 0, sizeof(info));
-        return setHdmiMode_l();
+        return setHdmiMode_l(false);
     }
     return MDS_NO_ERROR;
 }
@@ -166,12 +166,13 @@ int MultiDisplayComposer::updateVideoInfo(const MDSVideoSourceInfo& info) {
 
     memcpy(&mVideo, &info, sizeof(MDSVideoSourceInfo));
 
-    return setHdmiMode_l();
+    return setHdmiMode_l(false);
 }
 
 
-int MultiDisplayComposer::setHdmiMode_l() {
-    LOGV("Entering %s, current mode = %#x", __func__, mMode);
+int MultiDisplayComposer::setHdmiMode_l(bool hotplug) {
+    LOGI("Entering %s, current mode = %#x", __func__, mMode);
+
     MDSHDMITiming timing;
     memset(&timing, 0, sizeof(MDSHDMITiming));
 
@@ -183,6 +184,15 @@ int MultiDisplayComposer::setHdmiMode_l() {
     }
     // Common case, check HDMI connect status
     int connectStatus = getHdmiPlug_l();
+
+    if (hotplug) {
+        if (connectStatus == DRM_HDMI_CONNECTED &&
+                mConnectStatus == DRM_HDMI_CONNECTED) {
+            /*bug 146422/148938: if setHdmiMode_l is called by notifyHotplug, the connector status should be changed.
+             * So force connector status to disconnect when the old status is connected and then a hotplug occur.*/
+            connectStatus = DRM_HDMI_DISCONNECTED;
+        }
+    }
 #if !defined(DVI_SUPPORTED)
     if (connectStatus == DRM_DVI_CONNECTED) {
         LOGE("%s: DVI is connected but is not supported for now.", __func__);
@@ -434,7 +444,7 @@ int MultiDisplayComposer::notifyHotPlug() {
     MDC_CHECK_INIT();
     LOGV("%s: mipi policy: %d, hdmi policy: %d, mode: 0x%x", __func__, mMipiPolicy, mHdmiPolicy, mMode);
     Mutex::Autolock _l(mLock);
-    return setHdmiMode_l();
+    return setHdmiMode_l(true);
 }
 
 int MultiDisplayComposer::setModePolicy(int policy) {
@@ -452,7 +462,7 @@ int MultiDisplayComposer::setModePolicy_l(int policy) {
         case MDS_HDMI_ON_NOT_ALLOWED:
         case MDS_HDMI_ON_ALLOWED:
             mHdmiPolicy = policy;
-            return setHdmiMode_l();
+            return setHdmiMode_l(false);
 #ifndef VPG_DRM
         case MDS_MIPI_OFF_NOT_ALLOWED:
             mMipiPolicy = policy;
