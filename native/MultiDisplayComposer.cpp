@@ -26,6 +26,9 @@
 #include <binder/IPCThreadState.h>
 #include "MultiDisplayComposer.h"
 #include "drm_hdmi.h"
+#ifdef TARGET_HAS_VPP
+#include "VPPSetting.h"
+#endif
 
 namespace android {
 namespace intel {
@@ -107,9 +110,14 @@ void MultiDisplayComposer::init() {
     }
 
     mDrmInit = true;
+#ifdef TARGET_HAS_VPP
+    setVppState_l(MDS_DISPLAY_PRIMARY, VPPSetting::isVppOn());
+#endif
 
     initVideoSessions_l();
     updateHdmiConnectStatusLocked();
+    // TODO: if HDMI is connected, update vpp policy
+    //setDisplayState_l(MDS_DISPLAY_EXTERNAL, VPPSetting::isVppOn());
 }
 
 status_t MultiDisplayComposer::updateHdmiConnectStatusLocked() {
@@ -161,6 +169,8 @@ status_t MultiDisplayComposer::notifyHotplugLocked(
     ALOGV("Display ID %d connect:%d", dispId, connected);
     // Notify widi video extended mode
     int mode = mMode;
+    // update vpp policy
+    //setVppState_l(dispId, connected);
     if (dispId == MDS_DISPLAY_VIRTUAL) {
         if (connected)
             mMode |= MDS_WIDI_ON;
@@ -546,6 +556,44 @@ status_t MultiDisplayComposer::setDecoderOutputResolution(
     return mVideos[sessionId].setDecoderOutputResolution(width, height);
 }
 
+#ifdef TARGET_HAS_VPP
+status_t MultiDisplayComposer::setVppState_l(
+        MDS_DISPLAY_ID dpyId, bool connected) {
+    // TODO: only for WIDI now
+    // the default Vpp policy for different display devices
+    // HDMI/MIPI: is enabled
+    // WIDI:      is disabled
+    // the logic in here is tricky, and will revert it after
+    // the usage of "MDS_WIDI_ON" is confirmed
+    if (dpyId != MDS_DISPLAY_VIRTUAL) {
+        return UNKNOWN_ERROR;
+    }
+    if (connected) {
+        mDisplayId = dpyId;
+    } else {
+        mDisplayId = MDS_DISPLAY_PRIMARY;
+    }
+    ALOGV("Leaving %s, %d", __func__, mDisplayId);
+    return NO_ERROR;
+}
+
+bool MultiDisplayComposer::getVppState() {
+    bool ret = false;
+    Mutex::Autolock lock(mMutex);
+    //TODO: only for WIDI now
+    if (mDisplayId != MDS_DISPLAY_VIRTUAL)
+        ret = VPPSetting::isVppOn();
+    ALOGV("%s: %d %d", __func__, ret, mDisplayId);
+    return ret;
+}
+
+status_t MultiDisplayComposer::setVppState(
+        MDS_DISPLAY_ID dpyId, bool connected) {
+    Mutex::Autolock lock(mMutex);
+    ALOGV("%s:%d, %d, %d", __func__, __LINE__, dpyId, connected);
+    return setVppState_l(dpyId, connected);
+}
+#endif
 
 }; // namespace intel
 }; // namespace android

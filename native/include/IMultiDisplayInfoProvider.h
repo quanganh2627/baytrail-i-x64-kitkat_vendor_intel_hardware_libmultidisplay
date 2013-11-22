@@ -85,6 +85,12 @@ public:
      */
      virtual status_t getDecoderOutputResolution(int videoSessionId, int32_t* width, int32_t* height) = 0;
 
+    /**
+     * @brief Get the vpp state for current display device, include HDMI, WIDI and MIPI
+     * @param
+     * @return @see "true" means vpp is on
+     */
+     virtual bool getVppState() = 0;
 };
 
 

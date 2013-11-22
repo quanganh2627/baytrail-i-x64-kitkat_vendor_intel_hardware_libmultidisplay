@@ -34,6 +34,9 @@
 #include <display/IMultiDisplaySinkRegistrar.h>
 #include <display/IMultiDisplayConnectionObserver.h>
 #include <display/IMultiDisplayEventMonitor.h>
+#ifdef TARGET_HAS_VPP
+#include <display/IMultiDisplayVppConfig.h>
+#endif
 #include <display/MultiDisplayService.h>
 
 namespace android {
@@ -298,6 +301,19 @@ static jint MDS_updateInputState(JNIEnv* env, jobject obj, jboolean state)
     return eventMonitor->updateInputState(state);
 }
 
+static jint MDS_setVppState(JNIEnv* env, jobject obj, int dpyId, jboolean state)
+{
+#ifdef TARGET_HAS_VPP
+    AutoMutex _l(gMutex);
+    if (gMds == NULL) return 0;
+    sp<IMultiDisplayVppConfig> vppConfig = gMds->getVppConfig();
+    if (vppConfig == NULL) return 0;
+    return vppConfig->setVppState((MDS_DISPLAY_ID)dpyId, state);
+#else
+    return 0;
+#endif
+}
+
 static JNINativeMethod sMethods[] = {
     /* name, signature, funcPtr */
     {"native_InitMDSClient", "(Lcom/intel/multidisplay/DisplaySetting;)Z", (void*)MDS_InitMDSClient},
@@ -310,6 +326,7 @@ static JNINativeMethod sMethods[] = {
     {"native_setHdmiOverscan", "(II)Z", (void*)MDS_setHdmiOverscan},
     {"native_updatePhoneCallState", "(Z)I", (void*)MDS_updatePhoneCallState},
     {"native_updateInputState", "(Z)I", (void*)MDS_updateInputState},
+    {"native_setVppState", "(IZ)I", (void*)MDS_setVppState},
 };
 
 int register_intel_multidisplay_DisplaySetting(JNIEnv* env)

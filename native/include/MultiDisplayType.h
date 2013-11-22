@@ -19,12 +19,21 @@
 #ifndef __MULTIDISPLAYTYPE_H__
 #define __MULTIDISPLAYTYPE_H__
 
+#include <hardware/hwcomposer_defs.h>
+
 
 namespace android {
 namespace intel {
 
 
 static const int MDS_VIDEO_SESSION_MAX_VALUE = 16;
+
+/** @brief The display ID */
+typedef enum {
+    MDS_DISPLAY_PRIMARY   = HWC_DISPLAY_PRIMARY,
+    MDS_DISPLAY_EXTERNAL  = HWC_DISPLAY_EXTERNAL,
+    MDS_DISPLAY_VIRTUAL   = HWC_NUM_DISPLAY_TYPES,
+} MDS_DISPLAY_ID;
 
 /** @brief Video source info from video players */
 typedef struct {

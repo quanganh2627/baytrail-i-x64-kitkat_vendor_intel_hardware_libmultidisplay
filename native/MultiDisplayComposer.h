@@ -22,20 +22,21 @@
 #include <utils/String16.h>
 #include <utils/RefBase.h>
 #include <utils/Vector.h>
-#include <hardware/hwcomposer_defs.h>
 #include <display/IMultiDisplayListener.h>
 #include <display/IMultiDisplayCallback.h>
 #include <display/IMultiDisplayInfoProvider.h>
+#include <display/MultiDisplayType.h>
 
 namespace android {
 namespace intel {
-
+#if 0
 /** @brief The display ID */
 typedef enum {
     MDS_DISPLAY_PRIMARY   = HWC_DISPLAY_PRIMARY,
     MDS_DISPLAY_EXTERNAL  = HWC_DISPLAY_EXTERNAL,
     MDS_DISPLAY_VIRTUAL   = HWC_NUM_DISPLAY_TYPES,
 } MDS_DISPLAY_ID;
+#endif
 
 static const int overscan_max = 5;
 
@@ -133,6 +134,7 @@ public:
     MDS_VIDEO_STATE getVideoState(int);
     status_t getVideoSourceInfo(int, MDSVideoSourceInfo*);
     MDS_DISPLAY_MODE getDisplayMode(bool);
+    bool getVppState();
 
     // Sink Registrar
     status_t registerListener(const sp<IMultiDisplayListener>&, const char*, int);
@@ -164,6 +166,11 @@ public:
     status_t getDecoderOutputResolution(int, int32_t*, int32_t*);
     status_t setDecoderOutputResolution(int, int32_t,  int32_t);
 
+#ifdef TARGET_HAS_VPP
+    // Vpp configure
+    status_t setVppState(MDS_DISPLAY_ID, bool);
+#endif
+
 private:
     bool mDrmInit;
     int mMode;
@@ -173,6 +180,14 @@ private:
     MDS_SCALING_TYPE mScaleType;
     uint32_t mHorizontalStep;
     uint32_t mVerticalStep;
+#ifdef TARGET_HAS_VPP
+    //Vpp cofigure, only for WIDI now
+    // Maintain current connected display device Id
+    // if HDMI is connected, this id = MDS_DISPLAY_EXTERNAL
+    // if WIFI is connected, this id = MDS_DISPLAY_VIRTUAL
+    // else id = MDS_DISPLAY_PRIMARY
+    MDS_DISPLAY_ID mDisplayId;
+#endif
 
     sp<IBinder> mSurfaceComposer;
 
@@ -186,10 +201,13 @@ private:
     status_t setDisplayScalingLocked(uint32_t mode, uint32_t stepx, uint32_t stepy);
     status_t updateHdmiConnectStatusLocked();
     MultiDisplayVideoSession* getVideoSession_l(int sessionId);
-    int getVideoSessionSize_l();
+    int  getVideoSessionSize_l();
     void initVideoSessions_l();
     bool hasVideoPlaying_l();
     void dumpVideoSession_l();
+#ifdef TARGET_HAS_VPP
+    status_t setVppState_l(MDS_DISPLAY_ID, bool);
+#endif
 
     inline bool checkMode(int value, int bit) {
         return (value & bit) == bit ? true : false;

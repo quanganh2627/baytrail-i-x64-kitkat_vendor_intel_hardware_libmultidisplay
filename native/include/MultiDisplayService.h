@@ -32,6 +32,9 @@
 #include <display/IMultiDisplayInfoProvider.h>
 #include <display/IMultiDisplayConnectionObserver.h>
 #include <display/IMultiDisplayDecoderConfig.h>
+#ifdef TARGET_HAS_VPP
+#include <display/IMultiDisplayVppConfig.h>
+#endif
 
 
 namespace android {
@@ -50,6 +53,9 @@ public:
     virtual sp<IMultiDisplayInfoProvider>        getInfoProvider() = 0;
     virtual sp<IMultiDisplayConnectionObserver>  getConnectionObserver() = 0;
     virtual sp<IMultiDisplayDecoderConfig>       getDecoderConfig() = 0;
+#ifdef TARGET_HAS_VPP
+    virtual sp<IMultiDisplayVppConfig>           getVppConfig() = 0;
+#endif
 };
 
 class BnMDService : public BnInterface<IMDService> {
@@ -76,6 +82,9 @@ public:
     virtual sp<IMultiDisplayInfoProvider>        getInfoProvider();
     virtual sp<IMultiDisplayConnectionObserver>  getConnectionObserver();
     virtual sp<IMultiDisplayDecoderConfig>       getDecoderConfig();
+#ifdef TARGET_HAS_VPP
+    virtual sp<IMultiDisplayVppConfig>           getVppConfig();
+#endif
 };
 
 }; // namespace intel

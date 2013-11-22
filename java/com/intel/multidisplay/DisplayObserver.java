@@ -38,6 +38,8 @@ import android.provider.Settings;
 import android.content.ContentResolver;
 import android.database.ContentObserver;
 
+import android.hardware.display.DisplayManager;
+import android.hardware.display.WifiDisplayStatus;
 import java.io.FileReader;
 import java.io.FileNotFoundException;
 import java.util.List;
@@ -48,8 +50,6 @@ import com.intel.multidisplay.DisplaySetting;
 public class DisplayObserver {
     private static final String TAG = "MultiDisplay";
     private static final boolean LOG = true;
-
-    // private final String HDMI_UEVENT_MATCH = "DEVPATH=/devices/pci0000:00/0000:00:02.0/drm/card0";
 
     // Assuming unplugged (i.e. 0) for initial state, assign initial state in init() below.
     private final int ROUTE_TO_SPEAKER = 0;
@@ -75,6 +75,8 @@ public class DisplayObserver {
 
     //Message need to handle
     private final int HDMI_STATE_CHANGE = 0;
+    // WIDI
+    private boolean mWidiConnected = false;
 
     private static final String HDMI_GET_INFO = "android.hdmi.GET_HDMI_INFO";
     private static final String HDMI_SET_INFO = "android.hdmi.SET_HDMI_INFO";
@@ -96,6 +98,7 @@ public class DisplayObserver {
         intentFilter.addAction(HDMI_SET_SCALE);
         intentFilter.addAction(HDMI_SET_STEP_SCALE);
         intentFilter.addAction(HDMI_Get_DisplayBoot);
+        intentFilter.addAction(DisplayManager.ACTION_WIFI_DISPLAY_STATUS_CHANGED);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
@@ -373,7 +376,19 @@ public class DisplayObserver {
                 outIntent.putExtras(mBundle);
                 mContext.sendBroadcast(outIntent);
             }
+                else if(action.equals(DisplayManager.ACTION_WIFI_DISPLAY_STATUS_CHANGED)) {
+                WifiDisplayStatus status = (WifiDisplayStatus)intent.getParcelableExtra(DisplayManager.EXTRA_WIFI_DISPLAY_STATUS);
+                boolean connected = false;
+                if (status.getActiveDisplayState() ==
+                        WifiDisplayStatus.DISPLAY_STATE_CONNECTED) {
+                    connected = true;
+                }
+                if (mWidiConnected == connected)
+                    return;
+                logv("Update vpp status " + connected);
+                mDs.setVppState(mDs.DISPLAY_VIRTUAL, connected);
+                mWidiConnected = connected;
+            }
         }
     }
 }
-
