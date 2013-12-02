@@ -376,9 +376,11 @@ public class DisplayObserver {
                 outIntent.putExtras(mBundle);
                 mContext.sendBroadcast(outIntent);
             }
-                else if(action.equals(DisplayManager.ACTION_WIFI_DISPLAY_STATUS_CHANGED)) {
-                WifiDisplayStatus status = (WifiDisplayStatus)intent.getParcelableExtra(DisplayManager.EXTRA_WIFI_DISPLAY_STATUS);
+            else if(action.equals(DisplayManager.ACTION_WIFI_DISPLAY_STATUS_CHANGED)) {
                 boolean connected = false;
+                WifiDisplayStatus status = (WifiDisplayStatus)intent.getParcelableExtra(DisplayManager.EXTRA_WIFI_DISPLAY_STATUS);
+                if (status == null)
+                    return;
                 if (status.getActiveDisplayState() ==
                         WifiDisplayStatus.DISPLAY_STATE_CONNECTED) {
                     connected = true;
