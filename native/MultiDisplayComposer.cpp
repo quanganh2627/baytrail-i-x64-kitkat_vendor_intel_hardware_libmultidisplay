@@ -228,13 +228,18 @@ status_t MultiDisplayComposer::updateVideoState(int sessionId, MDS_VIDEO_STATE s
     ALOGV("set Video Session [%d] state:%d", sessionId, state);
     // Check video session
     CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
-    if (mVideos[sessionId].getState() == state)
+    if (mVideos[sessionId].getState() == state) {
+        ALOGW("same video playback state %d for session %d", state, sessionId);
         return NO_ERROR;
+    }
 
-    if (mVideos[sessionId].setState(state) != NO_ERROR)
+    if (mVideos[sessionId].setState(state) != NO_ERROR) {
+        ALOGW("failed to update state %d for session %d", state, sessionId);
         return UNKNOWN_ERROR;
+    }
+
     // Reset video session if player is closed
-    if (state >= MDS_VIDEO_UNPREPARING) {
+    if (state >= MDS_VIDEO_UNPREPARED) {
         mVideos[sessionId].init();
         ignoreVideoDriver = true;
     }
@@ -553,6 +558,7 @@ status_t MultiDisplayComposer::resetVideoPlayback() {
     if (getVideoSessionSize_l() <= 0)
         return NO_ERROR;
 
+    // TODO: for each video session, send MDS_VIDEO_UNPREPARED
     initVideoSessions_l();
 
     if (mMDSCallback != NULL) {
