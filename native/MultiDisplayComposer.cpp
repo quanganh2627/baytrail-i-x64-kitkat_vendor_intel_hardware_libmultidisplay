@@ -520,7 +520,7 @@ status_t MultiDisplayComposer::setDisplayScalingLocked(uint32_t mode,
     scale = mode | stepx << 16 | stepy << 24;
     data.writeInterfaceToken(token);
     data.writeInt32(scale);
-    mSurfaceComposer->transact(1014, data, &reply);
+    mSurfaceComposer->transact(SFIntelHDMIScalingSetting, data, &reply);
     return reply.readInt32();
 }
 

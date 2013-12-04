@@ -25,6 +25,12 @@
 
 using namespace android;
 
+//Align with SF change
+enum {
+    SFIntelHDMIScalingSetting = 2001,
+    SFIntelQueryPresentationMode,
+    SFIntelPauseExternalDisplay
+};
 
 class MultiDisplayListener {
 private:
