@@ -68,7 +68,7 @@ status_t BnMultiDisplayListener::onTransact(
 {
     switch (code) {
         case ON_MDS_EVENT: {
-            ALOGV("%s: ON_MDS_EVENT", __func__);
+            ALOGV("%s", __func__);
             CHECK_INTERFACE(IMultiDisplayListener, data, reply);
             int32_t msg = data.readInt32();
             int32_t size = data.readInt32();

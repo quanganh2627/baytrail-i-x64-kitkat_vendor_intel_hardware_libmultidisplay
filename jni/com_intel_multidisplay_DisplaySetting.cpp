@@ -29,14 +29,6 @@
 #include <binder/ProcessState.h>
 #include <binder/IServiceManager.h>
 
-#include <display/IMultiDisplayHdmiControl.h>
-#include <display/IMultiDisplayListener.h>
-#include <display/IMultiDisplaySinkRegistrar.h>
-#include <display/IMultiDisplayConnectionObserver.h>
-#include <display/IMultiDisplayEventMonitor.h>
-#ifdef TARGET_HAS_VPP
-#include <display/IMultiDisplayVppConfig.h>
-#endif
 #include <display/MultiDisplayService.h>
 
 namespace android {
@@ -48,6 +40,7 @@ namespace intel {
 sp<IMDService>  gMds = NULL;
 static Mutex    gMutex;
 static sp<class JNIMDSListener>    gListener = NULL;
+static int32_t  gListenerId = -1;
 
 
 class JNIMDSListener : public BnMultiDisplayListener
@@ -58,14 +51,13 @@ public:
     status_t onMdsMessage(int msg, void* value, int size);
 
 private:
-    JNIMDSListener(); // private constructor
     jobject mServiceObj; // reference to DisplaySetting Java object to call back
     jmethodID mOnMdsMessageMethodID; // onMdsMessage method id
 };
 
 JNIMDSListener::JNIMDSListener(JNIEnv* env, jobject thiz, jobject serviceObj)
 {
-    LOGI("%s: Creating MDS listener.", __func__);
+    LOGI("Creating JNI MDS listener.");
     jclass clazz = env->FindClass(CLASS_PATH_NAME);
     mOnMdsMessageMethodID = NULL;
     if (clazz == NULL) {
@@ -106,7 +98,7 @@ status_t JNIMDSListener::onMdsMessage(int msg, void* value, int size)
     }
 
     if (msg == (int)MDS_MSG_MODE_CHANGE) {
-        LOGV("Get message from MDS, %d, 0x%x", msg, *((int*)value));
+        LOGV("Get a MDS mode change message %d, 0x%x", msg, *((int*)value));
         env->CallVoidMethod(mServiceObj, mOnMdsMessageMethodID, (int)msg, *((int*)value));
     }
 
@@ -145,8 +137,9 @@ static jboolean MDS_InitMDSClient(JNIEnv* env, jobject thiz, jobject serviceObj)
     sp<IMultiDisplaySinkRegistrar> sinkRegistrar = NULL;
     if ((sinkRegistrar = gMds->getSinkRegistrar()) == NULL)
         return false;
-    sinkRegistrar->registerListener(gListener,
+    gListenerId = sinkRegistrar->registerListener(gListener,
             "DisplaySetting", MDS_MSG_MODE_CHANGE);
+    ALOGV("MDS JNI listener ID %d", gListenerId);
     return true;
 }
 
@@ -154,11 +147,12 @@ static jboolean MDS_DeInitMDSClient(JNIEnv* env, jobject obj)
 {
     AutoMutex _l(gMutex);
     sp<IMultiDisplaySinkRegistrar> sinkRegistrar = NULL;
-    if (gListener != NULL && gMds != NULL &&
+    if (gListenerId >= 0 && gListener != NULL && gMds != NULL &&
             (sinkRegistrar = gMds->getSinkRegistrar()) != NULL) {
-        sinkRegistrar->unregisterListener(gListener);
+        sinkRegistrar->unregisterListener(gListenerId);
     }
-    gListener = NULL;
+    gListenerId = -1;
+    gListener   = NULL;
     LOGI("%s: Release MultiDisplay JNI client.", __func__);
     return true;
 }

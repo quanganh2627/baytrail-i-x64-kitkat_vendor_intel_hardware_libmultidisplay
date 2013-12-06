@@ -89,8 +89,9 @@ status_t BnMultiDisplayCallbackRegistrar::onTransact(
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;
+        default:
+            return BBinder::onTransact(code, data, reply, flags);
     } // switch
-    return BBinder::onTransact(code, data, reply, flags);
 }
 
 }; // namespace intel

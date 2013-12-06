@@ -110,7 +110,7 @@ private:
          uint32_t stepx, uint32_t stepy);
 
     void initialize_l();
-    int setHdmiMode_l();
+    int setHdmiMode_l(bool);
     int setMipiMode_l(bool);
     int setModePolicy_l(int);
     int getHdmiPlug_l();

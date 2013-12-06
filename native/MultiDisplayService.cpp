@@ -25,18 +25,55 @@
 
 #include <display/MultiDisplayService.h>
 #include "MultiDisplayComposer.h"
-#include "MultiDisplayUtils.h"
 
 namespace android {
 namespace intel {
 
+#define MDC_CHECK_OBJECT(OBJECT, ERR) \
+do { \
+    if (OBJECT == NULL) { \
+        ALOGE("%s: a non-instantiated object", __func__); \
+        return ERR; \
+    } \
+    ALOGV("Entering %s", __func__);\
+} while(0)
+
+#define IMPLEMENT_API_0(CLASS, OBJECT, INTERFACE, RETURN, ERR)               \
+    RETURN CLASS::INTERFACE() {                         \
+        MDC_CHECK_OBJECT(OBJECT, ERR);                                         \
+        return OBJECT->INTERFACE();                            \
+    }
+
+#define IMPLEMENT_API_1(CLASS, OBJECT, INTERFACE, PARAM0, RETURN, ERR)       \
+    RETURN CLASS::INTERFACE(PARAM0 p0) {                \
+        MDC_CHECK_OBJECT(OBJECT, ERR);                                         \
+        return OBJECT->INTERFACE(p0);                          \
+    }
+
+#define IMPLEMENT_API_2(CLASS, OBJECT, INTERFACE, PARAM0, PARAM1, RETURN, ERR)          \
+    RETURN CLASS::INTERFACE(PARAM0 p0, PARAM1 p1) {                \
+        MDC_CHECK_OBJECT(OBJECT, ERR);                                                    \
+        return OBJECT->INTERFACE(p0, p1);                                 \
+    }
+
+#define IMPLEMENT_API_3(CLASS, OBJECT, INTERFACE, PARAM0, PARAM1, PARAM2, RETURN, ERR)  \
+    RETURN CLASS::INTERFACE(PARAM0 p0, PARAM1 p1, PARAM2 p2) {     \
+        MDC_CHECK_OBJECT(OBJECT, ERR);                                                    \
+        return OBJECT->INTERFACE(p0, p1, p2);                             \
+    }
+
+#define IMPLEMENT_API_4(CLASS, OBJECT, INTERFACE, PARAM0, PARAM1, PARAM2, PARAM3, RETURN, ERR)  \
+    RETURN CLASS::INTERFACE(PARAM0 p0, PARAM1 p1, PARAM2 p2, PARAM3 p3) {     \
+        MDC_CHECK_OBJECT(OBJECT, ERR);                                                    \
+        return OBJECT->INTERFACE(p0, p1, p2, p3);                             \
+    }
 
 class MultiDisplayHdmiControlImpl : public BnMultiDisplayHdmiControl {
 private:
     sp<MultiDisplayComposer> pCom;
     static sp<MultiDisplayHdmiControlImpl> sHdmiInstance;
 public:
-    MultiDisplayHdmiControlImpl(sp<MultiDisplayComposer> com);
+    MultiDisplayHdmiControlImpl(const sp<MultiDisplayComposer>& com);
     int getCurrentHdmiTimingIndex();
     int getHdmiTimingCount();
     status_t setHdmiTiming(const MDSHdmiTiming&);
@@ -53,7 +90,7 @@ public:
 // singleton
 sp<MultiDisplayHdmiControlImpl> MultiDisplayHdmiControlImpl::sHdmiInstance = NULL;
 
-MultiDisplayHdmiControlImpl::MultiDisplayHdmiControlImpl(sp<MultiDisplayComposer> com) {
+MultiDisplayHdmiControlImpl::MultiDisplayHdmiControlImpl(const sp<MultiDisplayComposer>& com) {
    pCom = com;
    sHdmiInstance = this;
 }
@@ -73,7 +110,7 @@ private:
     sp<MultiDisplayComposer> pCom;
     static sp<MultiDisplayVideoControlImpl> sVideoInstance;
 public:
-    MultiDisplayVideoControlImpl(sp<MultiDisplayComposer> com);
+    MultiDisplayVideoControlImpl(const sp<MultiDisplayComposer>& com);
     int allocateVideoSessionId();
     status_t updateVideoState(int, MDS_VIDEO_STATE);
     status_t resetVideoPlayback();
@@ -86,7 +123,7 @@ public:
 // singleton
 sp<MultiDisplayVideoControlImpl> MultiDisplayVideoControlImpl::sVideoInstance = NULL;
 
-MultiDisplayVideoControlImpl::MultiDisplayVideoControlImpl(sp<MultiDisplayComposer> com) {
+MultiDisplayVideoControlImpl::MultiDisplayVideoControlImpl(const sp<MultiDisplayComposer>& com) {
     pCom = com;
     sVideoInstance = this;
 }
@@ -102,9 +139,9 @@ private:
     sp<MultiDisplayComposer> pCom;
     static sp<MultiDisplaySinkRegistrarImpl> sSinkInstance;
 public:
-    MultiDisplaySinkRegistrarImpl(sp<MultiDisplayComposer> com);
-    status_t registerListener(const sp<IMultiDisplayListener>&, const char*, int);
-    status_t unregisterListener(const sp<IMultiDisplayListener>&);
+    MultiDisplaySinkRegistrarImpl(const sp<MultiDisplayComposer>& com);
+    int32_t registerListener(const sp<IMultiDisplayListener>&, const char*, int);
+    status_t unregisterListener(int32_t id);
     static sp<MultiDisplaySinkRegistrarImpl> getInstance() {
         return sSinkInstance;
     }
@@ -113,21 +150,22 @@ public:
 // singleton
 sp<MultiDisplaySinkRegistrarImpl> MultiDisplaySinkRegistrarImpl::sSinkInstance = NULL;
 
-MultiDisplaySinkRegistrarImpl::MultiDisplaySinkRegistrarImpl(sp<MultiDisplayComposer> com) {
+MultiDisplaySinkRegistrarImpl::MultiDisplaySinkRegistrarImpl(const sp<MultiDisplayComposer>& com) {
     pCom = com;
     sSinkInstance = this;
 }
 
-IMPLEMENT_API_1(MultiDisplaySinkRegistrarImpl, pCom, unregisterListener, const sp<IMultiDisplayListener>&, status_t, NO_INIT)
+IMPLEMENT_API_1(MultiDisplaySinkRegistrarImpl, pCom, unregisterListener, int32_t, status_t, NO_INIT)
 
-IMPLEMENT_API_3(MultiDisplaySinkRegistrarImpl, pCom, registerListener, const sp<IMultiDisplayListener>&, const char*, int, status_t, NO_INIT)
+
+IMPLEMENT_API_3(MultiDisplaySinkRegistrarImpl, pCom, registerListener, const sp<IMultiDisplayListener>&, const char*, int, int32_t, -1)
 
 class MultiDisplayCallbackRegistrarImpl : public BnMultiDisplayCallbackRegistrar {
 private:
     sp<MultiDisplayComposer> pCom;
     static sp<MultiDisplayCallbackRegistrarImpl> sCbInstance;
 public:
-    MultiDisplayCallbackRegistrarImpl(sp<MultiDisplayComposer> com);
+    MultiDisplayCallbackRegistrarImpl(const sp<MultiDisplayComposer>& com);
     status_t registerCallback(const sp<IMultiDisplayCallback>&);
     status_t unregisterCallback(const sp<IMultiDisplayCallback>&);
     static sp<MultiDisplayCallbackRegistrarImpl> getInstance() {
@@ -138,7 +176,7 @@ public:
 // singleton
 sp<MultiDisplayCallbackRegistrarImpl> MultiDisplayCallbackRegistrarImpl::sCbInstance = NULL;
 
-MultiDisplayCallbackRegistrarImpl::MultiDisplayCallbackRegistrarImpl(sp<MultiDisplayComposer> com) {
+MultiDisplayCallbackRegistrarImpl::MultiDisplayCallbackRegistrarImpl(const sp<MultiDisplayComposer>& com) {
     pCom = com;
     sCbInstance = this;
 }
@@ -152,7 +190,7 @@ private:
     sp<MultiDisplayComposer> pCom;
     static sp<MultiDisplayInfoProviderImpl> sInfoInstance;
 public:
-    MultiDisplayInfoProviderImpl(sp<MultiDisplayComposer> com);
+    MultiDisplayInfoProviderImpl(const sp<MultiDisplayComposer>& com);
     MDS_VIDEO_STATE getVideoState(int);
     bool getVppState();
     int getVideoSessionNumber();
@@ -167,7 +205,7 @@ public:
 // singleton
 sp<MultiDisplayInfoProviderImpl> MultiDisplayInfoProviderImpl::sInfoInstance = NULL;
 
-MultiDisplayInfoProviderImpl::MultiDisplayInfoProviderImpl(sp<MultiDisplayComposer> com) {
+MultiDisplayInfoProviderImpl::MultiDisplayInfoProviderImpl(const sp<MultiDisplayComposer>& com) {
     pCom = com;
     sInfoInstance = this;
 }
@@ -184,7 +222,7 @@ private:
     sp<MultiDisplayComposer> pCom;
     static sp<MultiDisplayEventMonitorImpl> sEventInstance;
 public:
-    MultiDisplayEventMonitorImpl(sp<MultiDisplayComposer> com);
+    MultiDisplayEventMonitorImpl(const sp<MultiDisplayComposer>& com);
     status_t updatePhoneCallState(bool);
     status_t updateInputState(bool);
     static sp<MultiDisplayEventMonitorImpl> getInstance() {
@@ -195,7 +233,7 @@ public:
 // singleton
 sp<MultiDisplayEventMonitorImpl> MultiDisplayEventMonitorImpl::sEventInstance = NULL;
 
-MultiDisplayEventMonitorImpl::MultiDisplayEventMonitorImpl(sp<MultiDisplayComposer> com) {
+MultiDisplayEventMonitorImpl::MultiDisplayEventMonitorImpl(const sp<MultiDisplayComposer>& com) {
     pCom = com;
     sEventInstance = this;
 }
@@ -208,7 +246,7 @@ private:
     sp<MultiDisplayComposer> pCom;
     static sp<MultiDisplayConnectionObserverImpl> sConnInstance;
 public:
-    MultiDisplayConnectionObserverImpl(sp<MultiDisplayComposer> com);
+    MultiDisplayConnectionObserverImpl(const sp<MultiDisplayComposer>& com);
     status_t updateWidiConnectionStatus(bool);
     status_t updateHdmiConnectionStatus(bool);
     static sp<MultiDisplayConnectionObserverImpl> getInstance() {
@@ -219,7 +257,7 @@ public:
 // singleton
 sp<MultiDisplayConnectionObserverImpl> MultiDisplayConnectionObserverImpl::sConnInstance = NULL;
 
-MultiDisplayConnectionObserverImpl::MultiDisplayConnectionObserverImpl(sp<MultiDisplayComposer> com) {
+MultiDisplayConnectionObserverImpl::MultiDisplayConnectionObserverImpl(const sp<MultiDisplayComposer>& com) {
     pCom = com;
     sConnInstance = this;
 }
@@ -233,7 +271,7 @@ private:
     sp<MultiDisplayComposer> pCom;
     static sp<MultiDisplayDecoderConfigImpl> sDecoderInstance;
 public:
-    MultiDisplayDecoderConfigImpl(sp<MultiDisplayComposer> com);
+    MultiDisplayDecoderConfigImpl(const sp<MultiDisplayComposer>& com);
     status_t setDecoderOutputResolution(int videoSessionId, int32_t width, int32_t height);
     static sp<MultiDisplayDecoderConfigImpl> getInstance() {
         return sDecoderInstance;
@@ -243,7 +281,7 @@ public:
 // singleton
 sp<MultiDisplayDecoderConfigImpl> MultiDisplayDecoderConfigImpl::sDecoderInstance = NULL;
 
-MultiDisplayDecoderConfigImpl::MultiDisplayDecoderConfigImpl(sp<MultiDisplayComposer> com) {
+MultiDisplayDecoderConfigImpl::MultiDisplayDecoderConfigImpl(const sp<MultiDisplayComposer>& com) {
     pCom = com;
     sDecoderInstance = this;
 }
@@ -328,16 +366,19 @@ public:
                 MDS_SERVICE_GET_CALLBACK_REGISTRAR, data, &reply);
         if (result != NO_ERROR)
             ALOGE("Trasaction is fail");
+        ALOGV("%s", __func__);
         return interface_cast<IMultiDisplayCallbackRegistrar>(reply.readStrongBinder());
     }
 
     virtual sp<IMultiDisplaySinkRegistrar> getSinkRegistrar() {
         Parcel data, reply;
+        ALOGV("%s, %d", __func__, __LINE__);
         data.writeInterfaceToken(IMDService::getInterfaceDescriptor());
         status_t result = remote()->transact(
                 MDS_SERVICE_GET_SINK_REGISTRAR, data, &reply);
         if (result != NO_ERROR)
             ALOGE("Trasaction is fail");
+        ALOGV("%s, %d", __func__, __LINE__);
         return interface_cast<IMultiDisplaySinkRegistrar>(reply.readStrongBinder());
     }
 
@@ -389,56 +430,50 @@ status_t BnMDService::onTransact(
     switch (code) {
         case MDS_SERVICE_GET_HDMI_CONTROL: {
             CHECK_INTERFACE(IMDService, data, reply);
-            uint32_t base = data.readInt32();
             sp<IBinder> b = this->getHdmiControl()->asBinder();
             reply->writeStrongBinder(b);
             return NO_ERROR;
         }
         case MDS_SERVICE_GET_VIDEO_CONTROL: {
             CHECK_INTERFACE(IMDService, data, reply);
-            uint32_t base = data.readInt32();
             sp<IBinder> b = this->getVideoControl()->asBinder();
             reply->writeStrongBinder(b);
             return NO_ERROR;
         }
         case MDS_SERVICE_GET_EVENT_MONITOR: {
             CHECK_INTERFACE(IMDService, data, reply);
-            uint32_t base = data.readInt32();
             sp<IBinder> b = this->getEventMonitor()->asBinder();
             reply->writeStrongBinder(b);
             return NO_ERROR;
         }
         case MDS_SERVICE_GET_CALLBACK_REGISTRAR: {
             CHECK_INTERFACE(IMDService, data, reply);
-            uint32_t base = data.readInt32();
             sp<IBinder> b = this->getCallbackRegistrar()->asBinder();
             reply->writeStrongBinder(b);
+            ALOGV("%s", __func__);
             return NO_ERROR;
         }
         case MDS_SERVICE_GET_SINK_REGISTRAR: {
             CHECK_INTERFACE(IMDService, data, reply);
-            uint32_t base = data.readInt32();
             sp<IBinder> b = this->getSinkRegistrar()->asBinder();
             reply->writeStrongBinder(b);
+            ALOGV("%s", __func__);
             return NO_ERROR;
         }
         case MDS_SERVICE_GET_INFO_PROVIDER: {
             CHECK_INTERFACE(IMDService, data, reply);
-            uint32_t base = data.readInt32();
             sp<IBinder> b = this->getInfoProvider()->asBinder();
             reply->writeStrongBinder(b);
             return NO_ERROR;
         }
         case MDS_SERVICE_GET_CONNECTION_OBSERVER: {
             CHECK_INTERFACE(IMDService, data, reply);
-            uint32_t base = data.readInt32();
             sp<IBinder> b = this->getConnectionObserver()->asBinder();
             reply->writeStrongBinder(b);
             return NO_ERROR;
         }
         case MDS_SERVICE_GET_DECODER_CONFIG: {
             CHECK_INTERFACE(IMDService, data, reply);
-            uint32_t base = data.readInt32();
             sp<IBinder> b = this->getDecoderConfig()->asBinder();
             reply->writeStrongBinder(b);
             return NO_ERROR;
@@ -449,8 +484,9 @@ status_t BnMDService::onTransact(
             reply->writeStrongBinder(b);
             return NO_ERROR;
         }
+        default:
+            return BBinder::onTransact(code, data, reply, flags);
     } // switch
-    return BBinder::onTransact(code, data, reply, flags);
 }
 
 
@@ -491,10 +527,12 @@ sp<IMultiDisplayEventMonitor> MultiDisplayService::getEventMonitor() {
 }
 
 sp<IMultiDisplayCallbackRegistrar> MultiDisplayService::getCallbackRegistrar() {
+    ALOGV("%s", __func__);
 	return MultiDisplayCallbackRegistrarImpl::getInstance();
 }
 
 sp<IMultiDisplaySinkRegistrar> MultiDisplayService::getSinkRegistrar() {
+    ALOGV("%s", __func__);
 	return MultiDisplaySinkRegistrarImpl::getInstance();
 }
 

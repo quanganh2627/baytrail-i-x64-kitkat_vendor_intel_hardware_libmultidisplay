@@ -39,7 +39,8 @@ public:
     {
     }
 
-    virtual status_t setDecoderOutputResolution(int videoSessionId, int32_t width, int32_t height) {
+    virtual status_t setDecoderOutputResolution(
+            int videoSessionId, int32_t width, int32_t height) {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayDecoderConfig::getInterfaceDescriptor());
         if (width <= 0 || height <= 0) {

@@ -40,9 +40,11 @@ public:
      * @param listener: inherit and implement IMultiDisplayListener.
      * @param name: client name, ensure it is not a null pointer
      * @param msg: messge type, @see MDS_MESSAGE in MultiDisplayType.h
-     * @return @see status_t in <utils/Errors.h>
+     * @return: return a listener Id
+     *          >= 0 indicate a valid listenner
+     *          <  0 indicate an invalid listener
      */
-    virtual status_t registerListener(
+    virtual int32_t registerListener(
             const sp<IMultiDisplayListener>&, const char* name, int msg) = 0;
 
     /**
@@ -50,7 +52,7 @@ public:
      * @param
      * @return @see status_t in <utils/Errors.h>
      */
-    virtual status_t unregisterListener(const sp<IMultiDisplayListener>&) = 0;
+    virtual status_t unregisterListener(int32_t listenerId) = 0;
 };
 
 

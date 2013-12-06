@@ -18,6 +18,7 @@
 
 
 //#define LOG_NDEBUG 0
+
 #include <utils/Log.h>
 #include <binder/Parcel.h>
 
@@ -39,11 +40,11 @@ public:
     {
     }
 
-    virtual status_t registerListener(const sp<IMultiDisplayListener>& listener,
+    virtual int32_t registerListener(const sp<IMultiDisplayListener>& listener,
             const char* name, int msg) {
         Parcel data, reply;
-        if (/*listener == NULL || */listener.get() == NULL || name == NULL) {
-            return BAD_VALUE;
+        if (listener.get() == NULL || name == NULL) {
+            return -1;
         }
         data.writeInterfaceToken(IMultiDisplaySinkRegistrar::getInterfaceDescriptor());
         data.writeStrongBinder(listener->asBinder());
@@ -52,19 +53,21 @@ public:
         status_t result = remote()->transact(
                 MDS_SERVER_REGISTER_LISTENER, data, &reply);
         if (result != NO_ERROR) {
-            return result;
+            return -1;
         }
-        result = reply.readInt32();
-        return result;
+        int32_t id = reply.readInt32();
+        ALOGV("%s, %d, %p", __func__, id, listener.get());
+        return id;
     }
 
-    virtual status_t unregisterListener(const sp<IMultiDisplayListener>& listener) {
+    virtual status_t unregisterListener(int32_t listenerId) {
         Parcel data, reply;
-        if (/*listener == NULL || */listener.get() == NULL) {
+        if (listenerId < 0) {
             return BAD_VALUE;
         }
+        ALOGV("%s, %d", __func__, listenerId);
         data.writeInterfaceToken(IMultiDisplaySinkRegistrar::getInterfaceDescriptor());
-        data.writeStrongBinder(listener->asBinder());
+        data.writeInt32(listenerId);
         status_t result = remote()->transact(
                 MDS_SERVER_UNREGISTER_LISTENER, data, &reply);
         if (result != NO_ERROR) {
@@ -83,24 +86,26 @@ status_t BnMultiDisplaySinkRegistrar::onTransact(
     switch (code) {
         case MDS_SERVER_REGISTER_LISTENER: {
             CHECK_INTERFACE(IMultiDisplaySinkRegistrar, data, reply);
-            sp<IBinder> listener = data.readStrongBinder();
+            sp<IMultiDisplayListener> listener =
+                interface_cast<IMultiDisplayListener>(data.readStrongBinder());
             const char* client = data.readCString();
             int msg = data.readInt32();
-            status_t ret = registerListener(
-                interface_cast<IMultiDisplayListener>(listener), client, msg);
-            reply->writeInt32(ret);
+            int32_t listenerId = registerListener(listener, client, msg);
+            ALOGV("%s, %d, %p", __func__, listenerId, listener.get());
+            reply->writeInt32(listenerId);
             return NO_ERROR;
         } break;
         case MDS_SERVER_UNREGISTER_LISTENER: {
             CHECK_INTERFACE(IMultiDisplaySinkRegistrar, data, reply);
-            sp<IBinder> listener = data.readStrongBinder();
-            status_t ret = unregisterListener(
-                interface_cast<IMultiDisplayListener>(listener));
+            int32_t listenerId = data.readInt32();
+            ALOGV("%s, %d", __func__, listenerId);
+            status_t ret = unregisterListener(listenerId);
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;
+        default:
+            return BBinder::onTransact(code, data, reply, flags);
     } // switch
-    return BBinder::onTransact(code, data, reply, flags);
 }
 
 }; // namespace intel

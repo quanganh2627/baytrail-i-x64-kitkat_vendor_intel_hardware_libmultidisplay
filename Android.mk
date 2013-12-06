@@ -130,6 +130,7 @@ LOCAL_C_INCLUDES := \
 ifeq ($(TARGET_HAS_VPP),true)
 LOCAL_CFLAGS += -DTARGET_HAS_VPP
 endif
+LOCAL_CFLAGS += -DLOG_TAG=\"MultiDisplay\"
 
 include $(BUILD_SHARED_LIBRARY)
 
