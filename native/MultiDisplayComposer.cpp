@@ -464,17 +464,17 @@ status_t MultiDisplayComposer::unregisterListener(int32_t listenerId) {
         return BAD_VALUE;
     }
     for (size_t i = 0; i < mListeners.size(); i++) {
-        if (mListeners.keyAt(i) == listenerId) {
-            MultiDisplayListener* listener = mListeners.valueAt(i);
-            ALOGV("Find a matched listener to unregister:\n");
-            listener->dump();
-            mListeners.removeItem(listenerId);
-            if (listener != NULL) {
-                delete listener;
-                listener = NULL;
-            }
-            break;
-        }
+        if (mListeners.keyAt(i) != listenerId)
+            continue;
+        MultiDisplayListener* listener = mListeners.valueAt(i);
+        if (listener == NULL)
+            continue;
+        ALOGV("Find a matched listener to unregister:\n");
+        listener->dump();
+        mListeners.removeItem(listenerId);
+        delete listener;
+        listener = NULL;
+        break;
     }
     return NO_ERROR;
 }
@@ -489,7 +489,7 @@ void MultiDisplayComposer::broadcastMessageLocked(
         if (listener == NULL)
             continue;
         listener->dump();
-        if (ignoreVideoDriver &&
+        if (ignoreVideoDriver && (listener->getName() != NULL) &&
                 !strcmp("VideoDriver", listener->getName())) {
             ALOGV("Ignoring an invalid video driver message");
             continue;
@@ -509,7 +509,7 @@ status_t MultiDisplayComposer::setDisplayScalingLocked(uint32_t mode,
         const String16 name("SurfaceFlinger");
         mSurfaceComposer = sm->getService(name);
         if (mSurfaceComposer == NULL) {
-            return -1;
+            return UNKNOWN_ERROR;
         }
     }
 
