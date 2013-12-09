@@ -235,14 +235,16 @@ static jboolean MDS_HdmiScaleType(JNIEnv* env, jobject obj,jint Type)
 {
     if (gMDClient == NULL) return false;
     AutoMutex _l(gMutex);
-    return gMDClient->setHdmiScaleType(Type);
+    int ret = gMDClient->setHdmiScaleType(Type);
+    return (ret == 0 ? true : false);
 }
 
 static jboolean MDS_HdmiScaleStep(JNIEnv* env, jobject obj,jint hValue,jint vValue)
 {
     if (gMDClient == NULL) return false;
     AutoMutex _l(gMutex);
-    return gMDClient->setHdmiScaleStep(hValue,vValue);
+    int ret = gMDClient->setHdmiScaleStep(hValue,vValue);
+    return (ret == 0 ? true : false);
 }
 
 static jint MDS_getHdmiDeviceChange(JNIEnv* env, jobject obj)

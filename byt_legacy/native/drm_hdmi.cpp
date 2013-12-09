@@ -393,7 +393,6 @@ int drm_hdmi_getConnectionStatus()
         // offset of product_info
         char* product_info = edid_binary + 8;
         gDrmCxt.connected = true;
-        gDrmCxt.newDevice = false;
         if (memcmp(gDrmCxt.productInfo, product_info, EDID_PRODUCT_INFO_LEN)) {
             LOGI("A new HDMI sink is connected.");
             gDrmCxt.newDevice = true;
