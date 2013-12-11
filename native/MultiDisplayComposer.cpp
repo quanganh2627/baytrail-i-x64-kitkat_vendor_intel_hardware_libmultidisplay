@@ -452,7 +452,7 @@ int32_t MultiDisplayComposer::registerListener(
             }
             if (!used) break;
         }
-        ALOGV("The next invalid listener Id: %d", mListenerId);
+        ALOGV("The next valid listener Id: %d", mListenerId);
     }
     return newId;
 }
