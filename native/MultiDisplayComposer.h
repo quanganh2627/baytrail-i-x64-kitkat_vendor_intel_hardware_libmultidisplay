@@ -32,6 +32,13 @@ namespace intel {
 
 static const int overscan_max = 5;
 
+//Align with SF change
+enum {
+    SFIntelHDMIScalingSetting = 2001,
+    SFIntelQueryPresentationMode,
+    SFIntelPauseExternalDisplay
+};
+
 class MultiDisplayListener {
 private:
     int      mMsg;

@@ -581,7 +581,7 @@ int MultiDisplayComposer::setDisplayScalingLocked(uint32_t mode,
     scale = mode | stepx << 16 | stepy << 24;
     data.writeInterfaceToken(token);
     data.writeInt32(scale);
-    mSurfaceComposer->transact(1014, data, &reply);
+    mSurfaceComposer->transact(SFIntelHDMIScalingSetting, data, &reply);
     return reply.readInt32();
 }
 
@@ -661,7 +661,7 @@ bool MultiDisplayComposer::threadLoop() {
     return MDS_NO_ERROR;
 }
 
-bool MultiDisplayComposer::isHdmiTimingDynamicSettingEnable_l(){
+bool MultiDisplayComposer::isHdmiTimingDynamicSettingEnable_l() {
     //Disable dynamic setting for video playback
     if (mSurfaceComposer == NULL) {
         const sp<IServiceManager> sm = defaultServiceManager();
@@ -673,11 +673,12 @@ bool MultiDisplayComposer::isHdmiTimingDynamicSettingEnable_l(){
     }
 
     Parcel data, reply;
+    int ret = -1;
     const String16 token("android.ui.ISurfaceComposer");
     data.writeInterfaceToken(token);
-    const int PRESENTATION_MODE_CHECKING = 1015;
-    mSurfaceComposer->transact(PRESENTATION_MODE_CHECKING, data, &reply);
-    int ret = reply.readInt32();
-    ALOGV("%s to enable HDMI Timing dynamic setting", (ret ? "Don't need" : "Need"));
+    status_t status = mSurfaceComposer->transact(SFIntelQueryPresentationMode, data, &reply);
+    if (status == NO_ERROR)
+        ret = reply.readInt32();
+    ALOGI("Enable HDMI Timing dynamic setting %d", ret);
     return (ret ? false : true);
 }

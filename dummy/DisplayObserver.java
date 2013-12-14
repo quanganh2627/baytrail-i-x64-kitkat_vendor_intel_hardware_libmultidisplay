@@ -18,12 +18,13 @@ package com.intel.multidisplay;
 
 import android.content.Context;
 import android.os.UEventObserver;
+import android.view.InputChannel;
 
 /**
  * <p>DisplayObserver, dummy implement.
  */
 public class DisplayObserver extends UEventObserver {
-    public DisplayObserver(Context context) {
+    public DisplayObserver(Context context, InputChannel inputchannel) {
     }
 
     protected void finalize() throws Throwable {
