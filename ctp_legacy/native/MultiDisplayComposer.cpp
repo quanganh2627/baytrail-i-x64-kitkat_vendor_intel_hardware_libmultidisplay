@@ -374,7 +374,7 @@ int MultiDisplayComposer::setHdmiTiming_l(void* value, int size) {
         if (listener == NULL)
             continue;
         char* client = listener->getName();
-        if (client && !strcmp(client, "HWComposer")) {
+        if (client && !strncmp(client, "HWComposer", sizeof("HWComposer"))) {
             hasHwc = true;
             if (listener->checkMsg(MDS_SET_TIMING)) {
                 LOGV("%s: Set HDMI timing through HWC", __func__);

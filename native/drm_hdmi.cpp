@@ -294,7 +294,8 @@ int drm_hdmi_getConnectionStatus()
         if (!props)
             continue;
 
-        if (props->name == NULL || strcmp(props->name, "EDID") != 0) {
+        if (props->name == NULL ||
+                strncmp(props->name, "EDID", sizeof("EDID")) != 0) {
             drmModeFreeProperty(props);
             continue;
         }
