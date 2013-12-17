@@ -270,6 +270,8 @@ public class DisplayObserver {
         mHDMIName = newName;
         mPreAudioRoute = mAudioRoute;
         mAudioRoute = newState;
+        if (newState == ROUTE_TO_SPEAKER)
+            delay = 500;
 
         if (newState == ROUTE_TO_SPEAKER) {
             Intent intent = new Intent(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
