@@ -39,8 +39,8 @@ public class DisplaySetting {
     /// display mode
     public static final int DVI_CONNECTED_BIT   = 1;
     public static final int HDMI_CONNECTED_BIT  = 1 << 1;
-    public static final int WIDI_CONNECTED_BIT  = 1 << 2;
-    public static final int VIDEO_ON_BIT  = 1 << 3;
+    public static final int EXTENDED_MODE_BIT   = 1 << 2;
+    public static final int WIDI_CONNECTED_BIT  = 1 << 3;
 
     /// MDS message type
     public static final int MDS_MSG_MODE_CHANGE = 1 << 1;
