@@ -187,9 +187,9 @@ static void drm_hdmi_setTiming(drmModeConnectorPtr connector, int index, MDSHDMI
     info->interlace = mode->flags & DRM_MODE_FLAG_INTERLACE;
     info->ratio = 0;
     if (mode->flags & DRM_MODE_FLAG_PAR16_9)
-        info->ratio = 1;
-    else if (mode->flags & DRM_MODE_FLAG_PAR4_3)
         info->ratio = 2;
+    else if (mode->flags & DRM_MODE_FLAG_PAR4_3)
+        info->ratio = 1;
 
     LOGI("Timing set is: %dx%d@%dHz",info->width, info->height, info->refresh);
 }
@@ -476,9 +476,9 @@ int drm_hdmi_getModeInfo(
                 else
                     pInterlace[valid_mode_count] = 0;
                 if (temp_flags & DRM_MODE_FLAG_PAR16_9)
-                    pRatio[valid_mode_count] = 1;
-                else if (temp_flags & DRM_MODE_FLAG_PAR4_3)
                     pRatio[valid_mode_count] = 2;
+                else if (temp_flags & DRM_MODE_FLAG_PAR4_3)
+                    pRatio[valid_mode_count] = 1;
                 else
                     pRatio[valid_mode_count] = 0;
 
