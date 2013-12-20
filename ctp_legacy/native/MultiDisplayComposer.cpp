@@ -426,17 +426,8 @@ int MultiDisplayComposer::notifyHotPlug() {
     LOGV("%s: mipi policy: %d, hdmi policy: %d, mode: 0x%x", __func__, mMipiPolicy, mHdmiPolicy, mMode);
     Mutex::Autolock _l(mLock);
     ret = setHdmiMode_l();
-    if ((mConnectStatus == DRM_HDMI_CONNECTED) && ( mScaleMode
-            || mScaleStepX || mScaleStepY)) {
-        if (drm_hdmi_isDeviceChanged(false)) {
-            setDisplayScalingLocked(0, 0, 0);
-            LOGV("%s: Return to default value", __func__);
-        } else {
-            setDisplayScalingLocked(mScaleMode, mScaleStepX, mScaleStepY);
-            LOGV("%s: Returen to previous setting value", __func__);
-        }
-    }
-
+    if (drm_hdmi_isDeviceChanged(false) && mConnectStatus == DRM_HDMI_CONNECTED)
+        setDisplayScalingLocked(0, 0, 0);
     return ret;
 }
 

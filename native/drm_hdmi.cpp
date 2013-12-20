@@ -405,7 +405,7 @@ static int parseHdmiTimings() {
         // Save Hdmi timing
         addHdmiTimings(&dst);
         validCnt++;
-        ALOGV("Add timing: %dx%d@%dx%0xx", tmpW, tmpV, tmpR, tmpF);
+        ALOGV("Add timing: %dx%d@%dx0x%0x", tmpW, tmpV, tmpR, tmpF);
     }
     return validCnt;
 }

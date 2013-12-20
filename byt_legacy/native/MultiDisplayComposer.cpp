@@ -441,10 +441,14 @@ int MultiDisplayComposer::setMipiMode_l(bool on) {
 }
 
 int MultiDisplayComposer::notifyHotPlug() {
+    int ret = MDS_ERROR;
     MDC_CHECK_INIT();
     LOGV("%s: mipi policy: %d, hdmi policy: %d, mode: 0x%x", __func__, mMipiPolicy, mHdmiPolicy, mMode);
     Mutex::Autolock _l(mLock);
-    return setHdmiMode_l(true);
+    ret = setHdmiMode_l(true);
+    if (drm_hdmi_isDeviceChanged(false) && mConnectStatus == DRM_HDMI_CONNECTED)
+        setDisplayScalingLocked(0, 0, 0);
+    return ret;
 }
 
 int MultiDisplayComposer::setModePolicy(int policy) {

@@ -44,15 +44,6 @@ import java.io.FileReader;
 import java.io.FileNotFoundException;
 import java.util.List;
 import com.intel.multidisplay.DisplaySetting;
-
-
-import android.os.Looper;
-import android.view.InputChannel;
-import android.view.InputDevice;
-import android.view.InputEvent;
-import android.view.InputEventReceiver;
-
-
 /**
  * <p>DisplayObserver.
  */
@@ -82,15 +73,10 @@ public class DisplayObserver {
     private boolean mInCallScreenFinished = true;
     private DisplaySetting mDs;
 
-    // WIDI
-    private boolean mWidiConnected = false;
-
     //Message need to handle
     private final int HDMI_STATE_CHANGE = 0;
-    private final int MSG_INPUT_TIMEOUT = 3;
-    private final int MSG_START_MONITORING_INPUT = 4;
-    private final int MSG_STOP_MONITORING_INPUT = 5;
-    private final int INPUT_TIMEOUT_MSEC = 5000;
+    // WIDI
+    private boolean mWidiConnected = false;
 
     private static final String HDMI_GET_INFO = "android.hdmi.GET_HDMI_INFO";
     private static final String HDMI_SET_INFO = "android.hdmi.SET_HDMI_INFO";
@@ -103,71 +89,8 @@ public class DisplayObserver {
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
 
-    private static final class DisplayObserverInputEventReceiver extends InputEventReceiver {
-        public DisplayObserverInputEventReceiver(
-            DisplayObserver observer, InputChannel inputChannel, Looper looper) {
-            super(inputChannel, looper);
-            mObserver = observer;
-        }
-
-        @Override
-        public void onInputEvent(InputEvent event) {
-            try {
-                int source = event.getSource();
-                if ((source & InputDevice.SOURCE_TOUCHSCREEN) != 0 ||
-                    (source & InputDevice.SOURCE_CLASS_BUTTON) != 0) {
-                    mObserver.onInputEvent();
-                }
-            } finally {
-                finishInputEvent(event, false);
-            }
-        }
-        private DisplayObserver mObserver;
-    }
-    private DisplayObserverInputEventReceiver mInputEventReceiver;
-    private InputChannel mInputChannel;
-
-    public void onInputEvent() {
-        if (!mHandler.hasMessages(MSG_INPUT_TIMEOUT)) {
-            logv("input is active");
-            mDs.updateInputState(true);
-        } else {
-            mHandler.removeMessages(MSG_INPUT_TIMEOUT);
-        }
-        mHandler.sendEmptyMessageDelayed(MSG_INPUT_TIMEOUT, INPUT_TIMEOUT_MSEC);
-    }
-
-    private void startMonitoringInput() {
-        logv("start monitoring input");
-        if (mInputEventReceiver != null) {
-            return;
-        }
-        if (mInputChannel == null) {
-            return;
-        }
-        mInputEventReceiver =
-                new DisplayObserverInputEventReceiver(this, mInputChannel,
-                        Looper.myLooper());
-
-        // start "input idle" count down
-        mHandler.sendEmptyMessageDelayed(MSG_INPUT_TIMEOUT, INPUT_TIMEOUT_MSEC);
-    }
-
-    private void stopMonitoringInput() {
-        logv("stop monitoring input");
-        if (mInputEventReceiver != null) {
-            mInputEventReceiver.dispose();
-            mInputEventReceiver = null;
-        }
-    }
-
-    public DisplayObserver(Context context, InputChannel inputchannel) {
-        if (inputchannel == null) {
-            logv("An invalid input channel, MDS couldn't handle input envent");
-        }
-
+    public DisplayObserver(Context context) {
         mContext = context;
-        mInputChannel = inputchannel;
         mDs = new DisplaySetting();
         IntentFilter intentFilter = new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
         intentFilter.addAction(HDMI_GET_INFO);
@@ -192,7 +115,6 @@ public class DisplayObserver {
     }
 
     protected void finalize() throws Throwable {
-        stopMonitoringInput();
         mContext.unregisterReceiver(mReceiver);
         super.finalize();
     }
@@ -207,11 +129,6 @@ public class DisplayObserver {
                         new DisplaySetting.onMdsMessageListener() {
         public boolean onMdsMessage(int msg, int value) {
             if (msg == mDs.MDS_MSG_MODE_CHANGE) {
-                if ((value & mDs.VIDEO_ON_BIT) != 0) {
-                    mHandler.sendEmptyMessage(MSG_START_MONITORING_INPUT);
-                } else {
-                    mHandler.sendEmptyMessage(MSG_STOP_MONITORING_INPUT);
-                }
                 int hdmiConnected = 0;
                 if ((mHDMIConnected == 0) &&
                         ((value & mDs.HDMI_CONNECTED_BIT) == mDs.HDMI_CONNECTED_BIT))
@@ -319,16 +236,6 @@ public class DisplayObserver {
             case HDMI_STATE_CHANGE:
                 sendIntents(msg.arg1, msg.arg2, (String)msg.obj);
                 mWakeLock.release();
-                break;
-            case MSG_INPUT_TIMEOUT:
-                logv("input is idle");
-                mDs.updateInputState(false);
-                break;
-            case MSG_START_MONITORING_INPUT:
-                startMonitoringInput();
-                break;
-            case MSG_STOP_MONITORING_INPUT:
-                stopMonitoringInput();
                 break;
             case HDMI_HOTPLUG:
                 synchronized(this) {

@@ -204,6 +204,7 @@ status_t BnMultiDisplayHdmiControl::onTransact(
                 list[i] = NULL;
             }
             reply->writeInt32(ret);
+            return NO_ERROR;
         } break;
         case MDS_SERVER_GET_CURRENT_HDMI_TIMING: {
             CHECK_INTERFACE(IMultiDisplayHdmiControl, data, reply);

@@ -13,6 +13,9 @@ endif
 ifeq ($(TARGET_BOARD_PLATFORM),clovertrail)
 include $(LOCAL_PATH)/ctp_legacy/Android.mk
 endif
+ifeq ($(TARGET_BOARD_PLATFORM),cherrytrail)
+include $(LOCAL_PATH)/byt_legacy/Android.mk
+endif
 
 else
 
