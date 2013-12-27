@@ -42,6 +42,9 @@ import java.io.FileReader;
 import java.io.FileNotFoundException;
 import java.util.List;
 import com.intel.multidisplay.DisplaySetting;
+
+import android.view.InputChannel;
+
 /**
  * <p>DisplayObserver.
  */
@@ -93,7 +96,7 @@ public class DisplayObserver {
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
 
-    public DisplayObserver(Context context) {
+    public DisplayObserver(Context context, InputChannel inputchannel) {
         mContext = context;
         mDs = new DisplaySetting();
         IntentFilter intentFilter = new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
