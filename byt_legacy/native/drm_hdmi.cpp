@@ -199,6 +199,11 @@ static void drm_hdmi_setTiming(drmModeConnectorPtr connector, int index, MDSHDMI
         info->ratio = 1;
     else if (mode->flags & DRM_MODE_FLAG_PAR4_3)
         info->ratio = 2;
+#else
+    if (mode->picture_aspect_ratio == HDMI_PICTURE_ASPECT_16_9)
+        info->ratio = 2;
+    else if (mode->picture_aspect_ratio == HDMI_PICTURE_ASPECT_4_3)
+        info->ratio = 1;
 #endif
     LOGI("Timing set is: %dx%d@%dHz",info->width, info->height, info->refresh);
 }
@@ -460,30 +465,39 @@ int drm_hdmi_getModeInfo(
         unsigned int temp_vdisplay = connector->modes[i].vdisplay;
         unsigned int temp_refresh = connector->modes[i].vrefresh;
         // Only extract the required flags for comparison
-        unsigned int temp_flags = connector->modes[i].flags & (DRM_MODE_FLAG_INTERLACE
 #ifndef VPG_DRM
-           | DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3
+        unsigned int temp_flags = connector->modes[i].flags & (DRM_MODE_FLAG_INTERLACE
+           | DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3);
+#else
+        unsigned int temp_flags = connector->modes[i].flags & DRM_MODE_FLAG_INTERLACE;
+        unsigned int temp_aspect = connector->modes[i].picture_aspect_ratio;
 #endif
-           );
 
         // re-traverse the connector mode list to see if there is
         // same resolution and refresh. The same mode will not be
         // counted into valid mode.
 
         int j = i;
-        unsigned int flags = 0;
+        unsigned int flags = 0, aspect = 0;
 
         while ((--j) >= 0) {
-            flags = connector->modes[j].flags & (DRM_MODE_FLAG_INTERLACE
 #ifndef VPG_DRM
-                    | DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3
+            flags = connector->modes[j].flags & (DRM_MODE_FLAG_INTERLACE
+                    | DRM_MODE_FLAG_PAR16_9 | DRM_MODE_FLAG_PAR4_3);
+#else
+            flags = connector->modes[j].flags & DRM_MODE_FLAG_INTERLACE;
+            aspect = connector->modes[j].picture_aspect_ratio;
 #endif
-                    );
 
             if (temp_hdisplay == connector->modes[j].hdisplay &&
                 temp_vdisplay == connector->modes[j].vdisplay &&
                 temp_refresh == connector->modes[j].vrefresh &&
+#ifndef VPG_DRM
                 temp_flags == flags) {
+#else
+                temp_flags == flags &&
+                temp_aspect == aspect) {
+#endif
                   LOGV("Found duplicated mode: %dx%d@%d with flags = 0x%x",
                        temp_hdisplay, temp_vdisplay, temp_refresh, temp_flags);
                   break;
@@ -507,6 +521,12 @@ int drm_hdmi_getModeInfo(
                     pRatio[valid_mode_count] = 1;
                 else if (temp_flags & DRM_MODE_FLAG_PAR4_3)
                     pRatio[valid_mode_count] = 2;
+                else
+#else
+                if (temp_aspect == HDMI_PICTURE_ASPECT_16_9)
+                    pRatio[valid_mode_count] = 2;
+                else if (temp_aspect == HDMI_PICTURE_ASPECT_4_3)
+                    pRatio[valid_mode_count] = 1;
                 else
 #endif
                     pRatio[valid_mode_count] = 0;

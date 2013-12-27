@@ -45,13 +45,9 @@ import java.io.FileNotFoundException;
 import java.util.List;
 import com.intel.multidisplay.DisplaySetting;
 
-
-import android.os.Looper;
-import android.view.InputChannel;
-import android.view.InputDevice;
-import android.view.InputEvent;
-import android.view.InputEventReceiver;
-
+import android.view.MotionEvent;
+import android.view.WindowManagerPolicy;
+import android.view.WindowManagerPolicy.PointerEventListener;
 
 /**
  * <p>DisplayObserver.
@@ -103,29 +99,21 @@ public class DisplayObserver {
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
 
-    private static final class DisplayObserverInputEventReceiver extends InputEventReceiver {
-        public DisplayObserverInputEventReceiver(
-            DisplayObserver observer, InputChannel inputChannel, Looper looper) {
-            super(inputChannel, looper);
+    private final class DisplayObserverTouchEventListener implements PointerEventListener {
+        private DisplayObserver mObserver;
+
+        public DisplayObserverTouchEventListener(DisplayObserver observer) {
             mObserver = observer;
         }
 
         @Override
-        public void onInputEvent(InputEvent event) {
-            try {
-                int source = event.getSource();
-                if ((source & InputDevice.SOURCE_TOUCHSCREEN) != 0 ||
-                    (source & InputDevice.SOURCE_CLASS_BUTTON) != 0) {
-                    mObserver.onInputEvent();
-                }
-            } finally {
-                finishInputEvent(event, false);
-            }
+        public void onPointerEvent(MotionEvent motionEvent) {
+            mObserver.onInputEvent();
         }
-        private DisplayObserver mObserver;
     }
-    private DisplayObserverInputEventReceiver mInputEventReceiver;
-    private InputChannel mInputChannel;
+
+    private DisplayObserverTouchEventListener mTouchEventListener = null;
+    private WindowManagerPolicy.WindowManagerFuncs mWindowManagerFuncs;
 
     public void onInputEvent() {
         if (!mHandler.hasMessages(MSG_INPUT_TIMEOUT)) {
@@ -138,36 +126,50 @@ public class DisplayObserver {
     }
 
     private void startMonitoringInput() {
+        if (mTouchEventListener != null)
+            return;
+        if (mWindowManagerFuncs == null) {
+            logv("invalid WindowManagerFuncs");
+            return;
+        }
+
         logv("start monitoring input");
-        if (mInputEventReceiver != null) {
-            return;
+        mTouchEventListener =
+            new DisplayObserverTouchEventListener(this);
+        if (mTouchEventListener == null) {
+           logv("invalid input event receiver.");
+           return;
         }
-        if (mInputChannel == null) {
-            return;
-        }
-        mInputEventReceiver =
-                new DisplayObserverInputEventReceiver(this, mInputChannel,
-                        Looper.myLooper());
+        mWindowManagerFuncs.registerPointerEventListener(
+                mTouchEventListener);
 
         // start "input idle" count down
         mHandler.sendEmptyMessageDelayed(MSG_INPUT_TIMEOUT, INPUT_TIMEOUT_MSEC);
     }
 
     private void stopMonitoringInput() {
+        if (mWindowManagerFuncs == null ||
+                mTouchEventListener == null)
+            return;
+
         logv("stop monitoring input");
-        if (mInputEventReceiver != null) {
-            mInputEventReceiver.dispose();
-            mInputEventReceiver = null;
+        mWindowManagerFuncs.unregisterPointerEventListener(
+                mTouchEventListener);
+        mTouchEventListener = null;
+
+        if (mHandler.hasMessages(MSG_INPUT_TIMEOUT)) {
+            mHandler.removeMessages(MSG_INPUT_TIMEOUT);
         }
     }
 
-    public DisplayObserver(Context context, InputChannel inputchannel) {
-        if (inputchannel == null) {
-            logv("An invalid input channel, MDS couldn't handle input envent");
+    public DisplayObserver(Context context,
+            WindowManagerPolicy.WindowManagerFuncs funcs) {
+        if (funcs == null) {
+            logv("invalid WindowManagerFuns, MDS couldn't handle input envent");
         }
 
         mContext = context;
-        mInputChannel = inputchannel;
+        mWindowManagerFuncs = funcs;
         mDs = new DisplaySetting();
         IntentFilter intentFilter = new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
         intentFilter.addAction(HDMI_GET_INFO);
@@ -207,23 +209,26 @@ public class DisplayObserver {
                         new DisplaySetting.onMdsMessageListener() {
         public boolean onMdsMessage(int msg, int value) {
             if (msg == mDs.MDS_MSG_MODE_CHANGE) {
-                if ((value & mDs.VIDEO_ON_BIT) != 0) {
+                boolean isHdmiConnected =
+                    ((value & mDs.HDMI_CONNECTED_BIT) != 0);
+
+                // start monitor input only when HDMI is connected
+                // and video is being played.
+                if (isHdmiConnected && ((value & mDs.VIDEO_ON_BIT) != 0)) {
                     mHandler.sendEmptyMessage(MSG_START_MONITORING_INPUT);
                 } else {
                     mHandler.sendEmptyMessage(MSG_STOP_MONITORING_INPUT);
                 }
-                int hdmiConnected = 0;
-                if ((mHDMIConnected == 0) &&
-                        ((value & mDs.HDMI_CONNECTED_BIT) == mDs.HDMI_CONNECTED_BIT))
-                    hdmiConnected = 1;
-                else if ((mHDMIConnected == 1) &&
-                        ((value & mDs.HDMI_CONNECTED_BIT) == 0))
-                    hdmiConnected = 0;
+
+                if ((mHDMIConnected == 0) && isHdmiConnected)
+                    mHDMIConnected = 1;
+                else if ((mHDMIConnected == 1) && !isHdmiConnected)
+                    mHDMIConnected = 0;
                 else
                     return true;
+
                 /// audio switch
-                preNotifyHotplug(hdmiConnected);
-                postNotifyHotplug(hdmiConnected);
+                postNotifyHotplug(mHDMIConnected);
             }
             return true;
         };

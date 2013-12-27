@@ -88,10 +88,10 @@ static drmModeConnector* getConnector(int fd, uint32_t connector_type)
 static drmModeConnectorPtr getHdmiConnector()
 {
     if (gDrmCxt.hdmiConnector == NULL)
-#ifdef VPG_DRM
-        gDrmCxt.hdmiConnector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_HDMIA);
-#else
+#ifndef VPG_DRM
         gDrmCxt.hdmiConnector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_DVID);
+#else
+        gDrmCxt.hdmiConnector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_HDMIA);
 #endif
     if (gDrmCxt.hdmiConnector == NULL || gDrmCxt.hdmiConnector->modes == NULL) {
         ALOGW("Please check HDMI cable is connected or not");
@@ -217,7 +217,6 @@ bool drm_init()
         ALOGE("%s: Failed to open %s", __func__, DRM_DEVICE_NAME);
         return false;
     }
-
     drmModeConnectorPtr connector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_DVID);
 #else
     gDrmCxt.drmFD = drmOpen("i915", NULL);
@@ -397,9 +396,9 @@ static int parseHdmiTimings() {
         dst.ratio = 0;
 #ifndef VPG_DRM
         if (tmpF & DRM_MODE_FLAG_PAR16_9)
-            dst.ratio = 1;
-        else if (tmpF & DRM_MODE_FLAG_PAR4_3)
             dst.ratio = 2;
+        else if (tmpF & DRM_MODE_FLAG_PAR4_3)
+            dst.ratio = 1;
 #endif
         dst.flags = tmpF;
         // Save Hdmi timing
