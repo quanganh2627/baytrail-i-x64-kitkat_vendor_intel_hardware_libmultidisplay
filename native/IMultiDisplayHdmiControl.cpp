@@ -170,7 +170,7 @@ status_t BnMultiDisplayHdmiControl::onTransact(
         case MDS_SERVER_SET_HDMI_TIMING: {
             CHECK_INTERFACE(IMultiDisplayHdmiControl, data, reply);
             MDSHdmiTiming timing;
-            data.read(&timing, sizeof(MDSVideoSourceInfo));
+            data.read(&timing, sizeof(MDSHdmiTiming));
             status_t ret = setHdmiTiming(timing);
             reply->writeInt32(ret);
             return NO_ERROR;
