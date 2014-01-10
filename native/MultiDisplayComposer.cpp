@@ -489,8 +489,9 @@ void MultiDisplayComposer::broadcastMessageLocked(
         if (listener == NULL)
             continue;
         listener->dump();
-        if (ignoreVideoDriver && (listener->getName() != NULL) &&
-                !strcmp("VideoDriver", listener->getName())) {
+        const char* name = listener->getName();
+        if (ignoreVideoDriver && name != NULL &&
+                !strncmp("VideoDriver", name, sizeof("VideoDriver"))) {
             ALOGV("Ignoring an invalid video driver message");
             continue;
         }
