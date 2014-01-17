@@ -276,13 +276,6 @@ int MultiDisplayComposer::setHdmiMode_l() {
     transitionalMode |= MDS_OVERLAY_OFF;
     broadcastMessage_l(MDS_MODE_CHANGE, &transitionalMode, sizeof(transitionalMode));
 
-    // Before HDMI mode change, disable HDCP
-    if (checkMode(mMode, MDS_HDCP_ON)) {
-        LOGV("Turning off HDCP before mode change");
-        drm_hdcp_disable_hdcp(true);
-        mMode &= ~MDS_HDCP_ON;
-    }
-
     // Common case, notify HWC to set HDMI timing if need
     if (mVideo.isPlaying) {
         // disable dynamic mode setting for presentation mode
@@ -296,19 +289,26 @@ int MultiDisplayComposer::setHdmiMode_l() {
             drm_hdmi_getTiming(DRM_HDMI_VIDEO_EXT, &timing);
             setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
         }
+        if (mVideo.isProtected) {
+            // Common case, turn on HDCP
+            LOGV("Turning on HDCP...");
+            if (drm_hdcp_enable_hdcp() == false) {
+                LOGE("Fail to enable HDCP.");
+                // Continue mode setting as it may be recovered, unless HDCP is not supported.
+                // If HDCP is not supported, user will have to unplug the cable to restore video to phone.
+            }
+            mMode |= MDS_HDCP_ON;
+        }
     } else {
         LOGV("Video is not in playing state. Mode = %#x", mMode);
+        if (checkMode(mMode, MDS_HDCP_ON)) {
+            LOGV("Turning off HDCP before mode change");
+            drm_hdcp_disable_hdcp(true);
+            mMode &= ~MDS_HDCP_ON;
+        }
         drm_hdmi_getTiming(DRM_HDMI_CLONE, &timing);
         setHdmiTiming_l((void*)&timing, sizeof(MDSHDMITiming));
     }
-    // Common case, turn on HDCP
-    LOGV("Turning on HDCP...");
-    if (drm_hdcp_enable_hdcp() == false) {
-        LOGE("Fail to enable HDCP.");
-        // Continue mode setting as it may be recovered, unless HDCP is not supported.
-        // If HDCP is not supported, user will have to unplug the cable to restore video to phone.
-    }
-    mMode |= MDS_HDCP_ON;
 
     // Common case, prolong overlay off time
     mMode |= MDS_OVERLAY_OFF;
