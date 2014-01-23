@@ -345,7 +345,7 @@ int drm_hdmi_getConnectionStatus()
         break;
     }
 
-    ALOGV("HDMI onnect status is %d", ret);
+    ALOGV("HDMI connect status is %d", ret);
     return ret;
 }
 

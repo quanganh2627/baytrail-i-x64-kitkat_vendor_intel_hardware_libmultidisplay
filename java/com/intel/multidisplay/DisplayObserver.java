@@ -227,7 +227,11 @@ public class DisplayObserver {
                     mHDMIConnected = 0;
                 else
                     return true;
-
+                if (mHDMIConnected == 1) {
+                    if ((value & mDs.NEW_HDMI_DEVICE) != 0) {
+                        mEdidChange = 1;
+                    }
+                }
                 /// audio switch
                 postNotifyHotplug(mHDMIConnected);
             }
@@ -405,7 +409,7 @@ public class DisplayObserver {
                     mBundle.putSerializable("interlace", arrInterlace);
                     mBundle.putSerializable("ratio", arrRatio);
                     mBundle.putInt("count", Count);
-                    mBundle.putInt("EdidChange",mEdidChange);
+                    mBundle.putInt("EdidChange", mEdidChange);
                     mBundle.putBoolean("mHasIncomingCall",mHasIncomingCall);
                     mEdidChange = 0;
                     outIntent.putExtras(mBundle);

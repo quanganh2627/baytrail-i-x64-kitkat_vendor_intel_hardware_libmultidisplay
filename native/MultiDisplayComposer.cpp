@@ -200,8 +200,16 @@ status_t MultiDisplayComposer::notifyHotplugLocked(
     } else {
         mMode &= ~MDS_VIDEO_ON;
     }
-
     updateHdmiConnectStatusLocked();
+
+    bool newDevice = false;
+    if (connected) {
+        newDevice = drm_hdmi_isDeviceChanged();
+    }
+    if (newDevice)
+        mMode |= MDS_NEW_HDMI_DEVICE;
+    else
+        mMode &= ~MDS_NEW_HDMI_DEVICE;
 
     if (mode != mMode) {
         int connection = connected ? 1 : 0;
@@ -209,7 +217,7 @@ status_t MultiDisplayComposer::notifyHotplugLocked(
         drm_hdmi_notify_audio_hotplug(connected);
     }
 
-    if (drm_hdmi_isDeviceChanged() && connected)
+    if (newDevice && connected)
         setDisplayScalingLocked(0, 0, 0);
 
     return NO_ERROR;
