@@ -171,7 +171,7 @@ int MultiDisplayComposer::updateVideoInfo(const MDSVideoSourceInfo& info) {
 
 
 int MultiDisplayComposer::setHdmiMode_l(bool hotplug) {
-    LOGI("Entering %s, current mode = %#x", __func__, mMode);
+    LOGI("Entering %s, current mode = %#x, hotplug %d", __func__, mMode, hotplug);
 
     MDSHDMITiming timing;
     memset(&timing, 0, sizeof(MDSHDMITiming));
@@ -271,7 +271,9 @@ int MultiDisplayComposer::setHdmiMode_l(bool hotplug) {
 #endif
         return MDS_NO_ERROR;
     }
-    mConnectStatus = connectStatus;
+
+    if (hotplug)
+        mConnectStatus = connectStatus;
 
     // Turn off overlay temporarily during mode transition.
     // Make sure overlay is turned on when this function exits.
