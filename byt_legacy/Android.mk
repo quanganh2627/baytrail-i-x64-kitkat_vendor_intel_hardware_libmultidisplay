@@ -110,6 +110,8 @@ include $(BUILD_JAVA_LIBRARY)
 
 endif
 
+include $(BUILD_DROIDDOC)
+
 # ===========================================================
 # Declare the library to the framework by copying it to /system/etc/permissions directory.
 include $(CLEAR_VARS)
@@ -127,4 +129,3 @@ LOCAL_SRC_FILES := $(LOCAL_MODULE)
 
 include $(BUILD_PREBUILT)
 
-include $(BUILD_DROIDDOC)
