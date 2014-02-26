@@ -141,11 +141,13 @@ status_t MultiDisplayComposer::updateHdmiConnectStatusLocked() {
     int connectStatus = drm_hdmi_getConnectionStatus();
     if (connectStatus == DRM_HDMI_CONNECTED) {
         mMode |= MDS_HDMI_CONNECTED;
+    } else if (connectStatus == DRM_DVI_CONNECTED) {
+        mMode |= MDS_DVI_CONNECTED;
     } else {
-        // TODO: check DVI connection
-        mMode &= ~MDS_HDMI_CONNECTED;
+        mMode &= ~(MDS_HDMI_CONNECTED | MDS_DVI_CONNECTED);
         drm_hdmi_onHdmiDisconnected();
     }
+    ALOGI("ConnectStatus is %d, mode is 0x%x", connectStatus, mMode);
     return NO_ERROR;
 }
 
@@ -181,7 +183,7 @@ status_t MultiDisplayComposer::updateWidiConnectionStatus(bool connected) {
 
 status_t MultiDisplayComposer::notifyHotplugLocked(
         MDS_DISPLAY_ID dispId, bool connected) {
-    ALOGV("Display ID:%d, connected state:%d", dispId, connected);
+    ALOGI("Display ID:%d, connected state:%d", dispId, connected);
     // Notify widi video extended mode
     int mode = mMode;
     // update vpp policy
@@ -202,23 +204,33 @@ status_t MultiDisplayComposer::notifyHotplugLocked(
     }
     updateHdmiConnectStatusLocked();
 
-    bool newDevice = false;
-    if (connected) {
-        newDevice = drm_hdmi_isDeviceChanged();
-    }
-    if (newDevice)
-        mMode |= MDS_NEW_HDMI_DEVICE;
-    else
-        mMode &= ~MDS_NEW_HDMI_DEVICE;
-
     if (mode != mMode) {
         int connection = connected ? 1 : 0;
         broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode), false);
         drm_hdmi_notify_audio_hotplug(connected);
     }
+    // set oversan compensation and scaling type
+    status_t result = UNKNOWN_ERROR;
+    // Check the callback implementation
+    if (mMDSCallback != NULL) {
+        if (mScaleType != MDS_SCALING_NONE)
+            result = mMDSCallback->setHdmiScalingType(MDS_SCALING_NONE);
+        if (result == NO_ERROR &&
+                (mHorizontalStep != 0 || mVerticalStep != 0))
+            result = mMDSCallback->setHdmiOverscan(0, 0);
+    }
+    // If not implemented in callback, call SurfaceFlinger directly!
+    if (result != NO_ERROR) {
+        if (mScaleType != MDS_SCALING_NONE ||
+                mHorizontalStep != 0 || mVerticalStep != 0)
+            result = setDisplayScalingLocked(MDS_SCALING_NONE, 0, 0);
+    }
 
-    if (newDevice && connected)
-        setDisplayScalingLocked(0, 0, 0);
+    if (result == NO_ERROR) {
+        mScaleType = MDS_SCALING_NONE;
+        mHorizontalStep = 0;
+        mVerticalStep = 0;
+    }
 
     return NO_ERROR;
 }
@@ -416,6 +428,7 @@ MDS_DISPLAY_MODE MultiDisplayComposer::getDisplayMode(bool wait) {
             return MDS_MODE_NONE;
         }
     }
+    ALOGV("Mode is 0x%x, %d", mMode, wait);
     MDS_DISPLAY_MODE mode = (MDS_DISPLAY_MODE)mMode;
     mMutex.unlock();
     return mode;

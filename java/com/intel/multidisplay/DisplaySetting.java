@@ -36,12 +36,11 @@ public class DisplaySetting {
     public static final int PHONE_STATE_OFF = 0;
     public static final int PHONE_STATE_ON  = 1;
 
-    /// display mode
+    /// MDS display mode
     public static final int DVI_CONNECTED_BIT   = 1;
     public static final int HDMI_CONNECTED_BIT  = 1 << 1;
     public static final int WIDI_CONNECTED_BIT  = 1 << 2;
     public static final int VIDEO_ON_BIT        = 1 << 3;
-    public static final int NEW_HDMI_DEVICE    = 1 << 4;
 
     /// MDS message type
     public static final int MDS_MSG_MODE_CHANGE = 1 << 1;
@@ -51,6 +50,20 @@ public class DisplaySetting {
     public static final int DISPLAY_PRIMARY  = 0;
     public static final int DISPLAY_EXTERNAL = 1;
     public static final int DISPLAY_VIRTUAL  = 2;
+
+    /// External display device type
+    public static final int EDP_HDMI    = 1;
+    public static final int EDP_DVI     = 2;
+
+    public static final String MDS_EDP_HOTPLUG         = "android.intel.mds.EXTERNAL_DP_HOTPLUG";
+    public static final String MDS_GET_HDMI_INFO       = "android.intel.mds.GET.HDMI_INFO";
+    public static final String MDS_SET_HDMI_MODE       = "android.intel.mds.SET.HDMI_MODE";
+    public static final String MDS_HDMI_INFO           = "android.intel.mds.HDMI_INFO";
+    public static final String MDS_SET_HDMI_SCALE      = "android.intel.mds.SET.HDMI_SCALE";
+    public static final String MDS_SET_HDMI_STEP_SCALE = "android.intel.mds.SET.HDMI_STEP_SCALE";
+    public static final String MDS_GET_BOOT_STATUS     = "android.intel.mds.GET.BOOT_STATUS";
+    public static final String MDS_BOOT_STATUS         = "android.intel.mds.BOOT_STATUS";
+
 
     private static onMdsMessageListener mListener = null;
 
