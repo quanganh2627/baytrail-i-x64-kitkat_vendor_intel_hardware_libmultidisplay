@@ -17,13 +17,12 @@
 package com.intel.multidisplay;
 
 import android.content.Context;
-import android.os.UEventObserver;
 import android.view.WindowManagerPolicy;
 
 /**
  * <p>DisplayObserver, dummy implement.
  */
-public class DisplayObserver extends UEventObserver {
+public class DisplayObserver {
     public DisplayObserver(Context context, WindowManagerPolicy.WindowManagerFuncs funcs) {
     }
 
@@ -31,7 +30,4 @@ public class DisplayObserver extends UEventObserver {
         super.finalize();
     }
 
-    @Override
-    public synchronized void onUEvent(UEventObserver.UEvent event) {
-    }
 }

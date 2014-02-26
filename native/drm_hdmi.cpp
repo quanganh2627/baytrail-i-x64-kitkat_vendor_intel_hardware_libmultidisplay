@@ -43,13 +43,15 @@ namespace intel {
 typedef struct _drmContext {
     int  drmFD;
     bool hdmiSupported;
-    bool newDevice;
+    //bool newDevice;
     bool connected;
     int  preferredModeIndex;
     // The position of user selcected timing in Hdmi timings backup
     // and indicate user has selected a special timing
     int  selectedModeIndex;
+#if 0 // Don't keep prevoius device EDID
     char productInfo[EDID_PRODUCT_INFO_LEN];
+#endif
     Vector<MDSHdmiTiming*> hdmiTimings;
     drmModeConnectorPtr hdmiConnector;
 } drmContext;
@@ -70,6 +72,8 @@ static drmModeConnector* getConnector(int fd, uint32_t connector_type)
     for (i = 0; i < resources->count_connectors; i++) {
         connector = drmModeGetConnector(fd, resources->connectors[i]);
         if (connector == NULL)
+            continue;
+        if (connector->count_modes <= 0)
             continue;
         if (connector->connector_type == connector_type)
             break;
@@ -92,6 +96,9 @@ static drmModeConnectorPtr getHdmiConnector()
         gDrmCxt.hdmiConnector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_DVID);
 #else
         gDrmCxt.hdmiConnector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_HDMIA);
+        if (gDrmCxt.hdmiConnector == NULL) {
+            gDrmCxt.hdmiConnector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_HDMIB);
+        }
 #endif
     if (gDrmCxt.hdmiConnector == NULL || gDrmCxt.hdmiConnector->modes == NULL) {
         ALOGW("Please check HDMI cable is connected or not");
@@ -205,12 +212,14 @@ static void clearHdmiTimings() {
 
 bool drm_init()
 {
-    gDrmCxt.newDevice = false;;
+    //gDrmCxt.newDevice = false;;
     gDrmCxt.connected = false;
     gDrmCxt.preferredModeIndex = -1;
     gDrmCxt.selectedModeIndex = -1;
     gDrmCxt.hdmiConnector = NULL;
+#if 0 // Don't keep prevoius device EDID
     memset(gDrmCxt.productInfo, 0,EDID_PRODUCT_INFO_LEN);
+#endif
 #ifndef VPG_DRM
     gDrmCxt.drmFD = open(DRM_DEVICE_NAME, O_RDWR, 0);
     if (gDrmCxt.drmFD <= 0) {
@@ -225,6 +234,9 @@ bool drm_init()
         return false;
     }
     drmModeConnectorPtr connector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_HDMIA);
+    if (connector == NULL) {
+        connector = getConnector(gDrmCxt.drmFD, DRM_MODE_CONNECTOR_HDMIB);
+    }
 #endif
     gDrmCxt.hdmiSupported = (connector != NULL);
     if (connector) {
@@ -274,6 +286,7 @@ bool drm_hdmi_notify_audio_hotplug(bool plugin)
 // return 0 - not connected, 1 - HDMI connected, 2 - DVI connected
 int drm_hdmi_getConnectionStatus()
 {
+    ALOGV("Entering %s", __func__);
     if (!gDrmCxt.hdmiSupported)
         return 0;
 
@@ -285,10 +298,10 @@ int drm_hdmi_getConnectionStatus()
     drmModeConnector *connector = getHdmiConnector();
     if (connector == NULL)
         return 0;
-
+    int ret = 0;
+#ifndef VPG_DRM
     // Read EDID, and check whether it's HDMI or DVI interface
-    int ret = 0, i, j;
-    for (i = 0; i < connector->count_props; i++) {
+    for (int i = 0; i < connector->count_props; i++) {
         drmModePropertyPtr props = drmModeGetProperty(gDrmCxt.drmFD, connector->props[i]);
         if (!props)
             continue;
@@ -314,6 +327,7 @@ int drm_hdmi_getConnectionStatus()
         // offset of product_info
         char* product_info = edid_binary + 8;
         gDrmCxt.connected = true;
+#if 0   // Don't keep prevoius device EDID
         gDrmCxt.newDevice = false;
         if (memcmp(gDrmCxt.productInfo, product_info, EDID_PRODUCT_INFO_LEN)) {
             ALOGI("A new HDMI sink is connected.");
@@ -322,7 +336,7 @@ int drm_hdmi_getConnectionStatus()
             //clear HDMI timings backup
             clearHdmiTimings();
         }
-
+#endif
         drm_select_preferredmode(connector);
 
         ret = 2; // DVI
@@ -332,7 +346,7 @@ int drm_hdmi_getConnectionStatus()
         }
 
         // search VSDB in extend edid
-        for (j = 0; j <= HDMI_TIMING_MAX - 3; j++) {
+        for (int j = 0; j <= HDMI_TIMING_MAX - 3; j++) {
             int n = HDMI_TIMING_MAX + j;
             if (edid_binary[n]   == 0x03 &&
                 edid_binary[n+1] == 0x0c &&
@@ -344,8 +358,14 @@ int drm_hdmi_getConnectionStatus()
         drmModeFreeProperty(props);
         break;
     }
-
-    ALOGV("HDMI connect status is %d", ret);
+#else
+    if (connector->connection == DRM_MODE_CONNECTED) {
+        gDrmCxt.connected = true;
+        drm_select_preferredmode(connector);
+        ret = 1; // Deault is HDMI on Gen
+    }
+#endif
+    ALOGD("External Display device is %d", ret);
     return ret;
 }
 
@@ -478,11 +498,11 @@ bool drm_hdmi_checkTiming(MDSHdmiTiming* timing)
     }
     return true;
 }
-
+#if 0
 bool drm_hdmi_isDeviceChanged()
 {
     return gDrmCxt.newDevice;
 }
-
+#endif
 }; // namespace intel
 }; // namespace android
