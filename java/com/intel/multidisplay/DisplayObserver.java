@@ -76,6 +76,7 @@ public class DisplayObserver {
     private WakeLock mWakeLock;  // held while there is a pending route change
     private boolean mHasIncomingCall = false;
     private boolean mInCallScreenFinished = true;
+    private boolean mAllowModeSet = true;
     private DisplaySetting mDs;
 
     // WIDI
@@ -95,6 +96,7 @@ public class DisplayObserver {
     private static final String HDMI_SET_STEP_SCALE= "android.hdmi.SET.HDMI_STEP_SCALE";
     private static final String HDMI_Get_DisplayBoot = "android.hdmi.GET_HDMI_Boot";
     private static final String HDMI_Set_DisplayBoot = "HdmiObserver.SET_HDMI_Boot";
+    private static final String HDMI_ALLOW_MODE_SET = "HdmiObserver.ALLOW_MODE_SET";
 
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
@@ -220,6 +222,14 @@ public class DisplayObserver {
                 } else {
                     mHandler.sendEmptyMessage(MSG_STOP_MONITORING_INPUT);
                 }
+
+                Intent outIntent = new Intent(HDMI_ALLOW_MODE_SET);
+                Bundle mBundle = new Bundle();
+                mAllowModeSet = (value & mDs.VIDEO_ON_BIT) != 0 ? false : true;
+                mBundle.putBoolean("mAllowModeSet", mAllowModeSet);
+                Slog.i(TAG, "mAllowModeSet " + mAllowModeSet);
+                outIntent.putExtras(mBundle);
+                mContext.sendBroadcast(outIntent);
 
                 if ((mHDMIConnected == 0) && isHdmiConnected)
                     mHDMIConnected = 1;
@@ -411,6 +421,7 @@ public class DisplayObserver {
                     mBundle.putInt("count", Count);
                     mBundle.putInt("EdidChange", mEdidChange);
                     mBundle.putBoolean("mHasIncomingCall",mHasIncomingCall);
+                    mBundle.putBoolean("mAllowModeSet",mAllowModeSet);
                     mEdidChange = 0;
                     outIntent.putExtras(mBundle);
                     mContext.sendBroadcast(outIntent);
