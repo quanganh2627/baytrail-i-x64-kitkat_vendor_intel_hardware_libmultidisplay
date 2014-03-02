@@ -76,6 +76,7 @@ public class DisplayObserver {
     private WakeLock mWakeLock;  // held while there is a pending route change
     private boolean mHasIncomingCall = false;
     private boolean mInCallScreenFinished = true;
+    private boolean mAllowModeSet = true;
     private DisplaySetting mDs;
 
     // WIDI
@@ -218,6 +219,15 @@ public class DisplayObserver {
                 } else {
                     mHandler.sendEmptyMessage(MSG_STOP_MONITORING_INPUT);
                 }
+
+                Intent outIntent = new Intent(mDs.MDS_HDMI_ALLOW_MODE_SET);
+                Bundle mBundle = new Bundle();
+                mAllowModeSet = (value & mDs.VIDEO_ON_BIT) != 0 ? false : true;
+                mBundle.putBoolean("allowModeSet", mAllowModeSet);
+                Slog.i(TAG, "mAllowModeSet " + mAllowModeSet);
+                outIntent.putExtras(mBundle);
+                mContext.sendBroadcast(outIntent);
+
                 logv("Current state: " + isHdmiConnected + ", " + isDviConnected);
                 boolean connectionChanged = true;
                 // Check HDMI connection status
@@ -395,6 +405,7 @@ public class DisplayObserver {
                 mBundle.putInt("count", Count);
                 mBundle.putInt("bootStatus", mBootStatus);
                 mBundle.putBoolean("hasIncomingCall",mHasIncomingCall);
+                mBundle.putBoolean("allowModeSet",mAllowModeSet);
                 mBundle.putInt("eDPlugin", mEDPlugIn);
                 mEDPlugIn = 0; // clear
                 mBundle.putInt("bootStatus", mBootStatus);
