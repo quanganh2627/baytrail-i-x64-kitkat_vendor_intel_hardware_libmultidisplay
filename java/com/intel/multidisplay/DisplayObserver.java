@@ -109,12 +109,11 @@ public class DisplayObserver {
     private WindowManagerPolicy.WindowManagerFuncs mWindowManagerFuncs;
 
     public void onInputEvent() {
-        if (!mHandler.hasMessages(MSG_INPUT_TIMEOUT)) {
-            logv("input is active");
-            mDs.updateInputState(true);
-        } else {
+        logv("input is active");
+        mDs.updateInputState(true);
+        if (mHandler.hasMessages(MSG_INPUT_TIMEOUT))
             mHandler.removeMessages(MSG_INPUT_TIMEOUT);
-        }
+
         mHandler.sendEmptyMessageDelayed(MSG_INPUT_TIMEOUT, INPUT_TIMEOUT_MSEC);
     }
 
