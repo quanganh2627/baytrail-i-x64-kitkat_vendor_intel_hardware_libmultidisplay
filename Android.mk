@@ -3,24 +3,7 @@
 LOCAL_PATH:= $(call my-dir)
 
 #$(warning $(TARGET_HAS_MULTIPLE_DISPLAY))
-#$(warning $(USE_MDS_LEGACY))
 #$(warning $(TARGET_BOARD_PLATFORM))
-
-ifeq ($(USE_MDS_LEGACY),true)
-ifeq ($(TARGET_BOARD_PLATFORM),baytrail)
-include $(LOCAL_PATH)/byt_legacy/Android.mk
-endif
-ifeq ($(TARGET_BOARD_PLATFORM),clovertrail)
-include $(LOCAL_PATH)/ctp_legacy/Android.mk
-endif
-ifeq ($(TARGET_BOARD_PLATFORM),cherrytrail)
-include $(LOCAL_PATH)/byt_legacy/Android.mk
-endif
-ifeq ($(TARGET_BOARD_PLATFORM),braswell)
-include $(LOCAL_PATH)/byt_legacy/Android.mk
-endif
-
-else
 
 ifeq ($(TARGET_HAS_MULTIPLE_DISPLAY),true)
 include $(CLEAR_VARS)
@@ -190,5 +173,3 @@ LOCAL_MODULE_PATH := $(TARGET_OUT_ETC)/permissions
 LOCAL_SRC_FILES := $(LOCAL_MODULE)
 
 include $(BUILD_PREBUILT)
-
-endif

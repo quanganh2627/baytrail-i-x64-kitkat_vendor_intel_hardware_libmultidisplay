@@ -645,11 +645,6 @@ status_t MultiDisplayComposer::setDecoderOutputResolution(
 
     // Check video session
     CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
-    int index = getValidDecoderConfigVideoSession_l();
-    if (index >= 0) {
-        ALOGW("Already has a valid decoder output resolution");
-        return UNKNOWN_ERROR;
-    }
     ALOGV("set video session %d decoder output resolution %dx%d",
             sessionId, width, height);
     return mVideos[sessionId].setDecoderOutputResolution(width, height);
