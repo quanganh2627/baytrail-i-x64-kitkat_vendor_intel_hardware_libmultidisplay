@@ -37,6 +37,7 @@ enum {
     MDS_SERVER_GET_CURRENT_HDMI_TIMING_INDEX,
     MDS_SERVER_SET_HDMI_SCALING_TYPE,
     MDS_SERVER_SET_HDMI_OVER_SCAN,
+    MDS_SERVER_CHECK_HDMI_TIMING_FIXED,
 };
 
 class BpMultiDisplayHdmiControl : public BpInterface<IMultiDisplayHdmiControl> {
@@ -159,6 +160,17 @@ public:
         result = reply.readInt32();
         return result;
     }
+
+    virtual bool checkHdmiTimingIsFixed() {
+        Parcel data, reply;
+        data.writeInterfaceToken(IMultiDisplayHdmiControl::getInterfaceDescriptor());
+        status_t result = remote()->transact(
+                MDS_SERVER_CHECK_HDMI_TIMING_FIXED, data, &reply);
+        if (result != NO_ERROR) {
+            return false;
+        }
+        return (reply.readInt32() == 1 ? true : false);
+    }
 };
 
 IMPLEMENT_META_INTERFACE(MultiDisplayHdmiControl,"com.intel.MultiDisplayHdmiControl");
@@ -240,6 +252,12 @@ status_t BnMultiDisplayHdmiControl::onTransact(
             int32_t vValue = data.readInt32();
             status_t ret = setHdmiOverscan(hValue, vValue);
             reply->writeInt32(ret);
+            return NO_ERROR;
+        } break;
+        case MDS_SERVER_CHECK_HDMI_TIMING_FIXED: {
+            CHECK_INTERFACE(IMultiDisplayInfoProvider, data, reply);
+            bool ret = checkHdmiTimingIsFixed();
+            reply->writeInt32(ret ? 1 : 0);
             return NO_ERROR;
         } break;
     }

@@ -48,6 +48,8 @@ bool drm_hdmi_getTimings(int count, MDSHdmiTiming** list);
 
 bool drm_hdmi_checkTiming(MDSHdmiTiming* info);
 //bool drm_hdmi_isDeviceChanged();
+bool drm_hdmi_timing_is_fixed();
+status_t drm_hdmi_get_current_timing(MDSHdmiTiming* timing);
 
 }; // namespace intel
 }; // namespace android

@@ -82,6 +82,7 @@ public:
     status_t setHdmiTimingByIndex(int);
     status_t setHdmiScalingType(MDS_SCALING_TYPE);
     status_t setHdmiOverscan(int, int);
+    bool checkHdmiTimingIsFixed();
     static sp<MultiDisplayHdmiControlImpl> getInstance() {
         return sHdmiInstance;
     }
@@ -97,6 +98,7 @@ MultiDisplayHdmiControlImpl::MultiDisplayHdmiControlImpl(const sp<MultiDisplayCo
 
 IMPLEMENT_API_0(MultiDisplayHdmiControlImpl, pCom, getHdmiTimingCount, status_t, NO_INIT)
 IMPLEMENT_API_0(MultiDisplayHdmiControlImpl, pCom, getCurrentHdmiTimingIndex, status_t, NO_INIT)
+IMPLEMENT_API_0(MultiDisplayHdmiControlImpl, pCom, checkHdmiTimingIsFixed, bool, false)
 IMPLEMENT_API_1(MultiDisplayHdmiControlImpl, pCom, setHdmiTiming, const MDSHdmiTiming&, status_t, NO_INIT)
 IMPLEMENT_API_1(MultiDisplayHdmiControlImpl, pCom, getCurrentHdmiTiming, MDSHdmiTiming*, status_t, NO_INIT)
 IMPLEMENT_API_1(MultiDisplayHdmiControlImpl, pCom, setHdmiScalingType, MDS_SCALING_TYPE, status_t, NO_INIT)

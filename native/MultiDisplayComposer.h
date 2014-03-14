@@ -163,6 +163,7 @@ public:
     int getCurrentHdmiTimingIndex();
     status_t setHdmiScalingType(MDS_SCALING_TYPE);
     status_t setHdmiOverscan(int, int);
+    bool checkHdmiTimingIsFixed();
 
     // Display connection state observer
     status_t updateHdmiConnectionStatus(bool);

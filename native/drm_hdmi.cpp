@@ -504,5 +504,38 @@ bool drm_hdmi_isDeviceChanged()
     return gDrmCxt.newDevice;
 }
 #endif
+
+bool drm_hdmi_timing_is_fixed()
+{
+    return (gDrmCxt.selectedModeIndex >= 0 ? true : false);
+}
+
+status_t drm_hdmi_get_current_timing(MDSHdmiTiming* timing)
+{
+    if (timing == NULL)
+        return UNKNOWN_ERROR;
+    int current = -1;
+    MDSHdmiTiming* backup = NULL;
+    ALOGV("Index %d, %d", gDrmCxt.selectedModeIndex, gDrmCxt.preferredModeIndex);
+    if (gDrmCxt.selectedModeIndex >= 0)
+        current = gDrmCxt.selectedModeIndex;
+    else
+        current = gDrmCxt.preferredModeIndex;
+    if (current >= 0) {
+        unsigned int size = gDrmCxt.hdmiTimings.size();
+        if (size <= 0 || current >= size) {
+            ALOGW("Wrong index %d, %d, Please check", current, size);
+            return UNKNOWN_ERROR;
+        }
+        backup = gDrmCxt.hdmiTimings.itemAt(current);
+        if (backup == NULL)
+            return UNKNOWN_ERROR;
+        memset(timing, 0, sizeof(MDSHdmiTiming));
+        memcpy(timing, backup, sizeof(MDSHdmiTiming));
+        return NO_ERROR;
+    }
+    return UNKNOWN_ERROR;
+}
+
 }; // namespace intel
 }; // namespace android

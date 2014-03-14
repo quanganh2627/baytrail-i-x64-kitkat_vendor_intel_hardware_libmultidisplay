@@ -88,6 +88,13 @@ public:
      * @return @see status_t in <utils/Errors.h>
      */
     virtual status_t setHdmiOverscan(int hValue, int vValue) = 0;
+
+    /**
+     * @brief check HDMI timing whether is fixed
+     * @param
+     * @return true: fixed, false: not fixed
+     */
+    virtual bool checkHdmiTimingIsFixed() = 0;
 };
 
 class BnMultiDisplayHdmiControl : public BnInterface<IMultiDisplayHdmiControl> {

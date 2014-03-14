@@ -364,19 +364,20 @@ status_t MultiDisplayComposer::getHdmiTimingList(
 
 status_t MultiDisplayComposer::getCurrentHdmiTiming(MDSHdmiTiming* timing) {
     Mutex::Autolock lock(mMutex);
-
-    return NO_ERROR;
+    if (timing == NULL)
+        return UNKNOWN_ERROR;
+    return drm_hdmi_get_current_timing(timing);
 }
 
 status_t MultiDisplayComposer::setHdmiTimingByIndex(int index) {
     Mutex::Autolock lock(mMutex);
 
-    return NO_ERROR;
+    return UNKNOWN_ERROR;
 }
 
 int MultiDisplayComposer::getCurrentHdmiTimingIndex() {
     Mutex::Autolock lock(mMutex);
-    return 0;
+    return -1;
 }
 
 status_t MultiDisplayComposer::setHdmiScalingType(MDS_SCALING_TYPE type) {
@@ -428,7 +429,7 @@ MDS_DISPLAY_MODE MultiDisplayComposer::getDisplayMode(bool wait) {
             return MDS_MODE_NONE;
         }
     }
-    ALOGV("Mode is 0x%x, %d", mMode, wait);
+    //ALOGV("Mode is 0x%x, %d", mMode, wait);
     MDS_DISPLAY_MODE mode = (MDS_DISPLAY_MODE)mMode;
     mMutex.unlock();
     return mode;
@@ -688,6 +689,11 @@ status_t MultiDisplayComposer::setVppState(
     return setVppState_l(dpyId, connected);
 }
 #endif
+
+bool MultiDisplayComposer::checkHdmiTimingIsFixed() {
+    Mutex::Autolock lock(mMutex);
+    return drm_hdmi_timing_is_fixed();
+}
 
 }; // namespace intel
 }; // namespace android
