@@ -85,6 +85,7 @@ public class DisplayObserver {
     //Message need to handle
     private final int MSG_AUDIO_ROUTER_CHANGE = 0;
     private final int MSG_EDP_CONNECTION_CHANGE = 1;
+    private final int MSG_ENABLE_EDP_SETTING = 2;
     private final int MSG_INPUT_TIMEOUT = 3;
     private final int MSG_START_MONITORING_INPUT = 4;
     private final int MSG_STOP_MONITORING_INPUT = 5;
@@ -210,6 +211,7 @@ public class DisplayObserver {
             if (msg == mDs.MDS_MSG_MODE_CHANGE) {
                 boolean isHdmiConnected = ((value & mDs.HDMI_CONNECTED_BIT) != 0);
                 boolean isDviConnected = ((value & mDs.DVI_CONNECTED_BIT) != 0);
+                mAllowModeSet = !((value & mDs.VIDEO_ON_BIT) != 0);
 
                 // start monitor input only when HDMI/Wireless Display
                 // is connected AND the video is being played.
@@ -220,15 +222,10 @@ public class DisplayObserver {
                     mHandler.sendEmptyMessage(MSG_STOP_MONITORING_INPUT);
                 }
 
-                Intent outIntent = new Intent(mDs.MDS_HDMI_ALLOW_MODE_SET);
-                Bundle mBundle = new Bundle();
-                mAllowModeSet = (value & mDs.VIDEO_ON_BIT) != 0 ? false : true;
-                mBundle.putBoolean("allowModeSet", mAllowModeSet);
-                Slog.i(TAG, "mAllowModeSet " + mAllowModeSet);
-                outIntent.putExtras(mBundle);
-                mContext.sendBroadcast(outIntent);
+                mHandler.sendMessage(mHandler.obtainMessage(
+                                MSG_ENABLE_EDP_SETTING, (mAllowModeSet ? 1 : 0), -1));
 
-                logv("Current state: " + isHdmiConnected + ", " + isDviConnected);
+                logv("Current state: " + isHdmiConnected + ", " + isDviConnected + ", " + mAllowModeSet);
                 boolean connectionChanged = true;
                 // Check HDMI connection status
                 logv("Previous state: " + mHDMIConnected + ", " + mDVIConnected);
@@ -317,6 +314,17 @@ public class DisplayObserver {
         ActivityManagerNative.broadcastStickyIntent(intent, name, 0);
     }
 
+    // Don't allow to set HDMI setting, original patch is  167949
+    private final void enableHdmiSetting(int enable) {
+        logv("Enable/Disable External DP Mode Setting " + enable);
+        Intent outIntent = new Intent(mDs.MDS_ALLOW_MODE_SET);
+        Bundle mBundle = new Bundle();
+        mBundle.putBoolean("allowModeSet", (enable == 0 ? false : true));
+        outIntent.putExtras(mBundle);
+        mContext.sendBroadcast(outIntent);
+    }
+
+
     // Broadcast external display connection state if exernal display device is plug in/out
     // type:  Externale display type, refer DisplaySetting.java
     // state: connection state
@@ -342,6 +350,9 @@ public class DisplayObserver {
                 break;
             case MSG_EDP_CONNECTION_CHANGE:
                 sendEdpConnectionChangeIntent(msg.arg1, msg.arg2);
+                break;
+            case MSG_ENABLE_EDP_SETTING:
+                enableHdmiSetting(msg.arg1);
                 break;
             case MSG_INPUT_TIMEOUT:
                 logv("input is idle");

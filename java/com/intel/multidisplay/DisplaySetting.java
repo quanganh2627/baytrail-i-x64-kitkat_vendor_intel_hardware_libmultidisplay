@@ -63,7 +63,7 @@ public class DisplaySetting {
     public static final String MDS_SET_HDMI_STEP_SCALE = "android.intel.mds.SET.HDMI_STEP_SCALE";
     public static final String MDS_GET_BOOT_STATUS     = "android.intel.mds.GET.BOOT_STATUS";
     public static final String MDS_BOOT_STATUS         = "android.intel.mds.BOOT_STATUS";
-    public static final String MDS_HDMI_ALLOW_MODE_SET = "android.intel.mds.ALLOW_MODE_SET";
+    public static final String MDS_ALLOW_MODE_SET       = "android.intel.mds.ALLOW_MODE_SET";
 
 
     private static onMdsMessageListener mListener = null;
