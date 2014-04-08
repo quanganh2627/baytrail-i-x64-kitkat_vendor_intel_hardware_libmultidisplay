@@ -393,12 +393,20 @@ static int parseHdmiTimings() {
         unsigned int tmpV = connector->modes[i].vdisplay;
         unsigned int tmpR = connector->modes[i].vrefresh;
         unsigned int tmpF = connector->modes[i].flags;
+#ifdef VPG_DRM
+        unsigned int tmpA = connector->modes[i].picture_aspect_ratio;
+#endif
         bool duplicated = false;
         for (size_t j = 0; j < gDrmCxt.hdmiTimings.size(); j++) {
             MDSHdmiTiming* bak = gDrmCxt.hdmiTimings.itemAt(j);
             if (bak != NULL &&
                     bak->width == tmpW && bak->height == tmpV &&
+#ifndef VPG_DRM
                     bak->refresh == tmpR && bak->flags == tmpF) {
+#else
+                    bak->refresh == tmpR && bak->flags == tmpF &&
+                    bak->ratio == tmpA ) {
+#endif
                 duplicated = true;
                 break;
             }
@@ -419,6 +427,11 @@ static int parseHdmiTimings() {
         if (tmpF & DRM_MODE_FLAG_PAR16_9)
             dst.ratio = 2;
         else if (tmpF & DRM_MODE_FLAG_PAR4_3)
+            dst.ratio = 1;
+#else
+        if (tmpA == HDMI_PICTURE_ASPECT_16_9)
+            dst.ratio = 2;
+        else if (tmpA == HDMI_PICTURE_ASPECT_4_3)
             dst.ratio = 1;
 #endif
         dst.flags = tmpF;
