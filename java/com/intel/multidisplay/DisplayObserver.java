@@ -283,14 +283,21 @@ public class DisplayObserver {
         mHDMIName = newName;
         mPreAudioRoute = mAudioRoute;
         mAudioRoute = newState;
-        if (newState == ROUTE_TO_SPEAKER)
-            delay = 500;
 
         if (newState == ROUTE_TO_SPEAKER) {
             Intent intent = new Intent(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
             mContext.sendBroadcast(intent);
+            // Add delay of 500ms when audio route to speaker to
+            // avoid audio tearing event to occur,
+            // which fails when initialize the video decoder
+            delay = 500;
         }
         mWakeLock.acquire();
+        if (newState == ROUTE_TO_HDMI && mPreAudioRoute == ROUTE_TO_SPEAKER) {
+            // remove the last msg which switching audio to speaker if it exists
+            // because this msg has 500ms delay
+            mHandler.removeMessages(MSG_AUDIO_ROUTER_CHANGE);
+        }
         mHandler.sendMessageDelayed(
                             mHandler.obtainMessage(MSG_AUDIO_ROUTER_CHANGE,
                                     mAudioRoute, mPreAudioRoute, mHDMIName),
