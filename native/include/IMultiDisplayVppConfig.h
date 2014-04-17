@@ -40,7 +40,7 @@ public:
      *       bool  connected:       the connection status of display device dpyId
      * @return @see status_t in <utils/Errors.h>
      */
-    virtual status_t setVppState(MDS_DISPLAY_ID dpyId, bool connected) = 0;
+    virtual status_t setVppState(MDS_DISPLAY_ID dpyId, bool connected, int status) = 0;
 };
 
 

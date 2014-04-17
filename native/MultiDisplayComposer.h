@@ -144,7 +144,7 @@ public:
     MDS_VIDEO_STATE getVideoState(int);
     status_t getVideoSourceInfo(int, MDSVideoSourceInfo*);
     MDS_DISPLAY_MODE getDisplayMode(bool);
-    bool getVppState();
+    uint32_t getVppState();
 
     // Sink Registrar
     int32_t  registerListener(const sp<IMultiDisplayListener>&, const char*, int);
@@ -179,7 +179,7 @@ public:
 
 #ifdef TARGET_HAS_VPP
     // Vpp configure
-    status_t setVppState(MDS_DISPLAY_ID, bool);
+    status_t setVppState(MDS_DISPLAY_ID, bool, int);
 #endif
 
 private:
@@ -219,7 +219,7 @@ private:
     int  getValidDecoderConfigVideoSession_l();
     status_t notifyHotplugLocked(MDS_DISPLAY_ID, bool);
 #ifdef TARGET_HAS_VPP
-    status_t setVppState_l(MDS_DISPLAY_ID, bool);
+    status_t setVppState_l(MDS_DISPLAY_ID, bool, int);
 #endif
 
     inline bool checkMode(int value, int bit) {

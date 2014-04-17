@@ -295,14 +295,14 @@ static jint MDS_updateInputState(JNIEnv* env, jobject obj, jboolean state)
     return eventMonitor->updateInputState(state);
 }
 
-static jint MDS_setVppState(JNIEnv* env, jobject obj, int dpyId, jboolean state)
+static jint MDS_setVppState(JNIEnv* env, jobject obj, int dpyId, jboolean state, int status)
 {
 #ifdef TARGET_HAS_VPP
     AutoMutex _l(gMutex);
     if (gMds == NULL) return 0;
     sp<IMultiDisplayVppConfig> vppConfig = gMds->getVppConfig();
     if (vppConfig == NULL) return 0;
-    return vppConfig->setVppState((MDS_DISPLAY_ID)dpyId, state);
+    return vppConfig->setVppState((MDS_DISPLAY_ID)dpyId, state, status);
 #else
     return 0;
 #endif
@@ -320,7 +320,7 @@ static JNINativeMethod sMethods[] = {
     {"native_setHdmiOverscan", "(II)Z", (void*)MDS_setHdmiOverscan},
     {"native_updatePhoneCallState", "(Z)I", (void*)MDS_updatePhoneCallState},
     {"native_updateInputState", "(Z)I", (void*)MDS_updateInputState},
-    {"native_setVppState", "(IZ)I", (void*)MDS_setVppState},
+    {"native_setVppState", "(IZI)I", (void*)MDS_setVppState},
 };
 
 int register_intel_multidisplay_DisplaySetting(JNIEnv* env)

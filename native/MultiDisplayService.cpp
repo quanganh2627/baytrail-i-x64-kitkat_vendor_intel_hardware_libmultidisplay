@@ -194,7 +194,7 @@ private:
 public:
     MultiDisplayInfoProviderImpl(const sp<MultiDisplayComposer>& com);
     MDS_VIDEO_STATE getVideoState(int);
-    bool getVppState();
+    uint32_t getVppState();
     int getVideoSessionNumber();
     MDS_DISPLAY_MODE getDisplayMode(bool);
     status_t getVideoSourceInfo(int, MDSVideoSourceInfo*);
@@ -213,7 +213,7 @@ MultiDisplayInfoProviderImpl::MultiDisplayInfoProviderImpl(const sp<MultiDisplay
 }
 
 IMPLEMENT_API_0(MultiDisplayInfoProviderImpl, pCom, getVideoSessionNumber, int, 0)
-IMPLEMENT_API_0(MultiDisplayInfoProviderImpl, pCom, getVppState, bool, false)
+IMPLEMENT_API_0(MultiDisplayInfoProviderImpl, pCom, getVppState, uint32_t, false)
 IMPLEMENT_API_1(MultiDisplayInfoProviderImpl, pCom, getVideoState, int,  MDS_VIDEO_STATE, MDS_VIDEO_STATE_UNKNOWN)
 IMPLEMENT_API_1(MultiDisplayInfoProviderImpl, pCom, getDisplayMode, bool, MDS_DISPLAY_MODE,  MDS_MODE_NONE)
 IMPLEMENT_API_2(MultiDisplayInfoProviderImpl, pCom, getVideoSourceInfo, int,  MDSVideoSourceInfo*, status_t, NO_INIT)
@@ -296,7 +296,7 @@ private:
     static sp<MultiDisplayVppConfigImpl> sVppInstance;
 public:
     MultiDisplayVppConfigImpl(const sp<MultiDisplayComposer>& com);
-    status_t setVppState(MDS_DISPLAY_ID, bool);
+    status_t setVppState(MDS_DISPLAY_ID, bool, int);
     static sp<MultiDisplayVppConfigImpl> getInstance() {
         return sVppInstance;
     }
@@ -310,7 +310,7 @@ MultiDisplayVppConfigImpl::MultiDisplayVppConfigImpl(const sp<MultiDisplayCompos
     sVppInstance = this;
 }
 
-IMPLEMENT_API_2(MultiDisplayVppConfigImpl, pCom, setVppState, MDS_DISPLAY_ID, bool, status_t, NO_INIT)
+IMPLEMENT_API_3(MultiDisplayVppConfigImpl, pCom, setVppState, MDS_DISPLAY_ID, bool, int, status_t, NO_INIT)
 
 enum {
     MDS_SERVICE_GET_HDMI_CONTROL = IBinder::FIRST_CALL_TRANSACTION,

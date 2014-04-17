@@ -40,6 +40,7 @@ typedef enum {
     MDS_HDMI_CONNECTED  = 1 << 1,  /**< HDMI is connected */
     MDS_WIDI_ON         = 1 << 2,  /**< WIDI is connected*/
     MDS_VIDEO_ON        = 1 << 3,  /**< Video is playing */
+    MDS_VPP_CHANGED     = 1 << 4,  /**< VPP status is changed */
 } MDS_DISPLAY_MODE;
 
 class IMultiDisplayInfoProvider : public IInterface {
@@ -90,9 +91,9 @@ public:
     /**
      * @brief Get the vpp state for current display device, include HDMI, WIDI and MIPI
      * @param
-     * @return @see "true" means vpp is on
+     * @return @see VPP_SETTING_STATUS in VPPSetting.h
      */
-     virtual bool getVppState() = 0;
+     virtual uint32_t getVppState() = 0;
 };
 
 

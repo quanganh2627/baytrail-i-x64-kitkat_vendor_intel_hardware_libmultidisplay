@@ -64,6 +64,7 @@ public class DisplaySetting {
     public static final String MDS_GET_BOOT_STATUS     = "android.intel.mds.GET.BOOT_STATUS";
     public static final String MDS_BOOT_STATUS         = "android.intel.mds.BOOT_STATUS";
     public static final String MDS_ALLOW_MODE_SET       = "android.intel.mds.ALLOW_MODE_SET";
+    public static final String MDS_SET_VPP_STATUS       = "android.intel.mds.SET.VPP_STATUS";
 
 
     private static onMdsMessageListener mListener = null;
@@ -81,7 +82,7 @@ public class DisplaySetting {
     private static native boolean native_setHdmiOverscan(int h, int v);
     private static native int     native_updatePhoneCallState(boolean state);
     private static native int     native_updateInputState(boolean state);
-    private static native int     native_setVppState(int dpyId, boolean state);
+    private static native int     native_setVppState(int dpyId, boolean state, int status);
 
     public DisplaySetting() {
         if (LOG) Slog.i(TAG, "Create a new DisplaySetting");
@@ -143,8 +144,8 @@ public class DisplaySetting {
         return native_updateInputState(inputState);
     }
 
-    public int setVppState(int dpyId, boolean state) {
-        return native_setVppState(dpyId, state);
+    public int setVppState(int dpyId, boolean state, int status) {
+        return native_setVppState(dpyId, state, status);
     }
 }
 

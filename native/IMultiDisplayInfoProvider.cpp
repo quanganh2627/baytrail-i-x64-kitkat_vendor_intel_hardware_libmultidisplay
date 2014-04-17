@@ -116,7 +116,7 @@ public:
         return result;
     }
 
-    virtual bool getVppState() {
+    virtual uint32_t getVppState() {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayInfoProvider::getInterfaceDescriptor());
         status_t result = remote()->transact(
@@ -124,7 +124,7 @@ public:
         if (result != NO_ERROR) {
             return 0;
         }
-        return (reply.readInt32() == 1 ? true : false);
+        return reply.readInt32();
     }
 };
 
@@ -176,8 +176,8 @@ status_t BnMultiDisplayInfoProvider::onTransact(
         } break;
         case MDS_SERVER_GET_VPP_STATE: {
             CHECK_INTERFACE(IMultiDisplayInfoProvider, data, reply);
-            bool ret = getVppState();
-            reply->writeInt32(ret ? 1 : 0);
+            uint32_t ret = getVppState();
+            reply->writeInt32(ret);
             return NO_ERROR;
         } break;
     } // switch

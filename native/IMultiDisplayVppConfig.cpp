@@ -39,11 +39,12 @@ public:
     {
     }
 
-    virtual status_t setVppState(MDS_DISPLAY_ID dpyId, bool isOn) {
+    virtual status_t setVppState(MDS_DISPLAY_ID dpyId, bool isOn, int status) {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayVppConfig::getInterfaceDescriptor());
         data.writeInt32(dpyId);
         data.writeInt32(isOn ? 1 : 0);
+        data.writeInt32(status);
         status_t result = remote()->transact(
                 MDS_SERVER_SET_VPP_STATE, data, &reply);
         if (result != NO_ERROR) {
@@ -64,7 +65,8 @@ status_t BnMultiDisplayVppConfig::onTransact(
             CHECK_INTERFACE(IMultiDisplayVppConfig, data, reply);
             MDS_DISPLAY_ID dpyId = (MDS_DISPLAY_ID)(data.readInt32());
             bool isOn  = (data.readInt32() == 1 ? true : false);
-            status_t ret = setVppState(dpyId, isOn);
+            int status = data.readInt32();
+            status_t ret = setVppState(dpyId, isOn, status);
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;

@@ -81,6 +81,7 @@ public class DisplayObserver {
 
     // WIDI
     private boolean mWidiConnected = false;
+    private int mVppStatus = 0;
 
     //Message need to handle
     private final int MSG_AUDIO_ROUTER_CHANGE = 0;
@@ -170,6 +171,7 @@ public class DisplayObserver {
         intentFilter.addAction(mDs.MDS_SET_HDMI_MODE);
         intentFilter.addAction(mDs.MDS_SET_HDMI_SCALE);
         intentFilter.addAction(mDs.MDS_SET_HDMI_STEP_SCALE);
+        intentFilter.addAction(mDs.MDS_SET_VPP_STATUS);
         intentFilter.addAction(DisplayManager.ACTION_WIFI_DISPLAY_STATUS_CHANGED);
 
         mContext.registerReceiver(mReceiver, intentFilter);
@@ -491,8 +493,18 @@ public class DisplayObserver {
                 if (mWidiConnected == connected)
                     return;
                 logv("Update vpp status " + connected);
-                mDs.setVppState(mDs.DISPLAY_VIRTUAL, connected);
+                mDs.setVppState(mDs.DISPLAY_VIRTUAL, connected, -1);
                 mWidiConnected = connected;
+            } else if(action.equals(mDs.MDS_SET_VPP_STATUS)) {
+                logv("recive intent from vpp settings");
+                Bundle extras = intent.getExtras();
+                if (extras == null)
+                     return;
+                int status = extras.getInt("status", 0);
+
+                logv("set vpp status:" +  status);
+                mDs.setVppState(mDs.DISPLAY_VIRTUAL, mWidiConnected, status);
+                mVppStatus = status;
             }
         }
     }

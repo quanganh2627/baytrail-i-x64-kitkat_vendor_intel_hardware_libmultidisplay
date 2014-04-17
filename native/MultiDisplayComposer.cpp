@@ -125,9 +125,6 @@ void MultiDisplayComposer::init() {
     }
 
     mDrmInit = true;
-#ifdef TARGET_HAS_VPP
-    setVppState_l(MDS_DISPLAY_PRIMARY, VPPSetting::isVppOn());
-#endif
 
     initVideoSessions_l();
     updateHdmiConnectStatusLocked();
@@ -653,40 +650,50 @@ status_t MultiDisplayComposer::setDecoderOutputResolution(
 
 #ifdef TARGET_HAS_VPP
 status_t MultiDisplayComposer::setVppState_l(
-        MDS_DISPLAY_ID dpyId, bool connected) {
+        MDS_DISPLAY_ID dpyId, bool connected, int status) {
     // TODO: only for WIDI now
     // the default Vpp policy for different display devices
     // HDMI/MIPI: is enabled
     // WIDI:      is disabled
     // the logic in here is tricky, and will revert it after
     // the usage of "MDS_WIDI_ON" is confirmed
-    if (dpyId != MDS_DISPLAY_VIRTUAL) {
-        return UNKNOWN_ERROR;
-    }
-    if (connected) {
-        mDisplayId = dpyId;
+    // only set widi connector status when status set to -1
+    if (status == -1) {
+        if (dpyId != MDS_DISPLAY_VIRTUAL) {
+            return UNKNOWN_ERROR;
+        }
+        if (connected) {
+            mDisplayId = dpyId;
+        } else {
+            mDisplayId = MDS_DISPLAY_PRIMARY;
+        }
+        ALOGV("Leaving %s, %d", __func__, mDisplayId);
     } else {
-        mDisplayId = MDS_DISPLAY_PRIMARY;
+        LOGI("%s: VPP setting changed, ready to broadcast message.", __func__);
+        mMode |= MDS_VPP_CHANGED;
+        broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode), false);
+        mMode &= ~MDS_VPP_CHANGED;
     }
-    ALOGV("Leaving %s, %d", __func__, mDisplayId);
     return NO_ERROR;
 }
 
-bool MultiDisplayComposer::getVppState() {
+uint32_t MultiDisplayComposer::getVppState() {
     bool ret = false;
+    uint32_t vpp_status = 0;
+
     Mutex::Autolock lock(mMutex);
     //TODO: only for WIDI now
     if (mDisplayId != MDS_DISPLAY_VIRTUAL)
-        ret = VPPSetting::isVppOn();
-    ALOGV("%s: %d %d", __func__, ret, mDisplayId);
-    return ret;
+        ret = VPPSetting::isVppOn(&vpp_status);
+    ALOGV("%s: vpp on %d, display id %d, vpp_status %d", __func__, ret, mDisplayId, vpp_status);
+    return vpp_status;
 }
 
 status_t MultiDisplayComposer::setVppState(
-        MDS_DISPLAY_ID dpyId, bool connected) {
+        MDS_DISPLAY_ID dpyId, bool connected, int status) {
     Mutex::Autolock lock(mMutex);
     ALOGV("%s:%d, %d, %d", __func__, __LINE__, dpyId, connected);
-    return setVppState_l(dpyId, connected);
+    return setVppState_l(dpyId, connected, status);
 }
 #endif
 
