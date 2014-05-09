@@ -68,6 +68,12 @@ do { \
         return OBJECT->INTERFACE(p0, p1, p2, p3);                             \
     }
 
+#define IMPLEMENT_API_7(CLASS, OBJECT, INTERFACE, PARAM0, PARAM1, PARAM2, PARAM3, PARAM4, PARAM5, PARAM6, RETURN, ERR)  \
+    RETURN CLASS::INTERFACE(PARAM0 p0, PARAM1 p1, PARAM2 p2, PARAM3 p3, PARAM4 p4, PARAM5 p5, PARAM6 p6) {     \
+        MDC_CHECK_OBJECT(OBJECT, ERR);                                                    \
+        return OBJECT->INTERFACE(p0, p1, p2, p3, p4, p5, p6);                             \
+    }
+
 class MultiDisplayHdmiControlImpl : public BnMultiDisplayHdmiControl {
 private:
     sp<MultiDisplayComposer> pCom;
@@ -198,7 +204,7 @@ public:
     int getVideoSessionNumber();
     MDS_DISPLAY_MODE getDisplayMode(bool);
     status_t getVideoSourceInfo(int, MDSVideoSourceInfo*);
-    status_t getDecoderOutputResolution(int, int32_t* width, int32_t* height);
+    status_t getDecoderOutputResolution(int, int32_t* width, int32_t* height, int32_t* offX, int32_t* offY, int32_t* bufW, int32_t* bufH);
     static sp<MultiDisplayInfoProviderImpl> getInstance() {
         return sInfoInstance;
     }
@@ -217,7 +223,7 @@ IMPLEMENT_API_0(MultiDisplayInfoProviderImpl, pCom, getVppState, uint32_t, false
 IMPLEMENT_API_1(MultiDisplayInfoProviderImpl, pCom, getVideoState, int,  MDS_VIDEO_STATE, MDS_VIDEO_STATE_UNKNOWN)
 IMPLEMENT_API_1(MultiDisplayInfoProviderImpl, pCom, getDisplayMode, bool, MDS_DISPLAY_MODE,  MDS_MODE_NONE)
 IMPLEMENT_API_2(MultiDisplayInfoProviderImpl, pCom, getVideoSourceInfo, int,  MDSVideoSourceInfo*, status_t, NO_INIT)
-IMPLEMENT_API_3(MultiDisplayInfoProviderImpl, pCom, getDecoderOutputResolution, int, int32_t*, int32_t*, status_t, NO_INIT)
+IMPLEMENT_API_7(MultiDisplayInfoProviderImpl, pCom, getDecoderOutputResolution, int, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, status_t, NO_INIT)
 
 class MultiDisplayEventMonitorImpl : public BnMultiDisplayEventMonitor {
 private:
@@ -274,7 +280,11 @@ private:
     static sp<MultiDisplayDecoderConfigImpl> sDecoderInstance;
 public:
     MultiDisplayDecoderConfigImpl(const sp<MultiDisplayComposer>& com);
-    status_t setDecoderOutputResolution(int videoSessionId, int32_t width, int32_t height);
+    status_t setDecoderOutputResolution(
+            int videoSessionId,
+            int32_t width, int32_t height,
+            int32_t offX,  int32_t offY,
+            int32_t bufW,  int32_t bufH);
     static sp<MultiDisplayDecoderConfigImpl> getInstance() {
         return sDecoderInstance;
     }
@@ -288,7 +298,7 @@ MultiDisplayDecoderConfigImpl::MultiDisplayDecoderConfigImpl(const sp<MultiDispl
     sDecoderInstance = this;
 }
 
-IMPLEMENT_API_3(MultiDisplayDecoderConfigImpl, pCom, setDecoderOutputResolution, int, int32_t, int32_t, status_t, NO_INIT)
+IMPLEMENT_API_7(MultiDisplayDecoderConfigImpl, pCom, setDecoderOutputResolution, int, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, status_t, NO_INIT)
 
 class MultiDisplayVppConfigImpl : public BnMultiDisplayVppConfig {
 private:

@@ -37,7 +37,11 @@ public:
      * @param
      * @return @see status_t in <utils/Errors.h>
      */
-    virtual status_t setDecoderOutputResolution(int32_t videoSessionId, int32_t width, int32_t height) = 0;
+    virtual status_t setDecoderOutputResolution(
+            int32_t videoSessionId,
+            int32_t width, int32_t height,
+            int32_t offX,  int32_t offY,
+            int32_t bufWidth, int32_t bufHeight) = 0;
 };
 
 

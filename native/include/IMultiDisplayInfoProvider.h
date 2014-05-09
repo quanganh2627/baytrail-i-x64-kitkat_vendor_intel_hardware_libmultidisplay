@@ -86,7 +86,11 @@ public:
      *         int32_t* height:     the height of decoder output
      * @return @see status_t in <utils/Errors.h>
      */
-     virtual status_t getDecoderOutputResolution(int videoSessionId, int32_t* width, int32_t* height) = 0;
+     virtual status_t getDecoderOutputResolution(
+             int videoSessionId,
+             int32_t* width, int32_t* height,
+             int32_t* offX, int32_t* offY,
+             int32_t* bufW, int32_t* bufH) = 0;
 
     /**
      * @brief Get the vpp state for current display device, include HDMI, WIDI and MIPI

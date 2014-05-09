@@ -613,8 +613,13 @@ int MultiDisplayComposer::getValidDecoderConfigVideoSession_l() {
     int index = -1;
     int32_t width  = 0;
     int32_t height = 0;
+    int32_t offX   = 0;
+    int32_t offY   = 0;
+    int32_t bufW   = 0;
+    int32_t bufH   = 0;
     for (int i = 0; i < MDS_VIDEO_SESSION_MAX_VALUE; i++) {
-        if (mVideos[i].getDecoderOutputResolution(&width, &height) == NO_ERROR) {
+        if (mVideos[i].getDecoderOutputResolution(
+                    &width, &height, &offX, &offY, &bufW, &bufH) == NO_ERROR) {
             index = i;
             break;
         }
@@ -624,7 +629,9 @@ int MultiDisplayComposer::getValidDecoderConfigVideoSession_l() {
 
 //TODO: The input "sessionId" is ignored now
 status_t MultiDisplayComposer::getDecoderOutputResolution(
-        int sessionId, int32_t* width, int32_t* height) {
+        int sessionId, int32_t* width, int32_t* height,
+        int32_t* offX, int32_t* offY,
+        int32_t* bufWidth, int32_t* bufHeight) {
     Mutex::Autolock lock(mMutex);
     status_t result = NO_ERROR;
     int index = getValidDecoderConfigVideoSession_l();
@@ -632,20 +639,25 @@ status_t MultiDisplayComposer::getDecoderOutputResolution(
         return UNKNOWN_ERROR;
     // Check video session
     CHECK_VIDEO_SESSION_ID(index, UNKNOWN_ERROR);
-    result = mVideos[index].getDecoderOutputResolution(width, height);
-    ALOGV("Video Session[%d]:output resolution %dx%d", index, *width, *height);
+    result = mVideos[index].getDecoderOutputResolution(
+            width, height, offX, offY, bufWidth, bufHeight);
+    ALOGV("Video Session[%d]:Output resolution %dx%d, %dx%d, %dx%d",
+            index, *width, *height, *offX, *offY, *bufWidth, *bufHeight);
     return result;
 }
 
 status_t MultiDisplayComposer::setDecoderOutputResolution(
-        int sessionId, int32_t width, int32_t height) {
+        int sessionId, int32_t width, int32_t height,
+        int32_t offX, int32_t offY,
+        int32_t bufWidth, int32_t bufHeight) {
     Mutex::Autolock lock(mMutex);
 
     // Check video session
     CHECK_VIDEO_SESSION_ID(sessionId, UNKNOWN_ERROR);
-    ALOGV("set video session %d decoder output resolution %dx%d",
-            sessionId, width, height);
-    return mVideos[sessionId].setDecoderOutputResolution(width, height);
+    ALOGV("set video session %d decoder Output resolution %dx%d, %dx%d, %dx%d",
+            sessionId, width, height, offX, offY, bufWidth, bufHeight);
+    return mVideos[sessionId].setDecoderOutputResolution(
+            width, height, offX, offY, bufWidth, bufHeight);
 }
 
 #ifdef TARGET_HAS_VPP

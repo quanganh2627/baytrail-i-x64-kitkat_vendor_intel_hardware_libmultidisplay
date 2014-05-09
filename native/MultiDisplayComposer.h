@@ -77,6 +77,10 @@ private:
     // Decoder output
     int32_t             mDecoderConfigWidth;
     int32_t             mDecoderConfigHeight;
+    int32_t             mDecoderConfigOffX;
+    int32_t             mDecoderConfigOffY;
+    int32_t             mDecoderConfigBufWidth;;
+    int32_t             mDecoderConfigBufHeight;
     // TODO: Only 1 decoder config is valid now
     // May need support multiple decoder configs
     bool                mDecoderConfigValid;
@@ -102,21 +106,37 @@ public:
         mInfoValid = true;
         return NO_ERROR;
     }
-    inline status_t setDecoderOutputResolution(int32_t width, int32_t height) {
+    inline status_t setDecoderOutputResolution(
+            int32_t width, int32_t height,
+            int32_t offX, int32_t offY,
+            int32_t bufW, int32_t bufH) {
         if (mState < MDS_VIDEO_PREPARING || mState > MDS_VIDEO_UNPREPARED)
             return UNKNOWN_ERROR;
         mDecoderConfigValid  = true;
         mDecoderConfigWidth  = width;
         mDecoderConfigHeight = height;
+        mDecoderConfigOffX = offX;
+        mDecoderConfigOffY = offY;
+        mDecoderConfigBufWidth   = bufW;
+        mDecoderConfigBufHeight  = bufH;
         return NO_ERROR;
     }
-    inline status_t getDecoderOutputResolution(int32_t* width, int32_t* height) {
+    inline status_t getDecoderOutputResolution(
+            int32_t* width, int32_t* height,
+            int32_t* offX, int32_t* offY,
+            int32_t* bufW, int32_t* bufH) {
         if (mState < MDS_VIDEO_PREPARING || mState > MDS_VIDEO_UNPREPARED)
             return UNKNOWN_ERROR;
-        if (width == NULL || height == NULL || !mDecoderConfigValid)
+        if (width == NULL || height == NULL ||
+                offX == NULL || offY == NULL ||
+                !mDecoderConfigValid)
             return UNKNOWN_ERROR;
         *width  = mDecoderConfigWidth;
         *height = mDecoderConfigHeight;
+        *offX   = mDecoderConfigOffX;
+        *offY   = mDecoderConfigOffY;
+        *bufW   = mDecoderConfigBufWidth;
+        *bufH   = mDecoderConfigBufHeight;
         return NO_ERROR;
     }
     inline void init() {
@@ -174,8 +194,8 @@ public:
     status_t updatePhoneCallState(bool);
 
     // Decoder configure
-    status_t getDecoderOutputResolution(int, int32_t*, int32_t*);
-    status_t setDecoderOutputResolution(int, int32_t,  int32_t);
+    status_t getDecoderOutputResolution(int, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*);
+    status_t setDecoderOutputResolution(int, int32_t,  int32_t, int32_t, int32_t, int32_t, int32_t);
 
 #ifdef TARGET_HAS_VPP
     // Vpp configure

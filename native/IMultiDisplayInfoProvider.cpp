@@ -98,7 +98,10 @@ public:
         return mode;
     }
 
-    virtual status_t getDecoderOutputResolution(int sessionId, int32_t* width, int32_t* height) {
+    virtual status_t getDecoderOutputResolution(int sessionId,
+            int32_t* width, int32_t* height,
+            int32_t* offX, int32_t* offY,
+            int32_t* bufW, int32_t* bufH) {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayInfoProvider::getInterfaceDescriptor());
         if (width == NULL || height == NULL) {
@@ -112,6 +115,10 @@ public:
         }
         *width  = reply.readInt32();
         *height = reply.readInt32();
+        *offX   = reply.readInt32();
+        *offY   = reply.readInt32();
+        *bufW   = reply.readInt32();
+        *bufH   = reply.readInt32();
         result  = reply.readInt32();
         return result;
     }
@@ -167,10 +174,19 @@ status_t BnMultiDisplayInfoProvider::onTransact(
             CHECK_INTERFACE(IMultiDisplayInfoProvider, data, reply);
             int32_t width  = 0;
             int32_t height = 0;
+            int32_t offX   = 0;
+            int32_t offY   = 0;
+            int32_t bufW   = 0;
+            int32_t bufH   = 0;
             int32_t sessionId = data.readInt32();
-            status_t ret = getDecoderOutputResolution(sessionId, &width, &height);
+            status_t ret = getDecoderOutputResolution(sessionId,
+                    &width, &height, &offX, &offY, &bufW, &bufH);
             reply->writeInt32(width);
             reply->writeInt32(height);
+            reply->writeInt32(offX);
+            reply->writeInt32(offY);
+            reply->writeInt32(bufW);
+            reply->writeInt32(bufH);
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;

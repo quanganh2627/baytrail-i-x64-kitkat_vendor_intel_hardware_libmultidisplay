@@ -40,7 +40,10 @@ public:
     }
 
     virtual status_t setDecoderOutputResolution(
-            int videoSessionId, int32_t width, int32_t height) {
+            int videoSessionId,
+            int32_t width, int32_t height,
+            int32_t offX, int32_t offY,
+            int32_t bufWidth, int32_t bufHeight) {
         Parcel data, reply;
         data.writeInterfaceToken(IMultiDisplayDecoderConfig::getInterfaceDescriptor());
         if (width <= 0 || height <= 0) {
@@ -49,6 +52,10 @@ public:
         data.writeInt32(videoSessionId);
         data.writeInt32(width);
         data.writeInt32(height);
+        data.writeInt32(offX);
+        data.writeInt32(offY);
+        data.writeInt32(bufWidth);
+        data.writeInt32(bufHeight);
         status_t result = remote()->transact(
                 MDS_SERVER_SET_DECODER_OUTPUT_RESOLUTION, data, &reply);
         if (result != NO_ERROR) {
@@ -70,7 +77,11 @@ status_t BnMultiDisplayDecoderConfig::onTransact(
             int sessionId  = data.readInt32();
             int32_t width  = data.readInt32();
             int32_t height = data.readInt32();
-            status_t ret = setDecoderOutputResolution(sessionId, width, height);
+            int32_t offX   = data.readInt32();
+            int32_t offY   = data.readInt32();
+            int32_t bufW   = data.readInt32();
+            int32_t bufH   = data.readInt32();
+            status_t ret = setDecoderOutputResolution(sessionId, width, height, offX, offY, bufW, bufH);
             reply->writeInt32(ret);
             return NO_ERROR;
         } break;
