@@ -217,7 +217,7 @@ public class DisplayObserver {
 
                 // start monitor input only when HDMI/Wireless Display
                 // is connected AND the video is being played.
-                if ((isHdmiConnected || (value & mDs.WIDI_CONNECTED_BIT) != 0) &&
+                if ((isHdmiConnected || isDviConnected || (value & mDs.WIDI_CONNECTED_BIT) != 0) &&
                         ((value & mDs.VIDEO_ON_BIT) != 0)) {
                     mHandler.sendEmptyMessage(MSG_START_MONITORING_INPUT);
                 } else {
