@@ -104,6 +104,9 @@ public class DisplayObserver {
 
         @Override
         public void onPointerEvent(MotionEvent motionEvent) {
+            if (motionEvent.getAction() == motionEvent.ACTION_CANCEL) {
+                return;
+            }
             mObserver.onInputEvent();
         }
     }
