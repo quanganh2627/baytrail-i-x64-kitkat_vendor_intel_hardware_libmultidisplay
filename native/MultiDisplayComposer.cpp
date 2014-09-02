@@ -690,6 +690,8 @@ status_t MultiDisplayComposer::setVppState_l(
 }
 
 uint32_t MultiDisplayComposer::getVppState() {
+    // TODO: Temp disable
+    return 0;
     bool ret = false;
     uint32_t vpp_status = 0;
 
