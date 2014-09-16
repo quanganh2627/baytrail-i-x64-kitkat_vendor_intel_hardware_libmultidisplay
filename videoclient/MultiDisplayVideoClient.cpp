@@ -63,8 +63,8 @@ sp<IMDService> MultiDisplayVideoClient::getService() {
 
 void MultiDisplayVideoClient::close() {
     mSessionId = -1;
-    mVideo = NULL;
     mState = MDS_VIDEO_UNPREPARED;
+    mVideo = NULL;
 }
 
 status_t MultiDisplayVideoClient::prepare(int state, bool isProtected) {
@@ -95,6 +95,7 @@ status_t MultiDisplayVideoClient::prepare(int state, bool isProtected) {
     }
     return NO_ERROR;
 }
+
 status_t MultiDisplayVideoClient::setVideoState(int state,
         bool isProtected, const sp<MetaData> &meta) {
     if (prepare(state, isProtected) != NO_ERROR)
@@ -162,6 +163,9 @@ status_t MultiDisplayVideoClient::reset() {
         return UNKNOWN_ERROR;
     }
     sp<IMultiDisplayVideoControl> video = mds->getVideoControl();
+    if (video == NULL) {
+        return UNKNOWN_ERROR;
+    }
     return  video->resetVideoPlayback();
 }
 

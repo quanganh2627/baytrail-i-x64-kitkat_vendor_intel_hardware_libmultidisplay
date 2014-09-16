@@ -132,7 +132,7 @@ int MultiDisplayComposer::prepareForVideo(int status) {
     Mutex::Autolock _l(mLock);
     if (mVideoState == status)
         return MDS_NO_ERROR;
-    LOGV("%s: Video preparing status %d", __func__, status);
+    LOGV("%s: Video status %d", __func__, status);
     mVideoState = status;
     broadcastMessage_l(MDS_SET_VIDEO_STATUS, &status, sizeof(status));
     if (status == (int)MDS_VIDEO_UNPREPARED) {
@@ -646,6 +646,8 @@ bool MultiDisplayComposer::threadLoop() {
 }
 
 bool MultiDisplayComposer::isHdmiTimingDynamicSettingEnable_l() {
+    // Presentation mode checking depends on GFX SF patch
+    return true;
     //Disable dynamic setting for video playback
     if (mSurfaceComposer == NULL) {
         const sp<IServiceManager> sm = defaultServiceManager();

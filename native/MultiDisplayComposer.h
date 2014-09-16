@@ -197,7 +197,7 @@ public:
     status_t getDecoderOutputResolution(int, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*, int32_t*);
     status_t setDecoderOutputResolution(int, int32_t,  int32_t, int32_t, int32_t, int32_t, int32_t);
 
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
     // Vpp configure
     status_t setVppState(MDS_DISPLAY_ID, bool, int);
 #endif
@@ -210,7 +210,7 @@ private:
     mutable  Mutex mMutex;
     uint32_t mHorizontalStep;
     uint32_t mVerticalStep;
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
     // Vpp cofigure, only for WIDI now, and will be removed
     // Maintain current connected display device Id
     // if HDMI is connected, this id = MDS_DISPLAY_EXTERNAL
@@ -238,7 +238,7 @@ private:
     void dumpVideoSession_l();
     int  getValidDecoderConfigVideoSession_l();
     status_t notifyHotplugLocked(MDS_DISPLAY_ID, bool);
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
     status_t setVppState_l(MDS_DISPLAY_ID, bool, int);
 #endif
 

@@ -26,7 +26,7 @@
 #include <binder/IPCThreadState.h>
 #include "MultiDisplayComposer.h"
 #include "drm_hdmi.h"
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
 #include "VPPSetting.h"
 #endif
 
@@ -86,7 +86,7 @@ void MultiDisplayVideoSession::dump(int index) {
 
 MultiDisplayComposer::MultiDisplayComposer() :
     mDrmInit(false),
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
     mDisplayId(MDS_DISPLAY_PRIMARY),
 #endif
     mListenerId(0),
@@ -660,7 +660,7 @@ status_t MultiDisplayComposer::setDecoderOutputResolution(
             width, height, offX, offY, bufWidth, bufHeight);
 }
 
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
 status_t MultiDisplayComposer::setVppState_l(
         MDS_DISPLAY_ID dpyId, bool connected, int status) {
     // TODO: only for WIDI now
@@ -690,8 +690,6 @@ status_t MultiDisplayComposer::setVppState_l(
 }
 
 uint32_t MultiDisplayComposer::getVppState() {
-    // TODO: Temp disable
-    return 0;
     bool ret = false;
     uint32_t vpp_status = 0;
 

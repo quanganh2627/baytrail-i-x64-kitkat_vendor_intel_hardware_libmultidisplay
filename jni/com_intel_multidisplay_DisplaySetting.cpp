@@ -297,7 +297,7 @@ static jint MDS_updateInputState(JNIEnv* env, jobject obj, jboolean state)
 
 static jint MDS_setVppState(JNIEnv* env, jobject obj, int dpyId, jboolean state, int status)
 {
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
     AutoMutex _l(gMutex);
     if (gMds == NULL) return 0;
     sp<IMultiDisplayVppConfig> vppConfig = gMds->getVppConfig();

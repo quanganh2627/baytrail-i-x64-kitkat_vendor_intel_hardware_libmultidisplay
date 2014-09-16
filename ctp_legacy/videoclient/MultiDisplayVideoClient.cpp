@@ -36,8 +36,8 @@ namespace intel {
 
 MultiDisplayVideoClient::MultiDisplayVideoClient() {
     mSessionId = -1;
-    mVideo = NULL;
     mState = MDS_VIDEO_UNPREPARED;
+    mVideo = NULL;
 };
 
 
@@ -48,8 +48,8 @@ MultiDisplayVideoClient::~MultiDisplayVideoClient() {
 
 void MultiDisplayVideoClient::close() {
     mSessionId = -1;
-    mVideo = NULL;
     mState = MDS_VIDEO_UNPREPARED;
+    mVideo = NULL;
 }
 
 status_t MultiDisplayVideoClient::prepare(int state, bool isProtected) {
@@ -65,9 +65,10 @@ status_t MultiDisplayVideoClient::prepare(int state, bool isProtected) {
             (state == MDS_VIDEO_PREPARING ||
              state == MDS_VIDEO_UNPREPARING)) {
         // ignore preparing and unpreparing state if video is not protected
-        ALOGW("Ignore MDS preparing and unpreparing for clear content");
+        ALOGI("Ignore MDS preparing and unpreparing for clear content");
         return UNKNOWN_ERROR;
     }
+    ALOGI("Video state is %d, %d", state, mState);
     if (mVideo == NULL) {
         mVideo = new MultiDisplayClient();
     }
@@ -85,6 +86,7 @@ status_t MultiDisplayVideoClient::setVideoState(int state,
         MDSVideoSourceInfo info;
         memset(&info, 0, sizeof(MDSVideoSourceInfo));
         info.isProtected = isProtected;
+        info.isPlaying = true;
         if (meta != NULL && meta.get() != NULL) {
             if (!meta->findInt32(kKeyFrameRate, &info.frameRate)) {
                 info.frameRate = 0;
@@ -115,6 +117,7 @@ status_t MultiDisplayVideoClient::setVideoState(int state,
         if (msg != NULL && msg.get() != NULL) {
             MDSVideoSourceInfo info;
             memset(&info, 0, sizeof(MDSVideoSourceInfo));
+            info.isPlaying = true;
             info.isProtected = isProtected;
             bool success = msg->findInt32("frame-rate", &info.frameRate);
             if (!success)
@@ -138,7 +141,10 @@ status_t MultiDisplayVideoClient::setVideoState(int state,
 }
 
 status_t MultiDisplayVideoClient::reset() {
-    return  mVideo->resetVideoPlayback();
+    if (mVideo != NULL)
+        return  mVideo->resetVideoPlayback();
+    else
+        return UNKNOWN_ERROR;
 }
 
 }; // namespace intel

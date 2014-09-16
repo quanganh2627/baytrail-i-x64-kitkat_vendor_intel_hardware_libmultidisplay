@@ -32,7 +32,7 @@
 #include <display/IMultiDisplayInfoProvider.h>
 #include <display/IMultiDisplayConnectionObserver.h>
 #include <display/IMultiDisplayDecoderConfig.h>
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
 #include <display/IMultiDisplayVppConfig.h>
 #endif
 
@@ -53,7 +53,7 @@ public:
     virtual sp<IMultiDisplayInfoProvider>        getInfoProvider() = 0;
     virtual sp<IMultiDisplayConnectionObserver>  getConnectionObserver() = 0;
     virtual sp<IMultiDisplayDecoderConfig>       getDecoderConfig() = 0;
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
     virtual sp<IMultiDisplayVppConfig>           getVppConfig() = 0;
 #endif
 };
@@ -82,7 +82,7 @@ public:
     virtual sp<IMultiDisplayInfoProvider>        getInfoProvider();
     virtual sp<IMultiDisplayConnectionObserver>  getConnectionObserver();
     virtual sp<IMultiDisplayDecoderConfig>       getDecoderConfig();
-#ifdef TARGET_HAS_VPP
+#ifdef TARGET_HAS_ISV
     virtual sp<IMultiDisplayVppConfig>           getVppConfig();
 #endif
 };

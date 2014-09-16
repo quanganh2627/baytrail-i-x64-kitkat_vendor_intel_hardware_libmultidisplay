@@ -28,7 +28,7 @@ LOCAL_COPY_HEADERS := \
 
 LOCAL_COPY_HEADERS += videoclient/MultiDisplayVideoClient.h
 
-ifeq ($(TARGET_HAS_VPP),true)
+ifeq ($(TARGET_HAS_ISV),true)
 LOCAL_COPY_HEADERS += \
     native/include/IMultiDisplayVppConfig.h
 endif
@@ -50,7 +50,7 @@ LOCAL_SRC_FILES:= \
     native/IMultiDisplayCallbackRegistrar.cpp \
     native/IMultiDisplayDecoderConfig.cpp \
     native/MultiDisplayService.cpp
-ifeq ($(TARGET_HAS_VPP),true)
+ifeq ($(TARGET_HAS_ISV),true)
 LOCAL_SRC_FILES += native/IMultiDisplayVppConfig.cpp
 endif
 
@@ -90,8 +90,8 @@ ifeq ($(ENABLE_GEN_GRAPHICS),true)
     LOCAL_CFLAGS += -DDVI_SUPPORTED -DVPG_DRM
 endif
 
-ifeq ($(TARGET_HAS_VPP),true)
-LOCAL_CFLAGS += -DTARGET_HAS_VPP
+ifeq ($(TARGET_HAS_ISV),true)
+LOCAL_CFLAGS += -DTARGET_HAS_ISV
 LOCAL_C_INCLUDES += $(TARGET_OUT_HEADERS)/libmedia_utils_vpp
 LOCAL_SHARED_LIBRARIES += libvpp_setting
 endif
@@ -139,8 +139,8 @@ LOCAL_C_INCLUDES := \
      $(JNI_H_INCLUDE) \
      $(call include-path-for, frameworks-base)
 
-ifeq ($(TARGET_HAS_VPP),true)
-LOCAL_CFLAGS += -DTARGET_HAS_VPP
+ifeq ($(TARGET_HAS_ISV),true)
+LOCAL_CFLAGS += -DTARGET_HAS_ISV
 endif
 LOCAL_CFLAGS += -DLOG_TAG=\"MultiDisplay\"
 

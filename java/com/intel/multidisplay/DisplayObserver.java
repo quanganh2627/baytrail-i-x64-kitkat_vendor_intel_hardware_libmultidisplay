@@ -32,7 +32,6 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.UEventObserver;
 import android.util.Slog;
-import android.media.AudioManager;
 import android.telephony.TelephonyManager;
 import android.provider.Settings;
 import android.content.ContentResolver;
@@ -40,8 +39,6 @@ import android.database.ContentObserver;
 
 import android.hardware.display.DisplayManager;
 import android.hardware.display.WifiDisplayStatus;
-import java.io.FileReader;
-import java.io.FileNotFoundException;
 import java.util.List;
 import com.intel.multidisplay.DisplaySetting;
 
@@ -57,10 +54,10 @@ public class DisplayObserver {
     private static final boolean LOG = true;
 
     // Assuming unplugged (i.e. 0) for initial state, assign initial state in init() below.
-    private final int ROUTE_TO_SPEAKER = 0;
-    private final int ROUTE_TO_HDMI    = 1;
-    private int mAudioRoute =  ROUTE_TO_SPEAKER;
-    private int mPreAudioRoute = -1;
+    //private final int ROUTE_TO_SPEAKER = 0;
+    //private final int ROUTE_TO_HDMI    = 1;
+    //private int mAudioRoute =  ROUTE_TO_SPEAKER;
+    //private int mPreAudioRoute = -1;
     private String mHDMIName;
     private int mBootStatus = 1;
     private int mHoriRatio = 5;
@@ -84,7 +81,7 @@ public class DisplayObserver {
     private int mVppStatus = 0;
 
     //Message need to handle
-    private final int MSG_AUDIO_ROUTER_CHANGE = 0;
+    //private final int MSG_AUDIO_ROUTER_CHANGE = 0;
     private final int MSG_EDP_CONNECTION_CHANGE = 1;
     private final int MSG_ENABLE_EDP_SETTING = 2;
     private final int MSG_INPUT_TIMEOUT = 3;
@@ -187,13 +184,13 @@ public class DisplayObserver {
         if ((mode & mDs.HDMI_CONNECTED_BIT) == mDs.HDMI_CONNECTED_BIT) {
             mHDMIConnected = true;
             mEDPlugIn = mDs.EDP_HDMI;
-            switchAudio("HOTPLUG", ROUTE_TO_HDMI);
+            //switchAudio("HOTPLUG", ROUTE_TO_HDMI);
         } else {
             if((mode & mDs.DVI_CONNECTED_BIT) == mDs.DVI_CONNECTED_BIT) {
                 mDVIConnected = true;
                 mEDPlugIn = mDs.EDP_DVI;
             }
-            switchAudio("HOTPLUG", ROUTE_TO_SPEAKER);
+            //switchAudio("HOTPLUG", ROUTE_TO_SPEAKER);
         }
         logv("MDS Mode: " + mode + ", HDMI: " + mHDMIConnected + ", DVI: " + mDVIConnected);
     }
@@ -247,7 +244,7 @@ public class DisplayObserver {
                     mHandler.sendMessage(mHandler.obtainMessage(
                                 MSG_EDP_CONNECTION_CHANGE,
                                 mDs.EDP_HDMI, (mHDMIConnected ? 1 : 0)));
-                    switchAudio("HOTPLUG", (mHDMIConnected ? ROUTE_TO_HDMI : ROUTE_TO_SPEAKER));
+                    //switchAudio("HOTPLUG", (mHDMIConnected ? ROUTE_TO_HDMI : ROUTE_TO_SPEAKER));
                     return true;
                 }
                 // Check DVI status if HDMI isn't connected
@@ -266,14 +263,14 @@ public class DisplayObserver {
                         mHandler.sendMessage(mHandler.obtainMessage(
                                     MSG_EDP_CONNECTION_CHANGE,
                                     mDs.EDP_DVI, (mDVIConnected ? 1 : 0)));
-                        switchAudio("HOTPLUG", ROUTE_TO_SPEAKER); // still route to speaker
+                        //switchAudio("HOTPLUG", ROUTE_TO_SPEAKER); // still route to speaker
                     }
                 }
             }
             return true;
         };
     };
-
+/*
     private synchronized void switchAudio(String newName, int newState) {
         // Retain only relevant bits
         int delay = 0;
@@ -325,10 +322,10 @@ public class DisplayObserver {
         // Should we require a permission?
         ActivityManagerNative.broadcastStickyIntent(intent, name, 0);
     }
-
+*/
     // Don't allow to set HDMI setting, original patch is  167949
     private final void enableHdmiSetting(int enable) {
-        logv("Enable/Disable External DP Mode Setting " + enable);
+        logv("Enable Disable External DP Mode Setting " + enable);
         Intent outIntent = new Intent(mDs.MDS_ALLOW_MODE_SET);
         Bundle mBundle = new Bundle();
         mBundle.putBoolean("allowModeSet", (enable == 0 ? false : true));
@@ -356,10 +353,10 @@ public class DisplayObserver {
         public void handleMessage(Message msg) {
             //logv("Handle message " + (String)msg.what);
             switch(msg.what) {
-            case MSG_AUDIO_ROUTER_CHANGE:
-                sendAudioIntents(msg.arg1, msg.arg2, (String)msg.obj);
-                mWakeLock.release();
-                break;
+            //case MSG_AUDIO_ROUTER_CHANGE:
+            //    sendAudioIntents(msg.arg1, msg.arg2, (String)msg.obj);
+            //    mWakeLock.release();
+            //    break;
             case MSG_EDP_CONNECTION_CHANGE:
                 sendEdpConnectionChangeIntent(msg.arg1, msg.arg2);
                 break;

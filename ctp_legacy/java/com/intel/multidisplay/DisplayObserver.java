@@ -32,7 +32,7 @@ import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import android.os.UEventObserver;
 import android.util.Slog;
-import android.media.AudioManager;
+//import android.media.AudioManager;
 import android.telephony.TelephonyManager;
 import android.provider.Settings;
 import android.content.ContentResolver;
@@ -56,13 +56,13 @@ public class DisplayObserver extends UEventObserver {
     private final String HDMI_UEVENT_MATCH = "DEVPATH=/devices/pci0000:00/0000:00:02.0/drm/card0";
 
     // Assuming unplugged (i.e. 0) for initial state, assign initial state in init() below.
-    private final int ROUTE_TO_SPEAKER = 0;
-    private final int ROUTE_TO_HDMI    = 1;
+    //private final int ROUTE_TO_SPEAKER = 0;
+    //private final int ROUTE_TO_HDMI    = 1;
     private final int HDMI_HOTPLUG     = 2;
     private final int HDMI_POWER_OFF   = 3;
     private final int CHECK_INCALLSCREEN_ACTIVE = 4;
-    private int mAudioRoute =  ROUTE_TO_SPEAKER;
-    private int mPreAudioRoute = -1;
+    //private int mAudioRoute =  ROUTE_TO_SPEAKER;
+    //private int mPreAudioRoute = -1;
     private String mHDMIName;
     private int mEdidChange = 0;
     private int mDisplayBoot = 1;
@@ -83,7 +83,7 @@ public class DisplayObserver extends UEventObserver {
     private int mDisplayCapability = 0;
 
     //Message need to handle
-    private final int HDMI_STATE_CHANGE = 0;
+    //private final int HDMI_STATE_CHANGE = 0;
 
     private static final String HDMI_GET_INFO = "android.hdmi.GET_HDMI_INFO";
     private static final String HDMI_SET_INFO = "android.hdmi.SET_HDMI_INFO";
@@ -116,10 +116,10 @@ public class DisplayObserver extends UEventObserver {
         if (checkDisplayCapability(mDs.HW_SUPPORT_HDMI) &&
                 ((mDs.getMode() & mDs.HDMI_MODE_BIT) == mDs.HDMI_MODE_BIT)) {
             mHDMIConnected = 1;
-            update("HOTPLUG", ROUTE_TO_HDMI);
+            //update("HOTPLUG", ROUTE_TO_HDMI);
         } else {
             mHDMIConnected = 0;
-            update("HOTPLUG", ROUTE_TO_SPEAKER);
+            //update("HOTPLUG", ROUTE_TO_SPEAKER);
         }
     }
 
@@ -179,7 +179,7 @@ public class DisplayObserver extends UEventObserver {
             mHandler.sendMessageDelayed(msg, delay);
         }
     }
-
+/*
     private synchronized void update(String newName, int newState) {
         // Retain only relevant bits
         int delay = 0;
@@ -223,7 +223,7 @@ public class DisplayObserver extends UEventObserver {
         // Should we require a permission?
         ActivityManagerNative.broadcastStickyIntent(intent, Name, 0);
     }
-
+*/
     private final void preNotifyHotplug(int event) {
             /* no matter plug in or out, remove previous power off msg */
             mHandler.removeMessages(HDMI_POWER_OFF);
@@ -237,7 +237,7 @@ public class DisplayObserver extends UEventObserver {
     private final void postNotifyHotplug(int event) {
         /* plug out event */
         if (event == 0) {
-            update("HOTPLUG", ROUTE_TO_SPEAKER);
+            //update("HOTPLUG", ROUTE_TO_SPEAKER);
 
             /*
              * delay 1s to power off in case
@@ -245,8 +245,8 @@ public class DisplayObserver extends UEventObserver {
              */
             Message mmsg = mHandler.obtainMessage(HDMI_POWER_OFF);
             mHandler.sendMessageDelayed(mmsg, 1000);
-        } else
-            update("HOTPLUG", ROUTE_TO_HDMI);
+        }// else
+            //update("HOTPLUG", ROUTE_TO_HDMI);
     }
 
     private final void setHdmiPolicy(int policy) {
@@ -264,10 +264,10 @@ public class DisplayObserver extends UEventObserver {
         public void handleMessage(Message msg) {
             //logv("handle message = " + (String)msg.obj);
             switch(msg.what) {
-            case HDMI_STATE_CHANGE:
-                sendIntents(msg.arg1, msg.arg2, (String)msg.obj);
-                mWakeLock.release();
-                break;
+            //case HDMI_STATE_CHANGE:
+            //    sendIntents(msg.arg1, msg.arg2, (String)msg.obj);
+            //    mWakeLock.release();
+            //    break;
             case HDMI_HOTPLUG:
                 synchronized(this) {
                     /* filter before msg which does not match with latest event */
