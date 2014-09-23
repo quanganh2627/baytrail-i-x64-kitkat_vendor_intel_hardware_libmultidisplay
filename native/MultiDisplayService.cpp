@@ -503,7 +503,7 @@ status_t BnMDService::onTransact(
 
 
 MultiDisplayService::MultiDisplayService() {
-    LOGI("%s: create a MultiDisplay service %p", __func__, this);
+    ALOGI("%s: create a MultiDisplay service %p", __func__, this);
     sp<MultiDisplayComposer> com   = new MultiDisplayComposer();
     new MultiDisplayHdmiControlImpl(com);
     new MultiDisplayVideoControlImpl(com);
@@ -517,7 +517,7 @@ MultiDisplayService::MultiDisplayService() {
 }
 
 MultiDisplayService::~MultiDisplayService() {
-    LOGV("%s: MultiDisplay service %p is destoryed", __func__, this);
+    ALOGV("%s: MultiDisplay service %p is destoryed", __func__, this);
 }
 
 void MultiDisplayService::instantiate() {

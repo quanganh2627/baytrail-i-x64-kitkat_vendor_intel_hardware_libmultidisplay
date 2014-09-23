@@ -31,7 +31,7 @@ namespace intel {
 #define MDC_CHECK_IMDC() \
 do { \
     if (mIMDComposer == NULL) { \
-        LOGE("%s: IMDSComposer is null", __func__); \
+        ALOGE("%s: IMDSComposer is null", __func__); \
         return MDS_ERROR; \
     } \
 } while(0)
@@ -40,12 +40,12 @@ MultiDisplayClient::MultiDisplayClient() {
     mIMDComposer = NULL;
     sp<IServiceManager> sm = defaultServiceManager();
     if (sm == NULL) {
-        LOGE("%s: Fail to get service manager", __func__);
+        ALOGE("%s: Fail to get service manager", __func__);
         return;
     }
     sp<IBinder> service = sm->getService(String16(INTEL_MDS_SERVICE_NAME));
     if (service == NULL) {
-        LOGE("%s: Fail to get MDS service", __func__);
+        ALOGE("%s: Fail to get MDS service", __func__);
         return;
     } else
         mIMDComposer = interface_cast<IMultiDisplayComposer>(service);
@@ -53,7 +53,7 @@ MultiDisplayClient::MultiDisplayClient() {
 }
 
 MultiDisplayClient::~MultiDisplayClient() {
-    LOGV("MDSClient is destroyed, %p", this);
+    ALOGV("MDSClient is destroyed, %p", this);
     mIMDComposer = NULL;
 }
 

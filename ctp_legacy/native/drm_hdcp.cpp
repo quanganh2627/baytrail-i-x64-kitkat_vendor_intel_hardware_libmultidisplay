@@ -57,13 +57,13 @@ static bool drm_hdcp_isSupported()
 {
     int fd = drm_get_dev_fd();
     if (fd <= 0) {
-        LOGE("Invalid DRM file descriptor.");
+        ALOGE("Invalid DRM file descriptor.");
         return false;
     }
     unsigned int caps = 0;
     int ret = drmCommandRead(fd, DRM_PSB_QUERY_HDCP, &caps, sizeof(caps));
     if (ret != 0) {
-        LOGE("Failed to query HDCP capability.");
+        ALOGE("Failed to query HDCP capability.");
         return false;
     }
     return caps != 0;
@@ -74,12 +74,12 @@ static bool drm_hdcp_disable_display_ied()
     int fd, ret;
     fd = drm_get_dev_fd();
     if (fd <= 0) {
-        LOGE("Invalid DRM file descriptor.");
+        ALOGE("Invalid DRM file descriptor.");
         return false;
     }
     ret = drmCommandNone(fd, DRM_PSB_HDCP_DISPLAY_IED_OFF);
     if (ret != 0) {
-        LOGE("Failed to disable HDCP-Display-IED.");
+        ALOGE("Failed to disable HDCP-Display-IED.");
         return false;
     }
     return true;
@@ -90,12 +90,12 @@ static bool drm_hdcp_enable_display_ied()
     int fd, ret;
     fd = drm_get_dev_fd();
     if (fd <= 0) {
-        LOGE("Invalid DRM file descriptor.");
+        ALOGE("Invalid DRM file descriptor.");
         return false;
     }
     ret = drmCommandNone(fd, DRM_PSB_HDCP_DISPLAY_IED_ON);
     if (ret != 0) {
-        LOGE("Failed to enable HDCP-Display-IED.");
+        ALOGE("Failed to enable HDCP-Display-IED.");
         return false;
     }
     return true;
@@ -106,12 +106,12 @@ static bool drm_hdcp_enable()
 {
     int fd = drm_get_dev_fd();
     if (fd <= 0) {
-        LOGE("Invalid DRM file descriptor.");
+        ALOGE("Invalid DRM file descriptor.");
         return false;
     }
     int ret = drmCommandNone(fd, DRM_PSB_ENABLE_HDCP);
     if (ret != 0) {
-        LOGE("Failed to enable HDCP.");
+        ALOGE("Failed to enable HDCP.");
         return false;
     }
     return true;
@@ -121,12 +121,12 @@ static bool drm_hdcp_disable()
 {
     int fd = drm_get_dev_fd();
     if (fd <= 0) {
-        LOGE("Invalid DRM file descriptor.");
+        ALOGE("Invalid DRM file descriptor.");
         return false;
     }
     int ret = drmCommandNone(fd, DRM_PSB_DISABLE_HDCP);
     if (ret != 0) {
-        LOGW("Failed to disable HDCP.");
+        ALOGW("Failed to disable HDCP.");
         return false;
     }
     return true;
@@ -136,20 +136,20 @@ static bool drm_hdcp_isAuthenticated()
 {
     int fd = drm_get_dev_fd();
     if (fd <= 0) {
-        LOGE("Invalid DRM file descriptor.");
+        ALOGE("Invalid DRM file descriptor.");
         return false;
     }
     unsigned int match = 0;
     int ret = drmCommandRead(fd, DRM_PSB_GET_HDCP_LINK_STATUS, &match, sizeof(match));
     if (ret != 0) {
-        LOGE("Failed to check hdcp link status.");
+        ALOGE("Failed to check hdcp link status.");
         return false;
     }
     if (match) {
-        LOGV("HDCP is authenticated.");
+        ALOGV("HDCP is authenticated.");
         return true;
     } else {
-        LOGE("HDCP is not authenticated.");
+        ALOGE("HDCP is not authenticated.");
         return false;
     }
 }
@@ -163,12 +163,12 @@ static bool drm_check_ied_session()
     int fd, offset;
     fd = drm_get_dev_fd();
     if (fd <= 0) {
-        LOGE("Invalid DRM file descriptor.");
+        ALOGE("Invalid DRM file descriptor.");
         return false;
     }
     offset = drm_get_ioctl_offset();
     if (offset <= 0) {
-        LOGE("Invalid IOCTL offset.");
+        ALOGE("Invalid IOCTL offset.");
         return false;
     }
 
@@ -177,14 +177,14 @@ static bool drm_check_ied_session()
     ret = drmCommandWriteRead(fd, offset, &arg, sizeof(arg));
 
     if (ret != 0) {
-        LOGE("Failed to get IED session status.");
+        ALOGE("Failed to get IED session status.");
         return false;
     }
     if (temp == 1) {
-        LOGI("IED session is active.");
+        ALOGI("IED session is active.");
         return true;
     } else {
-        LOGI("IED session is inactive.");
+        ALOGI("IED session is inactive.");
         return false;
     }
 }
@@ -194,7 +194,7 @@ static void drm_hdcp_check_link_status(union sigval sig)
     bool b = false;
     b = drm_hdcp_isAuthenticated();
     if (!b) {
-	    LOGI("HDCP is not authenticated, restarting authentication process.");
+	    ALOGI("HDCP is not authenticated, restarting authentication process.");
 	    drm_hdcp_enable_hdcp_work();
     }
 }
@@ -206,7 +206,7 @@ static bool drm_hdcp_start_link_checking()
     struct itimerspec its;
 
     if (g_hdcpStatusCheckTimer) {
-        LOGW("HDCP status checking timer has been created.");
+        ALOGW("HDCP status checking timer has been created.");
         return false;
     }
 
@@ -217,7 +217,7 @@ static bool drm_hdcp_start_link_checking()
 
     ret = timer_create(CLOCK_REALTIME, &sev, &g_hdcpStatusCheckTimer);
     if (ret != 0) {
-        LOGE("Failed to create HDCP status checking timer.");
+        ALOGE("Failed to create HDCP status checking timer.");
         return false;
     }
 
@@ -228,7 +228,7 @@ static bool drm_hdcp_start_link_checking()
 
     ret = timer_settime(g_hdcpStatusCheckTimer, TIMER_ABSTIME, &its, NULL);
     if (ret != 0) {
-        LOGE("Failed to set HDCP status checking timer.");
+        ALOGE("Failed to set HDCP status checking timer.");
         timer_delete(g_hdcpStatusCheckTimer);
         g_hdcpStatusCheckTimer = 0;
         return false;
@@ -242,7 +242,7 @@ static void drm_hdcp_stop_link_checking()
     struct itimerspec its;
 
     if (g_hdcpStatusCheckTimer == 0) {
-        LOGV("HDCP status checking timer has been deleted.");
+        ALOGV("HDCP status checking timer has been deleted.");
         return;
     }
 
@@ -253,7 +253,7 @@ static void drm_hdcp_stop_link_checking()
 
     ret = timer_settime(g_hdcpStatusCheckTimer, TIMER_ABSTIME, &its, NULL);
     if (ret != 0) {
-        LOGE("Failed to reset HDCP status checking timer.");
+        ALOGE("Failed to reset HDCP status checking timer.");
     }
 
     timer_delete(g_hdcpStatusCheckTimer);
@@ -262,15 +262,15 @@ static void drm_hdcp_stop_link_checking()
 
 static bool drm_hdcp_enable_and_check()
 {
-    LOGV("Entering %s", __func__);
+    ALOGV("Entering %s", __func__);
     bool ret = false;
     int i, j;
 
     for (i = 0; i < HDCP_ENABLE_NUM_OF_TRY; i++) {
-        LOGV("Try to enable and check HDCP at iteration %d", i);
+        ALOGV("Try to enable and check HDCP at iteration %d", i);
         if (drm_hdcp_enable() == false) {
             if (drm_hdmi_getConnectionStatus() == 0) {
-                LOGW("HDMI is disconnected, abort HDCP enabling and checking.");
+                ALOGW("HDMI is disconnected, abort HDCP enabling and checking.");
                 return true;
             }
         } else {
@@ -289,7 +289,7 @@ static bool drm_hdcp_enable_and_check()
         usleep(HDCP_ENABLE_DELAY_USEC);
     }
 
-    LOGV("Leaving %s", __func__);
+    ALOGV("Leaving %s", __func__);
     return ret;
 }
 
@@ -298,19 +298,19 @@ static bool drm_hdcp_enable_hdcp_work()
     bool ret = true;
     sec_result_t res;
 
-    LOGV("Disabling Display IED ");
+    ALOGV("Disabling Display IED ");
     if (!drm_hdcp_disable_display_ied()) {
-        LOGE("drm_hdcp_disable_display_ied FAILED!!!");
+        ALOGE("drm_hdcp_disable_display_ied FAILED!!!");
     }
 
     ret = drm_hdcp_enable_and_check();
     if (!ret) {
         // Don't return here as HDCP can be re-authenticated during periodic time check.
-        LOGI("HDCP authentication will be restarted in %d seconds.", HDCP_STATUS_CHECK_INTERVAL);
+        ALOGI("HDCP authentication will be restarted in %d seconds.", HDCP_STATUS_CHECK_INTERVAL);
     }
-    LOGV("Re-enabling Display IED ");
+    ALOGV("Re-enabling Display IED ");
     if (!drm_hdcp_enable_display_ied()) {
-        LOGE("drm_hdcp_enable_display_ied FAILED!!!");
+        ALOGE("drm_hdcp_enable_display_ied FAILED!!!");
     }
 
     return ret;
@@ -318,25 +318,25 @@ static bool drm_hdcp_enable_hdcp_work()
 
 void drm_hdcp_disable_hdcp(bool connected)
 {
-    LOGV("Entering %s", __func__);
+    ALOGV("Entering %s", __func__);
     drm_hdcp_stop_link_checking();
     if (connected) {
         // disable HDCP if HDMI is  connected.
         drm_hdcp_disable();
     }
 
-    LOGV("Leaving %s", __func__);
+    ALOGV("Leaving %s", __func__);
 }
 
 bool drm_hdcp_enable_hdcp()
 {
-    LOGV("Entering %s", __func__);
+    ALOGV("Entering %s", __func__);
     bool ret = true;
 
     char prop[PROPERTY_VALUE_MAX];
     if (property_get("debug.mds.hdcp.enable", prop, "1") > 0) {
         if (atoi(prop) == 0) {
-            LOGV("HDCP is disabled");
+            ALOGV("HDCP is disabled");
             return false;
         }
     }
@@ -345,7 +345,7 @@ bool drm_hdcp_enable_hdcp()
     //which may not return BKsv as it has not received any frame when IED is enabled.
     //if (drm_hdcp_isSupported() == false) {
     if (false) {
-        LOGW("HDCP is not supported, abort HDCP enabling.");
+        ALOGW("HDCP is not supported, abort HDCP enabling.");
         ret = false;
         // this may be fake indication during quick plug/unplug cycle, and unplug event may be filtered out, so status timer still needs to be set.
     } else {
@@ -355,7 +355,7 @@ bool drm_hdcp_enable_hdcp()
     // Ignore return value
     drm_hdcp_start_link_checking();
 
-    LOGV("Leaving %s", __func__);
+    ALOGV("Leaving %s", __func__);
     // Return success as HDCP authentication failure may be recoverable.
     return ret;
 }

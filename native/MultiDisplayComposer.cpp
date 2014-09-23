@@ -36,7 +36,7 @@ namespace intel {
 #define MDC_CHECK_INIT() \
 do { \
     if (mDrmInit == false) { \
-        LOGE("%s: drm_init fails", __func__); \
+        ALOGE("%s: drm_init fails", __func__); \
         return NO_INIT; \
     } \
 } while(0)
@@ -120,7 +120,7 @@ MultiDisplayComposer::~MultiDisplayComposer() {
 
 void MultiDisplayComposer::init() {
     if (!drm_init()) {
-        LOGE("Fail to init drm");
+        ALOGE("Fail to init drm");
         return;
     }
 
@@ -681,7 +681,7 @@ status_t MultiDisplayComposer::setVppState_l(
         }
         ALOGV("Leaving %s, %d", __func__, mDisplayId);
     } else {
-        LOGI("%s: VPP setting changed, ready to broadcast message.", __func__);
+        ALOGI("%s: VPP setting changed, ready to broadcast message.", __func__);
         mMode |= MDS_VPP_CHANGED;
         broadcastMessageLocked((int)MDS_MSG_MODE_CHANGE, &mMode, sizeof(mMode), false);
         mMode &= ~MDS_VPP_CHANGED;

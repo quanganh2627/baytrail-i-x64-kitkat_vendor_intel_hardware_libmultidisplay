@@ -103,7 +103,7 @@ int BpMultiDisplayComposer::registerListener(
         sp<IExtendDisplayListener> listener, void *handle, const char* name, int msg) {
     Parcel data, reply;
     if (!name || msg <= 0) {
-        LOGE("%s: Parameter is null", __func__);
+        ALOGE("%s: Parameter is null", __func__);
         return MDS_ERROR;
     }
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
@@ -187,7 +187,7 @@ int BpMultiDisplayComposer::getVideoInfo(int* dw, int* dh, int* fps, int* interl
     data.writeInterfaceToken(IMultiDisplayComposer::getInterfaceDescriptor());
     if (dw == NULL || dh == NULL
             || fps == NULL || interlace == NULL) {
-        LOGE("%s: parameter is null", __func__);
+        ALOGE("%s: parameter is null", __func__);
         return MDS_ERROR;
     }
     remote()->transact(MDS_GET_VIDEO_INFO, data, &reply);

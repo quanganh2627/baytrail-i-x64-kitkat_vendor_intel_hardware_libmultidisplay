@@ -57,26 +57,26 @@ private:
 
 JNIMDSListener::JNIMDSListener(JNIEnv* env, jobject thiz, jobject serviceObj)
 {
-    LOGI("Creating JNI MDS listener.");
+    ALOGI("Creating JNI MDS listener.");
     jclass clazz = env->FindClass(CLASS_PATH_NAME);
     mOnMdsMessageMethodID = NULL;
     if (clazz == NULL) {
-        LOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
+        ALOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
     } else {
         mOnMdsMessageMethodID = env->GetMethodID(clazz, "onMdsMessage", "(II)V");
         if (mOnMdsMessageMethodID == NULL) {
-            LOGE("%s: Fail to find onMdsMessage method.", __func__);
+            ALOGE("%s: Fail to find onMdsMessage method.", __func__);
         }
     }
 
     mServiceObj  = env->NewGlobalRef(serviceObj);
     if (!mServiceObj) {
-        LOGE("%s: Fail to reference serviceObj!", __func__);
+        ALOGE("%s: Fail to reference serviceObj!", __func__);
     }
 }
 
 JNIMDSListener::~JNIMDSListener() {
-    LOGI("%s: Releasing MDS listener.", __func__);
+    ALOGI("%s: Releasing MDS listener.", __func__);
     JNIEnv *env = AndroidRuntime::getJNIEnv();
     if (env) {
         // remove global reference
@@ -88,22 +88,22 @@ status_t JNIMDSListener::onMdsMessage(int msg, void* value, int size)
 {
     JNIEnv *env = AndroidRuntime::getJNIEnv();
     if (env == NULL) {
-        LOGE("%s: Faild to get JNI Env.", __func__);
+        ALOGE("%s: Faild to get JNI Env.", __func__);
         return NO_INIT;
     }
 
     if (!mServiceObj || !mOnMdsMessageMethodID) {
-        LOGE("%s: Invalid service object or method ID", __func__);
+        ALOGE("%s: Invalid service object or method ID", __func__);
         return NO_INIT;
     }
 
     if (msg == (int)MDS_MSG_MODE_CHANGE) {
-        LOGV("Get a MDS mode change message %d, 0x%x", msg, *((int*)value));
+        ALOGV("Get a MDS mode change message %d, 0x%x", msg, *((int*)value));
         env->CallVoidMethod(mServiceObj, mOnMdsMessageMethodID, (int)msg, *((int*)value));
     }
 
     if (env->ExceptionCheck()) {
-        LOGW("%s: Exception occurred while posting message.", __func__);
+        ALOGW("%s: Exception occurred while posting message.", __func__);
         env->ExceptionClear();
     }
 
@@ -114,24 +114,24 @@ static jboolean MDS_InitMDSClient(JNIEnv* env, jobject thiz, jobject serviceObj)
 {
     AutoMutex _l(gMutex);
     if (env == NULL || thiz == NULL || serviceObj == NULL) {
-        LOGE("%s: Invalid jvm parameters.", __func__);
+        ALOGE("%s: Invalid jvm parameters.", __func__);
         return false;
     }
 
     sp<IServiceManager> sm = defaultServiceManager();
     if (sm == NULL) {
-        LOGE("%s: Fail to get service manager", __func__);
+        ALOGE("%s: Fail to get service manager", __func__);
         return false;
     }
     gMds = interface_cast<IMDService>(sm->getService(String16(INTEL_MDS_SERVICE_NAME)));
     if (gMds == NULL) {
-        LOGE("%s: Failed to get MDS service", __func__);
+        ALOGE("%s: Failed to get MDS service", __func__);
         return false;
     }
 
     gListener = new JNIMDSListener(env, thiz, serviceObj);
     if (gListener == NULL) {
-        LOGE("%s: Failed to create JNIMDSListener instance.", __func__);
+        ALOGE("%s: Failed to create JNIMDSListener instance.", __func__);
         return false;
     }
     sp<IMultiDisplaySinkRegistrar> sinkRegistrar = NULL;
@@ -153,7 +153,7 @@ static jboolean MDS_DeInitMDSClient(JNIEnv* env, jobject obj)
     }
     gListenerId = -1;
     gListener   = NULL;
-    LOGI("%s: Release MultiDisplay JNI client.", __func__);
+    ALOGI("%s: Release MultiDisplay JNI client.", __func__);
     return true;
 }
 
@@ -325,14 +325,14 @@ static JNINativeMethod sMethods[] = {
 
 int register_intel_multidisplay_DisplaySetting(JNIEnv* env)
 {
-    LOGV("Entering %s", __func__);
+    ALOGV("Entering %s", __func__);
     jclass clazz = env->FindClass(CLASS_PATH_NAME);
     if (clazz == NULL) {
-        LOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
+        ALOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
         return -1;
     }
     int ret = jniRegisterNativeMethods(env, CLASS_PATH_NAME, sMethods, NELEM(sMethods));
-    LOGV("Leaving %s, return = %d", __func__, ret);
+    ALOGV("Leaving %s, return = %d", __func__, ret);
     return ret;
 }
 

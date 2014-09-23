@@ -33,13 +33,13 @@ namespace intel {
 #define MDS_CHECK_MDS() \
 do { \
     if (mMDC == NULL) { \
-        LOGE("%s: MDSComposer is null", __func__); \
+        ALOGE("%s: MDSComposer is null", __func__); \
         return MDS_ERROR; \
     } \
 } while(0)
 
 MultiDisplayService::MultiDisplayService() {
-    LOGV("%s: create a MultiDisplay service, %p", __func__, this);
+    ALOGV("%s: create a MultiDisplay service, %p", __func__, this);
     mMDC = new MultiDisplayComposer();
 }
 

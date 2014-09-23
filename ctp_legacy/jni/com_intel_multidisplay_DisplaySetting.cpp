@@ -53,26 +53,26 @@ private:
 
 JNIMDSListener::JNIMDSListener(JNIEnv* env, jobject thiz, jobject serviceObj)
 {
-    LOGI("%s: Creating MDS listener.", __func__);
+    ALOGI("%s: Creating MDS listener.", __func__);
     jclass clazz = env->FindClass(CLASS_PATH_NAME);
     mOnMdsMessageMethodID = NULL;
     if (clazz == NULL) {
-        LOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
+        ALOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
     } else {
         mOnMdsMessageMethodID = env->GetMethodID(clazz, "onMdsMessage", "(II)V");
         if (mOnMdsMessageMethodID == NULL) {
-            LOGE("%s: Fail to find onMdsMessage method.", __func__);
+            ALOGE("%s: Fail to find onMdsMessage method.", __func__);
         }
     }
 
     mServiceObj  = env->NewGlobalRef(serviceObj);
     if (!mServiceObj) {
-        LOGE("%s: Fail to reference serviceObj!", __func__);
+        ALOGE("%s: Fail to reference serviceObj!", __func__);
     }
 }
 
 JNIMDSListener::~JNIMDSListener() {
-    LOGI("%s: Releasing MDS listener.", __func__);
+    ALOGI("%s: Releasing MDS listener.", __func__);
     JNIEnv *env = AndroidRuntime::getJNIEnv();
     if (env) {
         // remove global reference
@@ -82,56 +82,56 @@ JNIMDSListener::~JNIMDSListener() {
 
 int JNIMDSListener::onMdsMessage(int msg, void* value, int size)
 {
-    LOGV("Entering %s", __func__);
+    ALOGV("Entering %s", __func__);
 
     JNIEnv *env = AndroidRuntime::getJNIEnv();
     if (env == NULL) {
-        LOGE("%s: Faild to get JNI Env.", __func__);
+        ALOGE("%s: Faild to get JNI Env.", __func__);
         return MDS_ERROR;
     }
 
     if (!mServiceObj || !mOnMdsMessageMethodID) {
-        LOGE("%s: Invalid service object or method ID", __func__);
+        ALOGE("%s: Invalid service object or method ID", __func__);
         return MDS_ERROR;
     }
 
     if (msg == MDS_MODE_CHANGE && size == sizeof(int)) {
-        LOGV("%s: Get message from MDS, %d, 0x%x", __func__, msg, *((int*)value));
+        ALOGV("%s: Get message from MDS, %d, 0x%x", __func__, msg, *((int*)value));
         env->CallVoidMethod(mServiceObj, mOnMdsMessageMethodID, msg, *((int*)value));
     }
 
     if (env->ExceptionCheck()) {
-        LOGW("%s: Exception occurred while posting message.", __func__);
+        ALOGW("%s: Exception occurred while posting message.", __func__);
         env->ExceptionClear();
     }
 
-    LOGV("Leaving %s", __func__);
+    ALOGV("Leaving %s", __func__);
     return MDS_NO_ERROR;
 }
 
 static jboolean MDS_InitMDSClient(JNIEnv* env, jobject thiz, jobject serviceObj)
 {
     AutoMutex _l(gMutex);
-    LOGI("%s: creating MultiDisplay JNI client.", __func__);
+    ALOGI("%s: creating MultiDisplay JNI client.", __func__);
     if (gMDClient) {
-        LOGW("%s: MultiDisplay JNI client has been created.", __func__);
+        ALOGW("%s: MultiDisplay JNI client has been created.", __func__);
         return true;
     }
 
     if (env == NULL || thiz == NULL || serviceObj == NULL) {
-        LOGE("%s: Invalid input parameters.", __func__);
+        ALOGE("%s: Invalid input parameters.", __func__);
         return false;
     }
 
     gMDClient = new MultiDisplayClient();
     if (gMDClient == NULL) {
-        LOGE("%s: Failed to create MultiDisplayClient instance.", __func__);
+        ALOGE("%s: Failed to create MultiDisplayClient instance.", __func__);
         return false;
     }
 
     gListener = new JNIMDSListener(env, thiz, serviceObj);
     if (gListener == NULL) {
-        LOGE("%s: Failed to create JNIMDSListener instance.", __func__);
+        ALOGE("%s: Failed to create JNIMDSListener instance.", __func__);
         delete gMDClient;
         gMDClient = NULL;
         return false;
@@ -144,7 +144,7 @@ static jboolean MDS_InitMDSClient(JNIEnv* env, jobject thiz, jobject serviceObj)
 static jboolean MDS_DeInitMDSClient(JNIEnv* env, jobject obj)
 {
     AutoMutex _l(gMutex);
-    LOGI("%s: Releasing MultiDisplay JNI client.", __func__);
+    ALOGI("%s: Releasing MultiDisplay JNI client.", __func__);
     if (gListener != NULL && gMDClient != NULL) {
         gMDClient->unregisterListener();
         gListener = NULL;
@@ -282,14 +282,14 @@ static JNINativeMethod sMethods[] = {
 
 int register_intel_multidisplay_DisplaySetting(JNIEnv* env)
 {
-    LOGD("Entering %s", __func__);
+    ALOGD("Entering %s", __func__);
     jclass clazz = env->FindClass(CLASS_PATH_NAME);
     if (clazz == NULL) {
-        LOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
+        ALOGE("%s: Fail to find class %s", __func__, CLASS_PATH_NAME);
         return -1;
     }
     int ret = jniRegisterNativeMethods(env, CLASS_PATH_NAME, sMethods, NELEM(sMethods));
-    LOGD("Leaving %s, return = %d", __func__, ret);
+    ALOGD("Leaving %s, return = %d", __func__, ret);
     return ret;
 }
 
