@@ -647,7 +647,7 @@ bool MultiDisplayComposer::threadLoop() {
 
 bool MultiDisplayComposer::isHdmiTimingDynamicSettingEnable_l() {
     // Presentation mode checking depends on GFX SF patch
-    return true;
+    return false;
     //Disable dynamic setting for video playback
     if (mSurfaceComposer == NULL) {
         const sp<IServiceManager> sm = defaultServiceManager();
