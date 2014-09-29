@@ -389,10 +389,10 @@ static int parseHdmiTimings() {
     int validCnt = 0;
     // get resolution of each mode
     for (int i = 0; i < connector->count_modes; i++) {
-        unsigned int tmpW = connector->modes[i].hdisplay;
-        unsigned int tmpV = connector->modes[i].vdisplay;
+        int tmpW = connector->modes[i].hdisplay;
+        int tmpV = connector->modes[i].vdisplay;
         unsigned int tmpR = connector->modes[i].vrefresh;
-        unsigned int tmpF = connector->modes[i].flags;
+        int tmpF = connector->modes[i].flags;
 #ifdef VPG_DRM
         unsigned int tmpA = connector->modes[i].picture_aspect_ratio;
 #endif
@@ -402,7 +402,10 @@ static int parseHdmiTimings() {
             if (bak != NULL &&
                     bak->width == tmpW && bak->height == tmpV &&
 #ifndef VPG_DRM
-                    bak->refresh == tmpR && bak->flags == tmpF) {
+                    (bak->flags & DRM_MODE_FLAG_INTERLACE) == (tmpF & DRM_MODE_FLAG_INTERLACE) &&
+                    (bak->flags & DRM_MODE_FLAG_PAR16_9) == (tmpF & DRM_MODE_FLAG_PAR16_9) &&
+                    (bak->flags & DRM_MODE_FLAG_PAR4_3) == (tmpF & DRM_MODE_FLAG_PAR4_3) &&
+                    bak->refresh == tmpR) {
 #else
                     bak->refresh == tmpR && bak->flags == tmpF &&
                     bak->ratio == tmpA ) {
