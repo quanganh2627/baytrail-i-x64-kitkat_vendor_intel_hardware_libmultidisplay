@@ -44,6 +44,13 @@ import java.util.List;
 import com.intel.multidisplay.DisplaySetting;
 
 import android.view.WindowManagerPolicy;
+import android.view.WindowManagerGlobal;
+import android.view.IWindowManager;
+import android.os.RemoteException;
+
+import com.android.internal.view.RotationPolicy;
+import android.content.res.Configuration;
+import android.view.Surface;
 
 
 /**
@@ -58,6 +65,7 @@ public class DisplayObserver extends UEventObserver {
     // Assuming unplugged (i.e. 0) for initial state, assign initial state in init() below.
     //private final int ROUTE_TO_SPEAKER = 0;
     //private final int ROUTE_TO_HDMI    = 1;
+    private final int FORCING_LANDSCAPE  = 1;
     private final int HDMI_HOTPLUG     = 2;
     private final int HDMI_POWER_OFF   = 3;
     private final int CHECK_INCALLSCREEN_ACTIVE = 4;
@@ -81,6 +89,9 @@ public class DisplayObserver extends UEventObserver {
     private int mHdmiPolicy = DisplaySetting.HDMI_ON_ALLOWED;
     private int mMdsMode = 0;
     private int mDisplayCapability = 0;
+    private boolean mIsExtMode = false;
+    private boolean mSupportRotation = false;
+    private boolean mForceLandscape = false;
 
     //Message need to handle
     //private final int HDMI_STATE_CHANGE = 0;
@@ -121,6 +132,7 @@ public class DisplayObserver extends UEventObserver {
             mHDMIConnected = 0;
             //update("HOTPLUG", ROUTE_TO_SPEAKER);
         }
+        mSupportRotation = RotationPolicy.isRotationSupported(mContext);
     }
 
     protected void finalize() throws Throwable {
@@ -146,16 +158,26 @@ public class DisplayObserver extends UEventObserver {
             if (msg == mDs.MDS_MODE_CHANGE) {
                 //logv("mode is changed to 0x" + Integer.toHexString(value));
                 mMdsMode = value;
-/*
+                int forcing_landscape = 0;
+                Message lmsg;
                 boolean isExtMode = (mMdsMode & mDs.HDMI_EXTEND_MODE) != 0;
-                Intent intent = new Intent(Intent.ACTION_REQUEST_SCREEN_ORIENTATION_LANDSCAPE);
-                intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
-                intent.putExtra(Intent.EXTRA_SET_LANDSCAPE, isExtMode);
-
-                if (mContext != null)
-                    mContext.sendBroadcast(intent);
-                logv("Request landscape:" + isExtMode);
-*/
+                if (mContext != null && mSupportRotation) {
+                    if (isExtMode && !mIsExtMode) {
+                        //logv("Entering ext mode");
+                        forcing_landscape = 1;
+                        mIsExtMode = true;
+                        mHandler.removeMessages(FORCING_LANDSCAPE);
+                        lmsg = mHandler.obtainMessage(FORCING_LANDSCAPE, forcing_landscape, 0);
+                    } else if (!isExtMode && mIsExtMode) {
+                        //logv("Leaving ext mode");
+                        forcing_landscape = 0;
+                        mIsExtMode = false;
+                        mHandler.removeMessages(FORCING_LANDSCAPE);
+                        lmsg = mHandler.obtainMessage(FORCING_LANDSCAPE, forcing_landscape, 0);
+                    } else
+                        return false;
+                    mHandler.sendMessage(lmsg);
+                }
             }
             return true;
         };
@@ -259,6 +281,27 @@ public class DisplayObserver extends UEventObserver {
         }
     }
 
+    private final void setLandscape(int landscape) {
+        if (landscape == 1 && RotationPolicy.isRotationLocked(mContext)) {
+            //logv("Rotation is already locked");
+            return;
+        }
+        try {
+            IWindowManager wm = WindowManagerGlobal.getWindowManagerService();
+            if (landscape == 1 && !mForceLandscape) {
+                //logv("Forcing to landscape mode");
+                wm.freezeRotation(Surface.ROTATION_90);
+                mForceLandscape = true;
+            } else if (landscape == 0 && mForceLandscape){
+                //logv("Revert from landscape mode");
+                wm.thawRotation();
+                mForceLandscape = false;
+            }
+        } catch (RemoteException exc) {
+            logv("Unable to set landscape mode");
+        }
+    }
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -268,6 +311,9 @@ public class DisplayObserver extends UEventObserver {
             //    sendIntents(msg.arg1, msg.arg2, (String)msg.obj);
             //    mWakeLock.release();
             //    break;
+            case FORCING_LANDSCAPE:
+                setLandscape(msg.arg1);
+                break;
             case HDMI_HOTPLUG:
                 synchronized(this) {
                     /* filter before msg which does not match with latest event */
