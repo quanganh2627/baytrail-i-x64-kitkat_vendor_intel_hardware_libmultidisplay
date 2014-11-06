@@ -65,6 +65,8 @@ public class DisplayObserver extends UEventObserver {
     // Assuming unplugged (i.e. 0) for initial state, assign initial state in init() below.
     //private final int ROUTE_TO_SPEAKER = 0;
     //private final int ROUTE_TO_HDMI    = 1;
+    private static final int HDMI_CONNECT    = 1;
+    private static final boolean ALLOW_MODE_SET = true;
     private final int FORCING_LANDSCAPE  = 1;
     private final int HDMI_HOTPLUG     = 2;
     private final int HDMI_POWER_OFF   = 3;
@@ -94,16 +96,6 @@ public class DisplayObserver extends UEventObserver {
     private boolean mForceLandscape = false;
 
     //Message need to handle
-    //private final int HDMI_STATE_CHANGE = 0;
-
-    private static final String HDMI_GET_INFO = "android.hdmi.GET_HDMI_INFO";
-    private static final String HDMI_SET_INFO = "android.hdmi.SET_HDMI_INFO";
-    private static final String HDMI_SERVER_GET_INFO = "HdmiObserver.GET_HDMI_INFO";
-    private static final String HDMI_SET_SCALE= "android.hdmi.SET.HDMI_SCALE";
-    private static final String HDMI_SET_STEP_SCALE= "android.hdmi.SET.HDMI_STEP_SCALE";
-    private static final String HDMI_Get_DisplayBoot = "android.hdmi.GET_HDMI_Boot";
-    private static final String HDMI_Set_DisplayBoot = "HdmiObserver.SET_HDMI_Boot";
-
     // Broadcast receiver for device connections intent broadcasts
     private final BroadcastReceiver mReceiver = new DisplayObserverBroadcastReceiver();
 
@@ -111,11 +103,10 @@ public class DisplayObserver extends UEventObserver {
         mContext = context;
         mDs = new DisplaySetting();
         IntentFilter intentFilter = new IntentFilter(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
-        intentFilter.addAction(HDMI_GET_INFO);
-        intentFilter.addAction(HDMI_SET_INFO);
-        intentFilter.addAction(HDMI_SET_SCALE);
-        intentFilter.addAction(HDMI_SET_STEP_SCALE);
-        intentFilter.addAction(HDMI_Get_DisplayBoot);
+        intentFilter.addAction(mDs.MDS_GET_HDMI_INFO);
+        intentFilter.addAction(mDs.MDS_SET_HDMI_MODE);
+        intentFilter.addAction(mDs.MDS_SET_HDMI_SCALE);
+        intentFilter.addAction(mDs.MDS_SET_HDMI_STEP_SCALE);
 
         mContext.registerReceiver(mReceiver, intentFilter);
         PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
@@ -246,14 +237,31 @@ public class DisplayObserver extends UEventObserver {
         ActivityManagerNative.broadcastStickyIntent(intent, Name, 0);
     }
 */
+    // Broadcast external display connection state if exernal
+    // display device is plug in/out
+    // type:  Externale display type, refer DisplaySetting.java
+    // state: connection state
+    private final void sendEdpConnectionChangeIntent(int type, int state) {
+        logv("Dislay " + type + ", state " + state);
+        Intent intent = new Intent(mDs.MDS_EDP_HOTPLUG);
+        intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
+        intent.putExtra("type", type);
+        intent.putExtra("state", state);
+
+        // Should we require a permission?
+        ActivityManagerNative.broadcastStickyIntent(intent, "MDS_EDP_PLUG", 0);
+    }
+
     private final void preNotifyHotplug(int event) {
-            /* no matter plug in or out, remove previous power off msg */
-            mHandler.removeMessages(HDMI_POWER_OFF);
-            /* set HDMI connect status per plug event */
-            if (event == 0)
-                 mHDMIConnected = 0;
-            else
-                 mHDMIConnected = 1;
+        // no matter plug in or out, remove previous power off msg
+        mHandler.removeMessages(HDMI_POWER_OFF);
+        // set HDMI connect status per plug event
+        if (event == HDMI_CONNECT)
+            mHDMIConnected = 1;
+        else
+            mHDMIConnected = 0;
+
+        sendEdpConnectionChangeIntent(1, mHDMIConnected);
     }
 
     private final void postNotifyHotplug(int event) {
@@ -363,7 +371,7 @@ public class DisplayObserver extends UEventObserver {
                     mDs.setModePolicy(mDs.MIPI_OFF_NOT_ALLOWED);
                     setHdmiPolicy(mDs.HDMI_ON_ALLOWED);
                 }
-            } else if (action.equals(HDMI_GET_INFO)) {
+            } else if (action.equals(mDs.MDS_GET_HDMI_INFO)) {
                 // Handle HDMI_GET_INFO ACTION
                 logv("HDMI is plugged "+ (mHDMIConnected == 1 ? "in" : "out"));
                 if (mHDMIConnected != 0) {
@@ -371,7 +379,7 @@ public class DisplayObserver extends UEventObserver {
                     int Count = mDs.getHdmiInfoCount();
                     mEdidChange = mDs.getHdmiDeviceChange();
                     logv("HDMI timing number:" + Count);
-                    Intent outIntent = new Intent(HDMI_SERVER_GET_INFO);
+                    Intent outIntent = new Intent(mDs.MDS_HDMI_INFO);
                     outIntent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
                     Bundle mBundle = new Bundle();
                     if (-1 != Count) {
@@ -387,8 +395,10 @@ public class DisplayObserver extends UEventObserver {
                         mBundle.putSerializable("interlace", arrInterlace);
                         mBundle.putSerializable("ratio", arrRatio);
                         mBundle.putInt("count", Count);
-                        mBundle.putInt("EdidChange",mEdidChange);
-                        mBundle.putBoolean("mHasIncomingCall",mHasIncomingCall);
+                        mBundle.putInt("EdidChange", mEdidChange);
+                        mBundle.putBoolean("mHasIncomingCall", mHasIncomingCall);
+                        mBundle.putBoolean("allowModeSet", ALLOW_MODE_SET);
+                        mBundle.putInt("bootStatus", mDisplayBoot);
                         mEdidChange = 0;
                         outIntent.putExtras(mBundle);
                         mContext.sendBroadcast(outIntent);
@@ -396,7 +406,7 @@ public class DisplayObserver extends UEventObserver {
                         logv("fail to get HDMI info");
                     }
                 }
-            } else if (action.equals(HDMI_SET_INFO)) {
+            } else if (action.equals(mDs.MDS_SET_HDMI_MODE)) {
                 // Set Specified Timing Info: width, height ,refresh, interlace
                 Bundle extras = intent.getExtras();
                 if (extras == null)
@@ -423,7 +433,7 @@ public class DisplayObserver extends UEventObserver {
                 if (!mDs.setHdmiTiming(Width, Height, Refresh, Interlace, Ratio))
                     logv("Set HDMI Timing Info error");
             }
-            else if (action.equals(HDMI_SET_SCALE)) {
+            else if (action.equals(mDs.MDS_SET_HDMI_SCALE)) {
                 Bundle extras = intent.getExtras();
                 if (extras == null)
                      return;
@@ -433,7 +443,7 @@ public class DisplayObserver extends UEventObserver {
                 if (!mDs.setHdmiScaleType(ScaleType))
                     logv("Set HDMI Scale error");
             }
-            else if (action.equals(HDMI_SET_STEP_SCALE)) {
+            else if (action.equals(mDs.MDS_SET_HDMI_STEP_SCALE)) {
                 Bundle extras = intent.getExtras();
                 if (extras == null)
                      return;
@@ -447,20 +457,6 @@ public class DisplayObserver extends UEventObserver {
                 logv("set scale info step:" +  Step);
                 if(!mDs.setHdmiScaleStep(mHoriRatio,mVertRatio))
                     logv("Set HDMI Step Scale error");
-            }
-            else if (action.equals(HDMI_Get_DisplayBoot)) {
-                Intent outIntent = new Intent(HDMI_Set_DisplayBoot);
-                Bundle mBundle = new Bundle();
-                if (mDisplayBoot == 1) {
-                    mBundle.putInt("DisplayBoot",mDisplayBoot);
-                    logv("mDisplayBoot: " + mDisplayBoot);
-                    mDisplayBoot = 0;
-                } else {
-                    mBundle.putInt("DisplayBoot",mDisplayBoot);
-                    logv("mDisplayBoot: " + mDisplayBoot);
-                }
-                outIntent.putExtras(mBundle);
-                mContext.sendBroadcast(outIntent);
             }
         }
     }

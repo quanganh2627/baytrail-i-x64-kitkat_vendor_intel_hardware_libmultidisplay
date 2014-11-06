@@ -54,6 +54,15 @@ public class DisplaySetting {
     public static final int HW_SUPPORT_HDMI = 0x1;
     public static final int HW_SUPPORT_WIDI = 0x1 << 1;
 
+    public static final String MDS_EDP_HOTPLUG         = "android.intel.mds.EXTERNAL_DP_HOTPLUG";
+    public static final String MDS_GET_HDMI_INFO       = "android.intel.mds.GET.HDMI_INFO";
+    public static final String MDS_SET_HDMI_MODE       = "android.intel.mds.SET.HDMI_MODE";
+    public static final String MDS_HDMI_INFO           = "android.intel.mds.HDMI_INFO";
+    public static final String MDS_SET_HDMI_SCALE      = "android.intel.mds.SET.HDMI_SCALE";
+    public static final String MDS_SET_HDMI_STEP_SCALE = "android.intel.mds.SET.HDMI_STEP_SCALE";
+    public static final String MDS_GET_BOOT_STATUS     = "android.intel.mds.GET.BOOT_STATUS";
+    public static final String MDS_BOOT_STATUS         = "android.intel.mds.BOOT_STATUS";
+    public static final String MDS_ALLOW_MODE_SET       = "android.intel.mds.ALLOW_MODE_SET";
 
     private static onMdsMessageListener mListener = null;
 
