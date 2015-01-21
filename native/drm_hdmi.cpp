@@ -299,7 +299,7 @@ int drm_hdmi_getConnectionStatus()
     if (connector == NULL)
         return 0;
     int ret = 0;
-#ifndef VPG_DRM
+#ifdef DVI_SUPPORTED  
     // Read EDID, and check whether it's HDMI or DVI interface
     for (int i = 0; i < connector->count_props; i++) {
         drmModePropertyPtr props = drmModeGetProperty(gDrmCxt.drmFD, connector->props[i]);
