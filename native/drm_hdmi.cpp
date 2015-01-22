@@ -299,7 +299,7 @@ int drm_hdmi_getConnectionStatus()
     if (connector == NULL)
         return 0;
     int ret = 0;
-#ifdef DVI_SUPPORTED  
+
     // Read EDID, and check whether it's HDMI or DVI interface
     for (int i = 0; i < connector->count_props; i++) {
         drmModePropertyPtr props = drmModeGetProperty(gDrmCxt.drmFD, connector->props[i]);
@@ -358,13 +358,7 @@ int drm_hdmi_getConnectionStatus()
         drmModeFreeProperty(props);
         break;
     }
-#else
-    if (connector->connection == DRM_MODE_CONNECTED) {
-        gDrmCxt.connected = true;
-        drm_select_preferredmode(connector);
-        ret = 1; // Deault is HDMI on Gen
-    }
-#endif
+
     ALOGD("External Display device is %d", ret);
     return ret;
 }
